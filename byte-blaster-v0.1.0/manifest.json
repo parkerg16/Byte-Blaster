@@ -1,0 +1,53 @@
+﻿{
+    "schema":  1,
+    "product":  "Byte Blaster",
+    "version":  "v0.1.0",
+    "channel":  "stable",
+    "release_repo":  "parkerg16/Byte-Blaster",
+    "source_repo":  "parkerg16/Byte_Blaster_RP2040",
+    "source_commit":  "656f1aa241e2e3aa9cce37988c5421c74834f5e7",
+    "created_utc":  "2026-09-02T02:32:20.6174074Z",
+    "blaster":  {
+                    "board":  "waveshare_rp2040_zero",
+                    "artifact":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v0.1.0/Byte_Blaster_RP2040_v0.1.0.uf2"
+                },
+    "esc":  {
+                "target":  "ODDITYRC_F421",
+                "am32_version":  "2.21",
+                "artifact":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v0.1.0/AM32_ODDITYRC_F421_2.21_v0.1.0.hex"
+            },
+    "assets":  [
+                   {
+                       "name":  "Byte_Blaster_RP2040_v0.1.0.uf2",
+                       "type":  "blaster",
+                       "format":  "uf2",
+                       "sha256":  "670ec198e94a2e513ec5a70c27056078351ee9e0bd0c1d0b6aba44faf0746d9d",
+                       "size":  396288,
+                       "url":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v0.1.0/Byte_Blaster_RP2040_v0.1.0.uf2"
+                   },
+                   {
+                       "name":  "Byte_Blaster_RP2040_v0.1.0.bin",
+                       "type":  "blaster",
+                       "format":  "bin",
+                       "sha256":  "387ff34716d969a5d2700a1d25e2f1fe1347bd7534e7355767fa8a54218f5bd2",
+                       "size":  197964,
+                       "url":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v0.1.0/Byte_Blaster_RP2040_v0.1.0.bin"
+                   },
+                   {
+                       "name":  "AM32_ODDITYRC_F421_2.21_v0.1.0.hex",
+                       "type":  "esc",
+                       "format":  "hex",
+                       "sha256":  "cab546c888b3a05df103f0d00e91d0877961c6c0851aff0f403bdb00874cd9af",
+                       "size":  62947,
+                       "url":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v0.1.0/AM32_ODDITYRC_F421_2.21_v0.1.0.hex"
+                   },
+                   {
+                       "name":  "AM32_ODDITYRC_F421_2.21_v0.1.0.bin",
+                       "type":  "esc",
+                       "format":  "bin",
+                       "sha256":  "aa8fe1f0d73ff331168a71b894eef1ccfd975c18df4c91aa631554b1a4c64a4d",
+                       "size":  27648,
+                       "url":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v0.1.0/AM32_ODDITYRC_F421_2.21_v0.1.0.bin"
+                   }
+               ]
+}
