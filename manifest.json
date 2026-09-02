@@ -6,7 +6,7 @@
     "release_repo":  "parkerg16/Byte-Blaster",
     "source_repo":  "parkerg16/Byte_Blaster_RP2040",
     "source_commit":  "263ddf720de5edb4e0d7b56fd79856295324de66",
-    "created_utc":  "2026-09-02T18:35:28.8668034Z",
+    "created_utc":  "2026-09-02T18:36:10.6723124Z",
     "blaster":  {
                     "board":  "waveshare_rp2040_zero",
                     "artifact":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v0.1.5-test/Byte_Blaster_RP2040_v0.1.5-test.uf2"
