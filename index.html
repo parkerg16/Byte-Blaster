@@ -2046,52 +2046,103 @@
                 </summary>
                 <div class="settings-row-desc">Lower OFF time increases cadence; ON time controls how hard/long the pusher is energized.</div>
                 <div class="settings-row-control">
-                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_3s">25</span> ms</span></div>
-                  <input type="range" id="set_sol_on_3s" min="8" max="50" step="1" value="25" oninput="syncBlasterField('sol_on_3s', this.value, 'range')">
-                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_3s">115</span> ms</span></div>
-                  <input type="range" id="set_sol_off_3s" min="0" max="200" step="1" value="115" oninput="syncBlasterField('sol_off_3s', this.value, 'range')">
+                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_3s">35</span> ms</span></div>
+                  <input type="range" id="set_sol_on_3s" min="8" max="50" step="1" value="35" oninput="syncBlasterField('sol_on_3s', this.value, 'range')">
+                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_3s">35</span> ms</span></div>
+                  <input type="range" id="set_sol_off_3s" min="0" max="200" step="1" value="35" oninput="syncBlasterField('sol_off_3s', this.value, 'range')">
                 </div>
               </details>
 
               <details class="settings-row" id="sol_tune_4s">
                 <summary class="settings-row-label" style="cursor: pointer;">
-                  <span><span class="settings-row-num">19.</span> 4S Solenoid Tune</span>
+                  <span><span class="settings-row-num">20.</span> 4S Solenoid Tune</span>
                   <span id="val_sol_rate_4s">-- DPS</span>
                 </summary>
                 <div class="settings-row-desc">Tune this for reliable feeding on 4S without holding the solenoid longer than needed.</div>
                 <div class="settings-row-control">
-                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_4s">22</span> ms</span></div>
-                  <input type="range" id="set_sol_on_4s" min="8" max="50" step="1" value="22" oninput="syncBlasterField('sol_on_4s', this.value, 'range')">
-                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_4s">90</span> ms</span></div>
-                  <input type="range" id="set_sol_off_4s" min="0" max="200" step="1" value="90" oninput="syncBlasterField('sol_off_4s', this.value, 'range')">
+                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_4s">30</span> ms</span></div>
+                  <input type="range" id="set_sol_on_4s" min="8" max="50" step="1" value="30" oninput="syncBlasterField('sol_on_4s', this.value, 'range')">
+                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_4s">30</span> ms</span></div>
+                  <input type="range" id="set_sol_off_4s" min="0" max="200" step="1" value="30" oninput="syncBlasterField('sol_off_4s', this.value, 'range')">
                 </div>
               </details>
 
               <details class="settings-row" id="sol_tune_5s">
                 <summary class="settings-row-label" style="cursor: pointer;">
-                  <span><span class="settings-row-num">20.</span> 5S Solenoid Tune</span>
+                  <span><span class="settings-row-num">21.</span> 5S Solenoid Tune</span>
                   <span id="val_sol_rate_5s">-- DPS</span>
                 </summary>
                 <div class="settings-row-desc">Higher-voltage packs can usually run shorter timing, but tune against your actual pusher and darts.</div>
                 <div class="settings-row-control">
-                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_5s">18</span> ms</span></div>
-                  <input type="range" id="set_sol_on_5s" min="8" max="50" step="1" value="18" oninput="syncBlasterField('sol_on_5s', this.value, 'range')">
-                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_5s">22</span> ms</span></div>
-                  <input type="range" id="set_sol_off_5s" min="0" max="200" step="1" value="22" oninput="syncBlasterField('sol_off_5s', this.value, 'range')">
+                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_5s">25</span> ms</span></div>
+                  <input type="range" id="set_sol_on_5s" min="8" max="50" step="1" value="25" oninput="syncBlasterField('sol_on_5s', this.value, 'range')">
+                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_5s">25</span> ms</span></div>
+                  <input type="range" id="set_sol_off_5s" min="0" max="200" step="1" value="25" oninput="syncBlasterField('sol_off_5s', this.value, 'range')">
                 </div>
               </details>
 
               <details class="settings-row" id="sol_tune_6s">
                 <summary class="settings-row-label" style="cursor: pointer;">
-                  <span><span class="settings-row-num">21.</span> 6S Solenoid Tune</span>
+                  <span><span class="settings-row-num">22.</span> 6S Solenoid Tune</span>
                   <span id="val_sol_rate_6s">-- DPS</span>
                 </summary>
                 <div class="settings-row-desc">Use the shortest timing that still feeds cleanly and does not overheat the solenoid.</div>
                 <div class="settings-row-control">
-                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_6s">15</span> ms</span></div>
-                  <input type="range" id="set_sol_on_6s" min="8" max="50" step="1" value="15" oninput="syncBlasterField('sol_on_6s', this.value, 'range')">
-                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_6s">13</span> ms</span></div>
-                  <input type="range" id="set_sol_off_6s" min="0" max="200" step="1" value="13" oninput="syncBlasterField('sol_off_6s', this.value, 'range')">
+                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_6s">20</span> ms</span></div>
+                  <input type="range" id="set_sol_on_6s" min="8" max="50" step="1" value="20" oninput="syncBlasterField('sol_on_6s', this.value, 'range')">
+                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_6s">20</span> ms</span></div>
+                  <input type="range" id="set_sol_off_6s" min="0" max="200" step="1" value="20" oninput="syncBlasterField('sol_off_6s', this.value, 'range')">
+                </div>
+              </details>
+
+              <details class="settings-row" id="dart_detect_section" open>
+                <summary class="settings-row-label" style="cursor: pointer;">
+                  <span><span class="settings-row-num">23.</span> Closed-Loop Dart Detection</span>
+                  <span id="val_dart_detect_badge" style="color: var(--accent-cyan); font-weight: 600;">Active</span>
+                </summary>
+                <div class="settings-row-desc">
+                  Monitors flywheel RPM deceleration when a dart contacts the cage. Decrements ammo counter only upon confirmed dart entry; protects against dry fire counter desync.
+                </div>
+                <div class="settings-row-control" style="margin-top: 0.8rem;">
+                  <div class="settings-row-label">
+                    <span>Dart Sensing Mode</span>
+                    <span><span id="val_set_dart_detect">Legacy (Solenoid Pulse)</span></span>
+                  </div>
+                  <label class="toggle-switch" style="margin: 0.4rem 0 0.8rem 0;">
+                    <input type="checkbox" id="set_dart_detect" onchange="syncBlasterField('dart_detect', this.checked ? 1 : 0, 'checkbox')">
+                    <span class="slider"></span>
+                  </label>
+
+                  <div class="settings-row-label" style="margin-top: 0.6rem;">
+                    <span>RPM Drop Threshold</span>
+                    <span><span id="val_set_dart_drop_rpm">800 RPM</span></span>
+                  </div>
+                  <div class="settings-row-desc" style="margin-bottom: 0.3rem;">Minimum flywheel RPM deceleration required to confirm a dart.</div>
+                  <input type="range" id="set_dart_drop_rpm" min="200" max="3000" step="50" value="800" oninput="syncBlasterField('dart_drop_rpm', this.value, 'range')">
+
+                  <div class="settings-row-label" style="margin-top: 0.8rem;">
+                    <span>Detection Window</span>
+                    <span><span id="val_set_dart_window_ms">50 ms</span></span>
+                  </div>
+                  <div class="settings-row-desc" style="margin-bottom: 0.3rem;">Duration after solenoid fires within which dart deceleration must occur. Automatically capped to the active solenoid cycle in full auto so shots never overlap.</div>
+                  <input type="range" id="set_dart_window_ms" min="20" max="150" step="5" value="50" oninput="syncBlasterField('dart_window_ms', this.value, 'range')">
+
+                  <div class="settings-row-label" style="margin-top: 0.8rem;">
+                    <span>Minimum Detection RPM</span>
+                    <span><span id="val_set_dart_min_rpm">6000 RPM</span></span>
+                  </div>
+                  <div class="settings-row-desc" style="margin-bottom: 0.3rem;">Minimum wheel speed to engage dart detection, preventing false triggers during spin-down.</div>
+                  <input type="range" id="set_dart_min_rpm" min="3000" max="15000" step="500" value="6000" oninput="syncBlasterField('dart_min_rpm', this.value, 'range')">
+
+                  <div id="dart_detect_diagnostics" style="margin-top: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;">
+                    <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; font-weight: 600; margin-bottom: 0.4rem;">Live Dart Impact Diagnostics</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem;">
+                      <div>Last Drop: <strong id="val_diag_last_drop" style="color: var(--accent-orange);">-- RPM</strong></div>
+                      <div>Result: <strong id="val_diag_last_result" style="color: var(--text-primary);">--</strong></div>
+                      <div>Darts Confirmed: <strong id="val_diag_dart_count" style="color: var(--accent-green);">0</strong></div>
+                      <div>Dry Fires Blocked: <strong id="val_diag_dry_count" style="color: var(--accent-pink);">0</strong></div>
+                    </div>
+                  </div>
                 </div>
               </details>
 
@@ -3377,6 +3428,19 @@ function updateWriteButtonText() {
     }
 
     function formatBlasterSettingValue(key, val) {
+      if (key === 'dart_detect') {
+        const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
+        return enabled ? 'Active (RPM Drop)' : 'Legacy (Solenoid Pulse)';
+      }
+      if (key === 'dart_drop_rpm') {
+        return `${Math.round(Number(val))} RPM`;
+      }
+      if (key === 'dart_window_ms') {
+        return `${Math.round(Number(val))} ms`;
+      }
+      if (key === 'dart_min_rpm') {
+        return `${Math.round(Number(val))} RPM`;
+      }
       if (key === 'temp_unit') {
         return String(val) === '1' || Math.round(Number(val)) === 1 ? 'Celsius' : 'Fahrenheit';
       }
@@ -3890,6 +3954,14 @@ function updateWriteButtonText() {
       await new Promise(r => setTimeout(r, 60));
       await sendSerialCommand("settings set brightness 200");
       await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set dart_detect 0");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set dart_drop_rpm 800");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set dart_window_ms 65");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set dart_min_rpm 6000");
+      await new Promise(r => setTimeout(r, 60));
       
       // Read back all fresh settings
       await readBlasterSettings();
@@ -3931,7 +4003,8 @@ function updateWriteButtonText() {
         'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
         'glide_rpm_per_s', 'glide_step_down_x10',
-        'splash_ms', 'rpm_preset_count', 'menu_mask'
+        'splash_ms', 'rpm_preset_count', 'menu_mask',
+        'dart_detect', 'dart_drop_rpm', 'dart_window_ms', 'dart_min_rpm'
       ];
 
       let keysToWrite = [];
