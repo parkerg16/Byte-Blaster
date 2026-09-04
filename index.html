@@ -4107,6 +4107,23 @@ function updateWriteButtonText() {
       // Reset simulator physics parameters to default
       loadPreset('default');
       
+      // Reset local solenoid and dart detect controls to factory defaults
+      const defaultSettings = {
+        sol_on_3s: 35, sol_off_3s: 35,
+        sol_on_4s: 30, sol_off_4s: 30,
+        sol_on_5s: 25, sol_off_5s: 25,
+        sol_on_6s: 20, sol_off_6s: 20,
+        dart_detect: 0,
+        dart_drop_rpm: 800,
+        dart_window_ms: 50,
+        dart_min_rpm: 6000
+      };
+      for (const k in defaultSettings) {
+        updateBlasterSettingControl(k, defaultSettings[k]);
+      }
+      updateCalculatedDps();
+      expandActiveSolenoidTune();
+      
       if (!port || !port.writable) {
         logToConsole("Browser configurator inputs reset to factory defaults. Connect blaster to sync hardware EEPROM.", false, "var(--accent-pink)");
         return;
@@ -4145,9 +4162,25 @@ function updateWriteButtonText() {
       await new Promise(r => setTimeout(r, 60));
       await sendSerialCommand("settings set dart_drop_rpm 800");
       await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set dart_window_ms 65");
+      await sendSerialCommand("settings set dart_window_ms 50");
       await new Promise(r => setTimeout(r, 60));
       await sendSerialCommand("settings set dart_min_rpm 6000");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set sol_on_3s 35");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set sol_off_3s 35");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set sol_on_4s 30");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set sol_off_4s 30");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set sol_on_5s 25");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set sol_off_5s 25");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set sol_on_6s 20");
+      await new Promise(r => setTimeout(r, 60));
+      await sendSerialCommand("settings set sol_off_6s 20");
       await new Promise(r => setTimeout(r, 60));
       
       // Read back all fresh settings
