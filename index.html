@@ -2372,6 +2372,20 @@
                 </div>
               </details>
 
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <span>Dynamic Voltage Compensation <span style="font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); margin-left: 0.35rem; font-weight: 700;">BETA</span></span>
+                  <span id="val_set_sol_volt_comp">Disabled (Fixed Cell Table)</span>
+                </div>
+                <div class="settings-row-desc">Automatically expands solenoid on-time (+1.25 ms/V) as pack voltage drops or sags below nominal 4.0V/cell to guarantee full pusher extension across the entire battery discharge.</div>
+                <div class="settings-row-control" style="display: flex; justify-content: flex-end;">
+                  <label class="toggle-switch" title="Toggle Dynamic Solenoid Voltage Compensation" style="margin: 0;">
+                    <input type="checkbox" id="set_sol_volt_comp" onchange="syncBlasterField('sol_volt_comp', this.checked ? 1 : 0, 'checkbox')">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
               <details class="settings-row" id="dart_detect_section" open style="display: block;">
                 <summary class="settings-row-label" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                   <span><span class="settings-row-num">23.</span> Closed-Loop Dart Detection</span>
@@ -4307,6 +4321,10 @@ function updateWriteButtonText() {
     let liveBrightnessDebounceTimer = null;
 
     function formatBlasterSettingValue(key, val) {
+      if (key === 'sol_volt_comp') {
+        const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
+        return enabled ? 'Active (+1.25 ms/V Sag Boost)' : 'Disabled (Fixed Cell Table)';
+      }
       if (key === 'brightness') {
         return Math.round(Number(val));
       }
@@ -4888,6 +4906,7 @@ function updateWriteButtonText() {
         sol_on_4s: 30, sol_off_4s: 30,
         sol_on_5s: 25, sol_off_5s: 25,
         sol_on_6s: 20, sol_off_6s: 20,
+        sol_volt_comp: 0,
         dart_detect: 0,
         dart_drop_rpm: 800,
         dart_window_ms: 50,
@@ -4973,7 +4992,7 @@ function updateWriteButtonText() {
         'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'brightness', 'temp_unit', 'cells',
         'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
-        'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s',
+        'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
         'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_boost', 'launch_trajectory', 'startup_rpm',
         'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
