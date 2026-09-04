@@ -5401,12 +5401,17 @@ function updateWriteButtonText() {
       estimatedCurrent2: null
     };
     
-    // Log to simulated console in page
+    // Log to simulated console in page (high-performance, DOM-capped)
     function logToConsole(text, isError = false) {
       const consoleEl = document.getElementById('serial_console');
       if (!consoleEl) return;
-      const color = isError ? '#ec4899' : '#9ca3af';
-      consoleEl.innerHTML += `<div style="color: ${color}">[${new Date().toLocaleTimeString()}] ${text}</div>`;
+      const div = document.createElement('div');
+      div.style.color = isError ? '#ec4899' : '#9ca3af';
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+      consoleEl.appendChild(div);
+      while (consoleEl.children.length > 200) {
+        consoleEl.removeChild(consoleEl.firstChild);
+      }
       consoleEl.scrollTop = consoleEl.scrollHeight;
     }
 
@@ -5651,11 +5656,22 @@ function updateWriteButtonText() {
       keepReading = false;
       logToConsole("Closing connection...");
       
+      // Wait for any pending write to finish (with 600ms safety timeout)
+      try {
+        await Promise.race([
+          serialWriteQueue,
+          new Promise(r => setTimeout(r, 600))
+        ]);
+      } catch (e) {}
+
       if (serialReader) {
         try {
           await serialReader.cancel();
-          await serialClosedPromise;
         } catch (e) {}
+        try {
+          serialReader.releaseLock();
+        } catch (e) {}
+        serialReader = null;
       }
       
       if (port) {
@@ -5665,13 +5681,17 @@ function updateWriteButtonText() {
         port = null;
       }
       
-      navigator.serial.removeEventListener('disconnect', onSerialDeviceDisconnect);
+      try {
+        navigator.serial.removeEventListener('disconnect', onSerialDeviceDisconnect);
+      } catch (e) {}
       logToConsole("Disconnected.");
       updateSerialStatus('disconnected');
       
       // Reset active PID displays
-      document.getElementById('board_pid_m1').textContent = "M1: (Not connected)";
-      document.getElementById('board_pid_m2').textContent = "M2: (Not connected)";
+      const m1El = document.getElementById('board_pid_m1');
+      const m2El = document.getElementById('board_pid_m2');
+      if (m1El) m1El.textContent = "M1: (Not connected)";
+      if (m2El) m2El.textContent = "M2: (Not connected)";
     }
 
     function onSerialDeviceDisconnect(event) {
@@ -5699,7 +5719,9 @@ function updateWriteButtonText() {
           } else {
             logToConsole(`> ${cmd}`);
           }
-          await writer.write(encoder.encode(cmd + "\r\n"));
+          const writePromise = writer.write(encoder.encode(cmd + "\r\n"));
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Serial write timed out")), 1500));
+          await Promise.race([writePromise, timeoutPromise]);
         } catch (err) {
           logToConsole(`Write error: ${err.message}`, true);
         } finally {
@@ -5816,27 +5838,35 @@ function updateWriteButtonText() {
     async function readSerialLoop() {
       keepReading = true;
       let buffer = "";
+      const textDecoder = new TextDecoder();
       
       while (port && port.readable && keepReading) {
         try {
-          const textDecoder = new TextDecoderStream();
-          serialClosedPromise = port.readable.pipeTo(textDecoder.writable);
-          serialReader = textDecoder.readable.getReader();
+          serialReader = port.readable.getReader();
           
-          while (true) {
+          while (keepReading) {
             const { value, done } = await serialReader.read();
             if (done) break;
             
-            buffer += value;
+            buffer += textDecoder.decode(value, { stream: true });
             let lines = buffer.split("\n");
             buffer = lines.pop(); // keep last chunk in buffer
+            if (buffer.length > 4096) buffer = ""; // prevent unbounded growth on noise/garbage
             
             for (let line of lines) {
-              parseSerialLine(line.trim());
+              const trimmed = line.trim();
+              if (!trimmed) continue;
+              try {
+                parseSerialLine(trimmed);
+              } catch (parseErr) {
+                console.warn("[Serial] Parse error on line:", trimmed, parseErr);
+              }
             }
           }
         } catch (err) {
-          logToConsole(`Read loop error: ${err.message}`, true);
+          if (keepReading) {
+            logToConsole(`Read loop error: ${err.message}`, true);
+          }
           break;
         } finally {
           if (serialReader) {
@@ -5847,7 +5877,11 @@ function updateWriteButtonText() {
           }
         }
       }
-      updateSerialStatus('disconnected');
+      if (keepReading) {
+        disconnectSerial();
+      } else {
+        updateSerialStatus('disconnected');
+      }
     }
 
     // Parse incoming lines
@@ -6166,9 +6200,9 @@ function updateWriteButtonText() {
     window.toggleTelemetryPause = toggleTelemetryPause;
 
     function updateLiveTelemetryChart(point) {
-      if (!dynamicsChart || captureState === 'FINISHED' || isLiveStreamingPaused) return;
+      if (!dynamicsChart || captureState === 'FINISHED' || captureState === 'WAITING_IDLE' || isLiveStreamingPaused) return;
 
-      const sampleMs = point.boardMs !== null ? point.boardMs : point.timestamp;
+      const sampleMs = (point.boardMs !== null && point.boardMs !== undefined) ? point.boardMs : point.timestamp;
       const targetJustRose = lastTelemetryTarget <= 500 && point.target > 500;
       const motorsActive = point.target > 500 || point.rpm1 > 100 || point.rpm2 > 100;
       lastTelemetryTarget = point.target;
@@ -6251,9 +6285,18 @@ function updateWriteButtonText() {
     }
 
     function processTelemetryStep(point) {
-      isAutocaptureEnabled = document.getElementById('serial_autocapture').checked;
-      const target_rpm = parseFloat(document.getElementById('rp2040_target_rpm').value) || 30000;
+      const autocapEl = document.getElementById('serial_autocapture');
+      isAutocaptureEnabled = autocapEl ? autocapEl.checked : false;
+      const target_rpm = parseFloat(document.getElementById('rp2040_target_rpm')?.value) || 30000;
       const target_95 = 0.95 * target_rpm;
+
+      if (captureState === 'WAITING_IDLE') {
+        // Wait until blaster returns to resting stop or low idle before re-arming auto-capture
+        const isBlasterAtRest = (point.target <= 500) && (point.rpm1 < 2500) && (point.rpm2 < 2500) && ((point.throttle1 || 0) <= 48);
+        if (isBlasterAtRest) {
+          captureState = 'IDLE';
+        }
+      }
       
       if (captureState === 'IDLE' && isAutocaptureEnabled) {
         // Arm automatically if target transitions from 0/low to active target or spinup begins
@@ -6263,23 +6306,24 @@ function updateWriteButtonText() {
           // Find baseline target (minimum target in the buffer)
           let minTarget = point.target;
           for (let i = 0; i < rollingBuffer.length; i++) {
-            if (rollingBuffer[i].target < minTarget) {
+            if (rollingBuffer[i] && rollingBuffer[i].target < minTarget) {
               minTarget = rollingBuffer[i].target;
             }
           }
           
           // Find the index in rollingBuffer where target first rose above minTarget
-          let startIdx = rollingBuffer.length - 1;
+          let startIdx = rollingBuffer.length > 0 ? (rollingBuffer.length - 1) : 0;
           for (let i = rollingBuffer.length - 1; i >= 0; i--) {
-            if (rollingBuffer[i].target <= minTarget) {
+            if (rollingBuffer[i] && rollingBuffer[i].target <= minTarget) {
               startIdx = i + 1;
               break;
             }
           }
-          if (startIdx >= rollingBuffer.length) startIdx = rollingBuffer.length - 1;
+          if (startIdx >= rollingBuffer.length) startIdx = Math.max(0, rollingBuffer.length - 1);
           
-          const triggerPoint = rollingBuffer[startIdx];
-          triggerTimestamp = triggerPoint.boardMs !== null ? triggerPoint.boardMs : triggerPoint.timestamp;
+          const triggerPoint = rollingBuffer[startIdx] || point;
+          const rawTriggerMs = (triggerPoint.boardMs !== null && triggerPoint.boardMs !== undefined) ? triggerPoint.boardMs : triggerPoint.timestamp;
+          triggerTimestamp = Number.isFinite(rawTriggerMs) ? rawTriggerMs : Date.now();
           
           reachedTarget = false;
           targetReachedTime = 0;
@@ -6292,18 +6336,21 @@ function updateWriteButtonText() {
           // Dump pre-trigger and trigger history from rollingBuffer
           for (let i = 0; i < rollingBuffer.length; i++) {
             const histPoint = rollingBuffer[i];
-            const histMs = histPoint.boardMs !== null ? histPoint.boardMs : histPoint.timestamp;
+            if (!histPoint) continue;
+            const rawHistMs = (histPoint.boardMs !== null && histPoint.boardMs !== undefined) ? histPoint.boardMs : histPoint.timestamp;
+            const histMs = Number.isFinite(rawHistMs) ? rawHistMs : triggerTimestamp;
             const relTime = 10.0 + (histMs - triggerTimestamp);
-            capturedDataM1.push({ x: relTime, y: histPoint.rpm1, throttle: histPoint.throttle1, targetCurrent: histPoint.targetCurrent1, estimatedCurrent: histPoint.estimatedCurrent1 });
-            capturedDataM2.push({ x: relTime, y: histPoint.rpm2, throttle: histPoint.throttle2, targetCurrent: histPoint.targetCurrent2, estimatedCurrent: histPoint.estimatedCurrent2 });
+            capturedDataM1.push({ x: relTime, y: histPoint.rpm1 || 0, throttle: histPoint.throttle1 || 0, targetCurrent: histPoint.targetCurrent1, estimatedCurrent: histPoint.estimatedCurrent1 });
+            capturedDataM2.push({ x: relTime, y: histPoint.rpm2 || 0, throttle: histPoint.throttle2 || 0, targetCurrent: histPoint.targetCurrent2, estimatedCurrent: histPoint.estimatedCurrent2 });
           }
         }
       } else if (captureState === 'RECORDING') {
-        const currentMs = point.boardMs !== null ? point.boardMs : point.timestamp;
+        const rawCurrentMs = (point.boardMs !== null && point.boardMs !== undefined) ? point.boardMs : point.timestamp;
+        const currentMs = Number.isFinite(rawCurrentMs) ? rawCurrentMs : Date.now();
         const relTime = 10.0 + (currentMs - triggerTimestamp);
         
-        capturedDataM1.push({ x: relTime, y: point.rpm1, throttle: point.throttle1, targetCurrent: point.targetCurrent1, estimatedCurrent: point.estimatedCurrent1 });
-        capturedDataM2.push({ x: relTime, y: point.rpm2, throttle: point.throttle2, targetCurrent: point.targetCurrent2, estimatedCurrent: point.estimatedCurrent2 });
+        capturedDataM1.push({ x: relTime, y: point.rpm1 || 0, throttle: point.throttle1 || 0, targetCurrent: point.targetCurrent1, estimatedCurrent: point.estimatedCurrent1 });
+        capturedDataM2.push({ x: relTime, y: point.rpm2 || 0, throttle: point.throttle2 || 0, targetCurrent: point.targetCurrent2, estimatedCurrent: point.estimatedCurrent2 });
         
         // Check if target reached
         if (!reachedTarget && (point.rpm1 >= target_95 && point.rpm2 >= target_95)) {
@@ -6333,19 +6380,20 @@ function updateWriteButtonText() {
           
           plotRealTelemetry();
           
-          // Reset after a short delay to accept next trigger
+          // Reset after inspection window to wait for blaster to return to rest before re-arming
           setTimeout(() => {
-            if (captureState === 'FINISHED') captureState = 'IDLE';
+            if (captureState === 'FINISHED') captureState = 'WAITING_IDLE';
           }, 3000);
         }
       }
     }
 
     function plotRealTelemetry() {
-      const target_rpm = parseFloat(document.getElementById('rp2040_target_rpm').value) || 30000;
-      // Find peak RPM of captured data
-      const peakM1 = Math.max(...capturedDataM1.map(d => d.y));
-      const peakM2 = Math.max(...capturedDataM2.map(d => d.y));
+      if (!dynamicsChart || capturedDataM1.length === 0) return;
+      const target_rpm = parseFloat(document.getElementById('rp2040_target_rpm')?.value) || 30000;
+      // Find peak RPM of captured data safely
+      const peakM1 = capturedDataM1.length > 0 ? Math.max(...capturedDataM1.map(d => d.y)) : 0;
+      const peakM2 = capturedDataM2.length > 0 ? Math.max(...capturedDataM2.map(d => d.y)) : 0;
       const realPeak = Math.max(peakM1, peakM2);
       
       // Find launch duration (time to hit 95% of target)
@@ -6355,24 +6403,27 @@ function updateWriteButtonText() {
       let solenoidFiredMs = -1;
       
       for (let i = 0; i < capturedDataM1.length; i++) {
-        const avgRpm = (capturedDataM1[i].y + capturedDataM2[i].y) / 2.0;
-        if (solenoidFiredMs < 0 && capturedDataM1[i].x > 10.0 && avgRpm >= target_92) {
-          solenoidFiredMs = capturedDataM1[i].x - 10.0;
+        const pt1 = capturedDataM1[i];
+        const pt2 = capturedDataM2[i] || pt1;
+        const avgRpm = ((pt1?.y ?? 0) + (pt2?.y ?? 0)) / 2.0;
+        if (solenoidFiredMs < 0 && pt1.x > 10.0 && avgRpm >= target_92) {
+          solenoidFiredMs = pt1.x - 10.0;
         }
-        if (realRampMs < 0 && capturedDataM1[i].x > 10.0 && avgRpm >= target_95) {
-          realRampMs = capturedDataM1[i].x - 10.0;
+        if (realRampMs < 0 && pt1.x > 10.0 && avgRpm >= target_95) {
+          realRampMs = pt1.x - 10.0;
           break;
         }
       }
       
       // Update Real statistics overlay labels
-      if (realRampMs > 0) {
-        document.getElementById('real_ramp_time').textContent = `(Real: ${Math.round(realRampMs)}ms)`;
-      } else {
-        document.getElementById('real_ramp_time').textContent = `(Real: Stalled/Slow)`;
+      const rampEl = document.getElementById('real_ramp_time');
+      if (rampEl) {
+        rampEl.textContent = realRampMs > 0 ? `(Real: ${Math.round(realRampMs)}ms)` : `(Real: Stalled/Slow)`;
       }
-      
-      document.getElementById('real_peak_rpm').textContent = `(Real: ${realPeak.toLocaleString()})`;
+      const peakEl = document.getElementById('real_peak_rpm');
+      if (peakEl) {
+        peakEl.textContent = `(Real: ${realPeak.toLocaleString()})`;
+      }
 
       // Inject captured telemetry datasets to chart
       dynamicsChart.data.datasets[4].data = capturedDataM1;
@@ -6412,12 +6463,15 @@ function updateWriteButtonText() {
       // Adjust X-axis max dynamically
       if (capturedDataM1.length > 0) {
         const maxTime = Math.max(...capturedDataM1.map(d => d.x));
-        dynamicsChart.options.scales.x.max = Math.max(300, Math.ceil(maxTime / 50) * 50);
+        if (Number.isFinite(maxTime)) {
+          dynamicsChart.options.scales.x.max = Math.max(300, Math.ceil(maxTime / 50) * 50);
+        }
       }
       dynamicsChart.update();
       
       // Show download button
-      document.getElementById('btn_download').style.display = 'block';
+      const dlBtn = document.getElementById('btn_download');
+      if (dlBtn) dlBtn.style.display = 'block';
 
       // Run predictive PID analysis
       runPredictiveAnalysis();
@@ -6426,6 +6480,7 @@ function updateWriteButtonText() {
     function clearCapturedTelemetry() {
       capturedDataM1 = [];
       capturedDataM2 = [];
+      rollingBuffer = [];
       capturePidSnapshot = null;
       dynamicsChart.data.datasets[4].data = [];
       dynamicsChart.data.datasets[5].data = [];
@@ -6797,7 +6852,9 @@ function updateWriteButtonText() {
     }
 
     async function handleSweepTestStep(result) {
+      if (!result || !result.metrics) return;
       const peakRpm = result.metrics.peakRpm;
+      const riseTime = result.metrics.riseTime;
       
       if (sweepTestState === 'WAITING_SHOT_1') {
         sweepResults.push({
