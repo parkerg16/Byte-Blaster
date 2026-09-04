@@ -1799,12 +1799,12 @@
                   <span><span class="settings-row-num">02.</span> Preset 2 Speed &amp; Name (rpm1)</span>
                   <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <input type="text" id="set_rpm_name1" maxlength="7" value="FUN" style="width: 68px; padding: 0.15rem 0.35rem; font-size: 0.75rem; text-align: center; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: var(--accent-violet); border-radius: 4px; font-weight: 700;" oninput="syncBlasterField('rpm_name1', this.value, 'text')" title="Preset 2 Name">
-                    <span><span id="val_set_rpm1">25000</span> RPM</span>
+                    <span><span id="val_set_rpm1">20000</span> RPM</span>
                   </div>
                 </div>
                 <div class="settings-row-desc">Second target RPM speed preset and label (e.g. FUN, MID, GAME).</div>
                 <div class="settings-row-control">
-                  <input type="range" id="set_rpm1" min="1000" max="40000" step="500" value="25000" oninput="syncBlasterField('rpm1', this.value, 'range')">
+                  <input type="range" id="set_rpm1" min="1000" max="40000" step="500" value="20000" oninput="syncBlasterField('rpm1', this.value, 'range')">
                 </div>
               </div>
 
@@ -1813,12 +1813,12 @@
                   <span><span class="settings-row-num">03.</span> Preset 3 Speed &amp; Name (rpm2)</span>
                   <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <input type="text" id="set_rpm_name2" maxlength="7" value="TOUR" style="width: 68px; padding: 0.15rem 0.35rem; font-size: 0.75rem; text-align: center; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: var(--accent-violet); border-radius: 4px; font-weight: 700;" oninput="syncBlasterField('rpm_name2', this.value, 'text')" title="Preset 3 Name">
-                    <span><span id="val_set_rpm2">30000</span> RPM</span>
+                    <span><span id="val_set_rpm2">31000</span> RPM</span>
                   </div>
                 </div>
                 <div class="settings-row-desc">Third target RPM speed preset and label (e.g. TOUR, COMP, HIGH).</div>
                 <div class="settings-row-control">
-                  <input type="range" id="set_rpm2" min="1000" max="40000" step="500" value="30000" oninput="syncBlasterField('rpm2', this.value, 'range')">
+                  <input type="range" id="set_rpm2" min="1000" max="40000" step="500" value="31000" oninput="syncBlasterField('rpm2', this.value, 'range')">
                 </div>
               </div>
 
@@ -1860,36 +1860,36 @@
               <div class="settings-row">
                 <div class="settings-row-label">
                   <span><span class="settings-row-num">07.</span> Battery Cell Count</span>
-                  <span><span id="val_set_cells">5</span>S</span>
+                  <span><span id="val_set_cells">4</span>S</span>
                 </div>
                 <div class="settings-row-desc">Number of LiPo series cells (0=auto-detect, 3S, 4S, 5S, 6S).</div>
                 <div class="settings-row-control">
-                  <input type="range" id="set_cells" min="0" max="6" step="1" value="5" oninput="syncBlasterField('cells', this.value, 'range')">
+                  <input type="range" id="set_cells" min="0" max="6" step="1" value="4" oninput="syncBlasterField('cells', this.value, 'range')">
                 </div>
               </div>
 
               <div class="settings-row">
                 <div class="settings-row-label">
                   <span><span class="settings-row-num">08.</span> Max Ramp Step (step_up)</span>
-                  <span><span id="val_set_step_up">200</span></span>
+                  <span><span id="val_set_step_up">45</span></span>
                 </div>
                 <div class="settings-row-desc">Acceleration rate limiter. Maximum throttle step size per millisecond. Higher values give faster spin-up.</div>
                 <div class="settings-row-control">
-                  <input type="range" id="set_step_up" min="10" max="400" step="5" value="200" oninput="syncBlasterField('step_up', this.value, 'range')">
+                  <input type="range" id="set_step_up" min="6" max="140" step="1" value="45" oninput="syncBlasterField('step_up', this.value, 'range')">
                 </div>
               </div>
 
               <div class="settings-row">
                 <div class="settings-row-label">
                   <span><span class="settings-row-num">09.</span> DShot Signal Speed</span>
-                  <span><span id="val_set_dshot_rate">DShot300</span></span>
+                  <span><span id="val_set_dshot_rate">DShot600</span></span>
                 </div>
                 <div class="settings-row-desc">Packet bitrate sent to the ESC. Use DShot600 if your ESCs support it and telemetry remains reliable.</div>
                 <div class="settings-row-control">
                   <select id="set_dshot_rate" onchange="syncBlasterField('dshot_rate', this.value, 'select')" style="width: 100%; padding: 0.35rem; border-radius: 6px; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: white;">
                     <option value="150">DShot150</option>
-                    <option value="300" selected>DShot300</option>
-                    <option value="600">DShot600</option>
+                    <option value="300">DShot300</option>
+                    <option value="600" selected>DShot600</option>
                   </select>
                 </div>
               </div>
@@ -1897,13 +1897,13 @@
               <div class="settings-row">
                 <div class="settings-row-label">
                   <span><span class="settings-row-num">10.</span> DShot Frame Cadence</span>
-                  <span><span id="val_set_frame_period_us">500 Hz</span></span>
+                  <span><span id="val_set_frame_period_us">1000 Hz</span></span>
                 </div>
                 <div class="settings-row-desc">How often the RP2040 sends DShot throttle frames. 1000 Hz gives finer command spacing for software glide.</div>
                 <div class="settings-row-control">
                   <select id="set_frame_period_us" onchange="syncBlasterField('frame_period_us', this.value, 'select')" style="width: 100%; padding: 0.35rem; border-radius: 6px; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: white;">
+                    <option value="1000" selected>1000 Hz</option>
                     <option value="2000">500 Hz</option>
-                    <option value="1000">1000 Hz</option>
                   </select>
                 </div>
               </div>
@@ -4107,8 +4107,35 @@ function updateWriteButtonText() {
       // Reset simulator physics parameters to default
       loadPreset('default');
       
-      // Reset local solenoid and dart detect controls to factory defaults
-      const defaultSettings = {
+      // Canonical factory defaults matching firmware
+      const factoryDefaults = {
+        rpm_name0: "HVZ",
+        rpm0: 15000,
+        rpm_name1: "FUN",
+        rpm1: 20000,
+        rpm_name2: "TOUR",
+        rpm2: 31000,
+        hud_target_label: "T:",
+        hud_current_label: "C:",
+        always_on_rpm: 1500,
+        always_on: 0,
+        motor_kv: 3200,
+        cells: 4,
+        step_up: 45,
+        dshot_rate: 600,
+        frame_period_us: 1000,
+        ctrl_algo: 1,
+        launch_boost: 70,
+        launch_trajectory: 0,
+        startup_rpm: 2500,
+        batt_cutoff_cell: 2800,
+        batt_warn_cell: 3300,
+        glide_rpm_per_s: 16000,
+        glide_step_down_x10: 60,
+        post_shot_hold: 100,
+        trigger_mode: 0,
+        burst_count: 3,
+        mag_capacity: 17,
         sol_on_3s: 35, sol_off_3s: 35,
         sol_on_4s: 30, sol_off_4s: 30,
         sol_on_5s: 25, sol_off_5s: 25,
@@ -4116,74 +4143,54 @@ function updateWriteButtonText() {
         dart_detect: 0,
         dart_drop_rpm: 800,
         dart_window_ms: 50,
-        dart_min_rpm: 6000
+        dart_min_rpm: 6000,
+        pid1_kp: 0.051, pid1_ki: 0.002, pid1_ff: 1.0000,
+        pid2_kp: 0.051, pid2_ki: 0.002, pid2_ff: 1.0000,
+        brightness: 50,
+        temp_unit: 0,
+        rpm_preset_count: 3,
+        splash_ms: 1000,
+        freewheel: 0
       };
-      for (const k in defaultSettings) {
-        updateBlasterSettingControl(k, defaultSettings[k]);
+
+      for (const k in factoryDefaults) {
+        updateBlasterSettingControl(k, factoryDefaults[k]);
       }
+
+      // Sync manual PID tuning fields
+      if (typeof setManualPidValue === 'function') {
+        setManualPidValue('m1', 'kp', 0.051);
+        setManualPidValue('m1', 'ki', 0.002);
+        setManualPidValue('m1', 'ff', 1.0000);
+        setManualPidValue('m2', 'kp', 0.051);
+        setManualPidValue('m2', 'ki', 0.002);
+        setManualPidValue('m2', 'ff', 1.0000);
+      }
+
       updateCalculatedDps();
       expandActiveSolenoidTune();
+      updateLegacyActiveSolenoidFields();
+
+      // Clear any dirty markers locally since values are now factory clean
+      dirtySettings.clear();
+      document.querySelectorAll('.settings-row.setting-dirty').forEach(row => {
+        row.classList.remove('setting-dirty');
+      });
+      updateWriteButtonText();
       
       if (!port || !port.writable) {
-        logToConsole("Browser configurator inputs reset to factory defaults. Connect blaster to sync hardware EEPROM.", false, "var(--accent-pink)");
+        logToConsole("Configurator inputs reset to factory defaults (DShot600, 1000Hz, 3S-6S solenoid tunes). Connect blaster to sync hardware EEPROM.", false, "var(--accent-pink)");
+        alert("Factory defaults restored in configurator!");
         return;
       }
       
       logToConsole("Restoring factory defaults on physical blaster EEPROM...");
       
-      // Send firmware factory reset commands
-      await sendSerialCommand("tune defaults");
-      await new Promise(r => setTimeout(r, 120));
-      await sendSerialCommand("presets defaults");
-      await new Promise(r => setTimeout(r, 120));
-      await sendSerialCommand("settings set launch_boost 70");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set startup_rpm 2500");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set ctrl_algo 1");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set rpm_preset_count 3");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set trigger_mode 0");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set burst_count 3");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set mag_capacity 17");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set rpm_name0 HVZ");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set rpm_name1 FUN");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set rpm_name2 TOUR");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set brightness 200");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set dart_detect 0");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set dart_drop_rpm 800");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set dart_window_ms 50");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set dart_min_rpm 6000");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set sol_on_3s 35");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set sol_off_3s 35");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set sol_on_4s 30");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set sol_off_4s 30");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set sol_on_5s 25");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set sol_off_5s 25");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set sol_on_6s 20");
-      await new Promise(r => setTimeout(r, 60));
-      await sendSerialCommand("settings set sol_off_6s 20");
-      await new Promise(r => setTimeout(r, 60));
+      // Send single atomic factory reset command supported by firmware
+      await sendSerialCommand("settings defaults");
+      await new Promise(r => setTimeout(r, 250));
       
-      // Read back all fresh settings
+      // Read back and sync all fresh settings directly from blaster EEPROM
       await readBlasterSettings();
       logToConsole("Factory defaults successfully restored and synced with board EEPROM.");
       alert("Factory defaults restored successfully!");
