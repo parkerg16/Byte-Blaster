@@ -207,6 +207,57 @@
       accent-color: var(--accent-blue);
     }
 
+    /* Toggle Switch Component */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 46px;
+      height: 24px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .toggle-switch .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255, 255, 255, 0.12);
+      transition: all 0.25s ease;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .toggle-switch .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #9ca3af;
+      transition: all 0.25s ease;
+      border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+    .toggle-switch input:checked + .slider {
+      background-color: rgba(6, 182, 212, 0.25);
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.35);
+    }
+    .toggle-switch input:checked + .slider:before {
+      transform: translateX(22px);
+      background-color: var(--accent-blue);
+      box-shadow: 0 0 8px rgba(6, 182, 212, 0.9);
+    }
+    .toggle-switch input:focus-visible + .slider {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 2px;
+    }
+
     /* Web Serial Status classes */
     .status-indicator {
       width: 10px;
@@ -2095,53 +2146,84 @@
                 </div>
               </details>
 
-              <details class="settings-row" id="dart_detect_section" open>
-                <summary class="settings-row-label" style="cursor: pointer;">
+              <details class="settings-row" id="dart_detect_section" open style="display: block;">
+                <summary class="settings-row-label" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                   <span><span class="settings-row-num">23.</span> Closed-Loop Dart Detection</span>
-                  <span id="val_dart_detect_badge" style="color: var(--accent-cyan); font-weight: 600;">Active</span>
+                  <span id="val_dart_detect_badge" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; font-size: 0.72rem; padding: 0.2rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); transition: all 0.2s ease;">
+                    ○ Disabled (Legacy)
+                  </span>
                 </summary>
-                <div class="settings-row-desc">
+                <div class="settings-row-desc" style="margin-top: 0.35rem;">
                   Monitors flywheel RPM deceleration when a dart contacts the cage. Decrements ammo counter only upon confirmed dart entry; protects against dry fire counter desync.
                 </div>
-                <div class="settings-row-control" style="margin-top: 0.8rem;">
-                  <div class="settings-row-label">
-                    <span>Dart Sensing Mode</span>
-                    <span><span id="val_set_dart_detect">Legacy (Solenoid Pulse)</span></span>
-                  </div>
-                  <label class="toggle-switch" style="margin: 0.4rem 0 0.8rem 0;">
-                    <input type="checkbox" id="set_dart_detect" onchange="syncBlasterField('dart_detect', this.checked ? 1 : 0, 'checkbox')">
-                    <span class="slider"></span>
-                  </label>
 
-                  <div class="settings-row-label" style="margin-top: 0.6rem;">
-                    <span>RPM Drop Threshold</span>
-                    <span><span id="val_set_dart_drop_rpm">800 RPM</span></span>
-                  </div>
-                  <div class="settings-row-desc" style="margin-bottom: 0.3rem;">Minimum flywheel RPM deceleration required to confirm a dart.</div>
-                  <input type="range" id="set_dart_drop_rpm" min="200" max="3000" step="50" value="800" oninput="syncBlasterField('dart_drop_rpm', this.value, 'range')">
-
-                  <div class="settings-row-label" style="margin-top: 0.8rem;">
-                    <span>Detection Window</span>
-                    <span><span id="val_set_dart_window_ms">50 ms</span></span>
-                  </div>
-                  <div class="settings-row-desc" style="margin-bottom: 0.3rem;">Duration after solenoid fires within which dart deceleration must occur. Automatically capped to the active solenoid cycle in full auto so shots never overlap.</div>
-                  <input type="range" id="set_dart_window_ms" min="20" max="150" step="5" value="50" oninput="syncBlasterField('dart_window_ms', this.value, 'range')">
-
-                  <div class="settings-row-label" style="margin-top: 0.8rem;">
-                    <span>Minimum Detection RPM</span>
-                    <span><span id="val_set_dart_min_rpm">6000 RPM</span></span>
-                  </div>
-                  <div class="settings-row-desc" style="margin-bottom: 0.3rem;">Minimum wheel speed to engage dart detection, preventing false triggers during spin-down.</div>
-                  <input type="range" id="set_dart_min_rpm" min="3000" max="15000" step="500" value="6000" oninput="syncBlasterField('dart_min_rpm', this.value, 'range')">
-
-                  <div id="dart_detect_diagnostics" style="margin-top: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;">
-                    <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; font-weight: 600; margin-bottom: 0.4rem;">Live Dart Impact Diagnostics</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem;">
-                      <div>Last Drop: <strong id="val_diag_last_drop" style="color: var(--accent-orange);">-- RPM</strong></div>
-                      <div>Result: <strong id="val_diag_last_result" style="color: var(--text-primary);">--</strong></div>
-                      <div>Darts Confirmed: <strong id="val_diag_dart_count" style="color: var(--accent-green);">0</strong></div>
-                      <div>Dry Fires Blocked: <strong id="val_diag_dry_count" style="color: var(--accent-pink);">0</strong></div>
+                <!-- Mode Toggle Card -->
+                <div style="margin-top: 0.85rem; padding: 0.85rem 1rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                    <div>
+                      <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary);">Dart Sensing Mode</div>
+                      <div id="val_set_dart_detect" style="font-size: 0.75rem; margin-top: 0.2rem;">
+                        <span style="color: var(--text-secondary); font-weight: 500;">○ Disabled</span> <span style="color: var(--text-secondary);">(Legacy Solenoid Pulse)</span>
+                      </div>
                     </div>
+                    <label class="toggle-switch" title="Toggle Closed-Loop Dart Detection" style="margin: 0;">
+                      <input type="checkbox" id="set_dart_detect" onchange="syncBlasterField('dart_detect', this.checked ? 1 : 0, 'checkbox')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div id="dart_detect_status_banner" style="margin-top: 0.75rem; padding: 0.5rem 0.75rem; font-size: 0.72rem; line-height: 1.4; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.03); color: var(--text-secondary); transition: all 0.2s ease;">
+                    <span style="color: var(--text-secondary); font-weight: 600;">ⓘ Legacy Open-Loop Mode:</span> Solenoid pulse triggers ammo counter directly. Wheel RPM drop is not tracked for dart verification.
+                  </div>
+                </div>
+
+                <!-- Dependent Sensing Tuning Parameters -->
+                <div id="dart_detect_params" style="transition: opacity 0.25s ease, filter 0.25s ease;">
+                  <div style="margin-top: 0.9rem;">
+                    <div class="settings-row-label">
+                      <span>RPM Drop Threshold</span>
+                      <span><span id="val_set_dart_drop_rpm">800 RPM</span></span>
+                    </div>
+                    <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Minimum flywheel RPM deceleration required to confirm a dart.</div>
+                    <div class="settings-row-control">
+                      <input type="range" id="set_dart_drop_rpm" min="200" max="3000" step="50" value="800" oninput="syncBlasterField('dart_drop_rpm', this.value, 'range')">
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 0.9rem;">
+                    <div class="settings-row-label">
+                      <span>Detection Window</span>
+                      <span><span id="val_set_dart_window_ms">50 ms</span></span>
+                    </div>
+                    <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Duration after solenoid fires within which dart deceleration must occur. Automatically capped to the active solenoid cycle in full auto so shots never overlap.</div>
+                    <div class="settings-row-control">
+                      <input type="range" id="set_dart_window_ms" min="20" max="150" step="5" value="50" oninput="syncBlasterField('dart_window_ms', this.value, 'range')">
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 0.9rem;">
+                    <div class="settings-row-label">
+                      <span>Minimum Detection RPM</span>
+                      <span><span id="val_set_dart_min_rpm">6000 RPM</span></span>
+                    </div>
+                    <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Minimum wheel speed to engage dart detection, preventing false triggers during spin-down.</div>
+                    <div class="settings-row-control">
+                      <input type="range" id="set_dart_min_rpm" min="3000" max="15000" step="500" value="6000" oninput="syncBlasterField('dart_min_rpm', this.value, 'range')">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Live Diagnostics Card -->
+                <div id="dart_detect_diagnostics" style="margin-top: 1.1rem; padding: 0.85rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+                    <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; font-weight: 600;">Live Dart Impact Diagnostics</span>
+                    <span id="diag_sensor_status_pill" style="font-size: 0.68rem; padding: 0.15rem 0.5rem; border-radius: 4px; background: rgba(255,255,255,0.06); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s ease;">Standby (Legacy Mode)</span>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; font-size: 0.82rem;">
+                    <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">Last Drop: <strong id="val_diag_last_drop" style="color: var(--accent-orange); margin-left: 0.25rem;">-- RPM</strong></div>
+                    <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">Result: <strong id="val_diag_last_result" style="color: var(--text-primary); margin-left: 0.25rem;">--</strong></div>
+                    <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">Darts Confirmed: <strong id="val_diag_dart_count" style="color: var(--accent-green); margin-left: 0.25rem;">0</strong></div>
+                    <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">Dry Fires Blocked: <strong id="val_diag_dry_count" style="color: var(--accent-pink); margin-left: 0.25rem;">0</strong></div>
                   </div>
                 </div>
               </details>
@@ -3427,6 +3509,105 @@ function updateWriteButtonText() {
       });
     }
 
+    function updateDartDetectState(enabled) {
+      const isEnabled = enabled === true || enabled === 'true' || enabled === '1' || Number(enabled) !== 0;
+
+      const cb = document.getElementById('set_dart_detect');
+      if (cb && cb.checked !== isEnabled) {
+        cb.checked = isEnabled;
+      }
+
+      // 1. Update summary badge in settings row
+      const badge = document.getElementById('val_dart_detect_badge');
+      if (badge) {
+        if (isEnabled) {
+          badge.textContent = '● Active';
+          badge.style.color = 'var(--accent-blue)';
+          badge.style.background = 'rgba(6, 182, 212, 0.15)';
+          badge.style.borderColor = 'rgba(6, 182, 212, 0.4)';
+        } else {
+          badge.textContent = '○ Disabled (Legacy)';
+          badge.style.color = 'var(--text-secondary)';
+          badge.style.background = 'rgba(255, 255, 255, 0.05)';
+          badge.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+        }
+      }
+
+      // 2. Update toggle card state text
+      const valDisp = document.getElementById('val_set_dart_detect');
+      if (valDisp) {
+        if (isEnabled) {
+          valDisp.innerHTML = '<span style="color: var(--accent-blue); font-weight: 600;">● Active</span> <span style="color: var(--text-secondary);">(Closed-Loop RPM Drop)</span>';
+        } else {
+          valDisp.innerHTML = '<span style="color: var(--text-secondary); font-weight: 500;">○ Disabled</span> <span style="color: var(--text-secondary);">(Legacy Solenoid Pulse)</span>';
+        }
+      }
+
+      // 3. Update status description banner
+      const banner = document.getElementById('dart_detect_status_banner');
+      if (banner) {
+        if (isEnabled) {
+          banner.style.borderColor = 'rgba(6, 182, 212, 0.3)';
+          banner.style.background = 'rgba(6, 182, 212, 0.08)';
+          banner.innerHTML = '<span style="color: var(--accent-blue); font-weight: 600;">✓ Closed-Loop Sensing Active:</span> Ammo counter decrements only when a dart decelerates the wheels. Dry fires and feed skips are caught and ignored.';
+        } else {
+          banner.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+          banner.style.background = 'rgba(255, 255, 255, 0.03)';
+          banner.innerHTML = '<span style="color: var(--text-secondary); font-weight: 600;">ⓘ Legacy Open-Loop Mode:</span> Solenoid pulse triggers ammo counter directly. Wheel RPM drop is not tracked for dart verification.';
+        }
+      }
+
+      // 4. Dim/enable dependent tuning parameters
+      const paramsBox = document.getElementById('dart_detect_params');
+      if (paramsBox) {
+        paramsBox.style.opacity = isEnabled ? '1' : '0.45';
+        paramsBox.style.pointerEvents = isEnabled ? 'auto' : 'none';
+      }
+
+      // 5. Update diagnostics status pill
+      const diagPill = document.getElementById('diag_sensor_status_pill');
+      if (diagPill) {
+        if (isEnabled) {
+          diagPill.textContent = 'Sensor Active';
+          diagPill.style.background = 'rgba(6, 182, 212, 0.15)';
+          diagPill.style.color = 'var(--accent-blue)';
+          diagPill.style.borderColor = 'rgba(6, 182, 212, 0.4)';
+        } else {
+          diagPill.textContent = 'Standby (Legacy Mode)';
+          diagPill.style.background = 'rgba(255, 255, 255, 0.05)';
+          diagPill.style.color = 'var(--text-secondary)';
+          diagPill.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        }
+      }
+    }
+
+    function handleIncomingDartMetric(metric, valStr) {
+      const num = parseFloat(valStr);
+      if (metric === 'dart_detect_enabled') {
+        updateDartDetectState(num !== 0);
+      } else if (metric === 'last_shot_rpm_drop') {
+        const dropEl = document.getElementById('val_diag_last_drop');
+        if (dropEl) dropEl.textContent = `${Math.round(num)} RPM`;
+      } else if (metric === 'last_shot_dart_detected') {
+        const resEl = document.getElementById('val_diag_last_result');
+        if (resEl) {
+          if (Math.round(num) === 1) {
+            resEl.textContent = 'Dart Confirmed';
+            resEl.style.color = 'var(--accent-green)';
+          } else {
+            resEl.textContent = 'Dry Fire / None';
+            resEl.style.color = 'var(--accent-pink)';
+          }
+        }
+      } else if (metric === 'dart_detections_count') {
+        const countEl = document.getElementById('val_diag_dart_count');
+        if (countEl) countEl.textContent = Math.round(num);
+      } else if (metric === 'dry_fires_count') {
+        const dryEl = document.getElementById('val_diag_dry_count');
+        if (dryEl) dryEl.textContent = Math.round(num);
+      }
+    }
+
     function formatBlasterSettingValue(key, val) {
       if (key === 'dart_detect') {
         const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
@@ -3595,6 +3776,9 @@ function updateWriteButtonText() {
       const valDisp = document.getElementById('val_set_' + key);
       if (valDisp) {
         valDisp.textContent = formatBlasterSettingValue(key, val);
+      }
+      if (key === 'dart_detect') {
+        updateDartDetectState(val);
       }
     }
 
@@ -3810,6 +3994,9 @@ function updateWriteButtonText() {
       const valDisp = document.getElementById('val_set_' + key);
       if (valDisp) {
         valDisp.textContent = formatBlasterSettingValue(key, controlType === 'checkbox' ? el.checked : val);
+      }
+      if (key === 'dart_detect') {
+        updateDartDetectState(controlType === 'checkbox' ? el.checked : val);
       }
       
       // Mark key as dirty and add indicator styling
@@ -4063,6 +4250,9 @@ function updateWriteButtonText() {
         const valDisp = document.getElementById('val_set_' + key);
         if (valDisp) {
           valDisp.textContent = formatBlasterSettingValue(key, val);
+        }
+        if (key === 'dart_detect') {
+          updateDartDetectState(val);
         }
 
         // Clean up dirty state for this key since it was synced from board
@@ -5729,6 +5919,19 @@ function updateWriteButtonText() {
       const metricMatch = line.match(/^\s*(launch_control_mode|last_launch_target_current_1|last_launch_target_current_2|last_launch_est_current_1|last_launch_est_current_2)=([a-zA-Z0-9_\.\-]+)/i);
       if (metricMatch) {
         handleIncomingLaunchMetric(metricMatch[1], metricMatch[2]);
+        return;
+      }
+
+      // Match dart detection telemetry metrics and terminal state responses
+      const dartMetricMatch = line.match(/^\s*(last_shot_rpm_drop|last_shot_dart_detected|dart_detections_count|dry_fires_count|dart_detect_enabled)=([0-9\.]+)/i);
+      if (dartMetricMatch) {
+        handleIncomingDartMetric(dartMetricMatch[1], dartMetricMatch[2]);
+        return;
+      }
+
+      const dartCmdMatch = line.match(/^dart_detect:\s*(enabled|disabled)/i);
+      if (dartCmdMatch) {
+        updateDartDetectState(dartCmdMatch[1].toLowerCase() === 'enabled');
         return;
       }
       
@@ -13182,6 +13385,7 @@ function updateWriteButtonText() {
     mountPidNudgeControls();
     setPidLoopLinked(true);
     updateValues();
+    updateDartDetectState(document.getElementById('set_dart_detect')?.checked || false);
     expandActiveSolenoidTune();
     initFfCurveChart();
     syncFfTableThrottlesFromDrive();
