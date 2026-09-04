@@ -2175,6 +2175,20 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
+                  <span><span class="settings-row-num">17b.</span> Ammo Counting Direction</span>
+                  <span id="val_set_count_up">Count Down (Remaining Ammo)</span>
+                </div>
+                <div class="settings-row-desc">Count Down decrements remaining ammo from magazine capacity. Count Up increments shots fired starting from 0.</div>
+                <div class="settings-row-control">
+                  <select id="set_count_up" onchange="syncBlasterField('count_up', this.value, 'select')" style="width: 100%; padding: 0.45rem 0.5rem; background: #121214; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 0.85rem;">
+                    <option value="0" selected>Count Down (Remaining Ammo)</option>
+                    <option value="1">Count Up (Shots Fired)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
                   <span><span class="settings-row-num">18.</span> Active Calculated Rate</span>
                   <span><span id="val_calculated_dps">-- DPS</span></span>
                 </div>
@@ -2745,12 +2759,30 @@
 
           <!-- SUB-VIEW 1: Main Screen Designer -->
           <div id="hud_subtab_designer_view" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+            <!-- Visual Widget Library / Palette ("Little Squares" Grid) -->
+            <div style="display: flex; flex-direction: column; gap: 0.6rem; background: rgba(0,0,0,0.32); padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <strong style="font-size: 0.85rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="color: var(--accent-orange);">■</span> Widget Library (Palette)
+                  </strong>
+                  <span style="font-size: 0.75rem; color: var(--text-secondary);">Drag any square tile onto screen to position, or click to add (independent duplicates supported)</span>
+                </div>
+                <div id="hud_slot_capacity_indicator" style="font-size: 0.75rem; color: var(--accent-orange); font-weight: 600; padding: 0.2rem 0.5rem; background: rgba(249, 115, 22, 0.1); border-radius: 4px; border: 1px solid rgba(249, 115, 22, 0.25);">
+                  6 / 8 Slots Active
+                </div>
+              </div>
+              <div id="hud_widget_palette" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 0.5rem; width: 100%;">
+                <!-- Generated dynamically via renderWidgetPalette() -->
+              </div>
+            </div>
+
             <!-- 8-Slot Screen Widgets Gallery Ribbon -->
             <div style="display: flex; flex-direction: column; gap: 0.5rem; background: rgba(0,0,0,0.25); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <strong style="font-size: 0.85rem; color: var(--text-primary);">Screen Widgets (8 Slots)</strong>
-                  <span style="font-size: 0.75rem; color: var(--text-secondary);">Click to select &amp; modify, or drag card directly onto screen to position</span>
+                  <strong style="font-size: 0.85rem; color: var(--text-primary);">Active Screen Slots (8 Layers)</strong>
+                  <span style="font-size: 0.75rem; color: var(--text-secondary);">Click to edit in inspector, click &times; to free up slot, or drag card to reposition</span>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                   <button class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="exportHudLayoutJson()" title="Download layout as a JSON file">Export Layout</button>
@@ -2824,9 +2856,13 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                   <strong style="color: var(--text-primary);">Test Telemetry &amp; State Simulation</strong>
                   <div style="display: flex; gap: 0.35rem; align-items: center;">
+                    <label style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; margin-right: 0.3rem;">
+                      <input type="checkbox" id="hud_sim_count_up" onchange="toggleHudSimCountUp(this.checked)">
+                      <span>Count Up</span>
+                    </label>
                     <button class="preset-btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="simAddDart()" title="Add 1 dart">+1 Dart</button>
                     <button class="preset-btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="simFireDart()" title="Fire 1 simulated dart">-1 Fire Dart</button>
-                    <button class="preset-btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="simReloadMag()" title="Reload full mag">Reload Full Mag</button>
+                    <button class="preset-btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="simReloadMag()" title="Reload full mag or reset count-up">Reload / Reset</button>
                   </div>
                 </div>
 
@@ -2982,6 +3018,18 @@
                 <div id="hud_widget_sprite_select_container" style="display: none;">
                   <label style="font-size: 0.75rem; color: var(--text-secondary);" id="hud_widget_sprite_select_label">Assigned Sprite</label>
                   <select id="hud_widget_sprite_select" onchange="onHudWidgetSpriteChanged()" style="width: 100%; padding: 0.4rem 0.5rem; background: #121214; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 0.85rem; outline: none; margin-top: 0.25rem;">
+                  </select>
+                </div>
+
+                <!-- Ammo Count Direction Controls (Visible when Dart Counter or Pip Bar is active) -->
+                <div id="hud_widget_ammo_mode_container" style="display: none; flex-direction: column; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 0.75rem; color: var(--text-secondary);">Counting Direction</label>
+                    <span id="hud_ammo_mode_badge" style="font-size: 0.7rem; color: var(--accent-orange); font-weight: 600;">Count Down</span>
+                  </div>
+                  <select id="hud_ammo_mode_select" onchange="onHudAmmoModeChanged()" style="width: 100%; padding: 0.35rem 0.5rem; background: #121214; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 0.8rem; margin-top: 0.2rem;">
+                    <option value="0">Count Down (Remaining Ammo)</option>
+                    <option value="1">Count Up (Shots Fired)</option>
                   </select>
                 </div>
 
@@ -3874,6 +3922,10 @@ function updateWriteButtonText() {
         const modes = ['Single', 'Burst', 'Auto'];
         return modes[Math.round(Number(val))] || 'Single';
       }
+      if (key === 'count_up') {
+        const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
+        return enabled ? 'Count Up (Shots Fired)' : 'Count Down (Remaining Ammo)';
+      }
       if (key === 'burst_count' || key === 'mag_capacity') {
         return Math.round(Number(val));
       }
@@ -4012,6 +4064,16 @@ function updateWriteButtonText() {
       }
       if (key === 'dart_detect') {
         updateDartDetectState(val);
+      } else if (key === 'count_up') {
+        const isUp = (val === '1' || val === 1 || val === true);
+        const chk = document.getElementById('hud_sim_count_up');
+        if (chk) chk.checked = isUp;
+        const inspectorSel = document.getElementById('hud_widget_ammo_mode');
+        if (inspectorSel) inspectorSel.value = isUp ? '1' : '0';
+        if (typeof updateHudSimDartsLabel === 'function') updateHudSimDartsLabel();
+        if (typeof renderHudCanvas === 'function') renderHudCanvas();
+        if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
+        if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
       }
     }
 
@@ -4288,6 +4350,16 @@ function updateWriteButtonText() {
       } else if (isPidLinkSetting(key)) {
         syncManualPidFromSetting(key, val);
         syncSimulatorPidField(key, val);
+      } else if (key === 'count_up') {
+        const isUp = (val === '1' || val === 1 || val === true);
+        const chk = document.getElementById('hud_sim_count_up');
+        if (chk) chk.checked = isUp;
+        const inspectorSel = document.getElementById('hud_widget_ammo_mode');
+        if (inspectorSel) inspectorSel.value = isUp ? '1' : '0';
+        if (typeof updateHudSimDartsLabel === 'function') updateHudSimDartsLabel();
+        if (typeof renderHudCanvas === 'function') renderHudCanvas();
+        if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
+        if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
       } else if (key === 'freewheel') {
         const checkbox = document.getElementById('freewheel_toggle');
         if (checkbox) {
@@ -4384,6 +4456,7 @@ function updateWriteButtonText() {
         trigger_mode: 0,
         burst_count: 3,
         mag_capacity: 17,
+        count_up: 0,
         sol_on_3s: 35, sol_off_3s: 35,
         sol_on_4s: 30, sol_off_4s: 30,
         sol_on_5s: 25, sol_off_5s: 25,
@@ -4471,7 +4544,7 @@ function updateWriteButtonText() {
       
       const allKeys = [
         'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'brightness', 'temp_unit', 'cells',
-        'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity',
+        'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s',
         'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_boost', 'launch_trajectory', 'startup_rpm',
@@ -4576,6 +4649,17 @@ function updateWriteButtonText() {
       }
       if (key === 'rpm_preset_count') {
         updateRpmPresetVisibility();
+      }
+      if (key === 'count_up') {
+        const isUp = (val === '1' || val === 1 || val === true);
+        const chk = document.getElementById('hud_sim_count_up');
+        if (chk) chk.checked = isUp;
+        const inspectorSel = document.getElementById('hud_widget_ammo_mode');
+        if (inspectorSel) inspectorSel.value = isUp ? '1' : '0';
+        if (typeof updateHudSimDartsLabel === 'function') updateHudSimDartsLabel();
+        if (typeof renderHudCanvas === 'function') renderHudCanvas();
+        if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
+        if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
       }
       if (key === 'cells') {
         expandActiveSolenoidTune();
@@ -10826,6 +10910,178 @@ function updateWriteButtonText() {
       syncHudInspectorFromSelected();
       renderHudCanvas();
       renderWidgetGallery();
+      renderWidgetPalette();
+    }
+
+    const HUD_PALETTE_ITEMS = [
+      { type: 0, style: 0, name: "Voltage", icon: "⚡", tag: "16.8V", desc: "Battery voltage & USB power status" },
+      { type: 1, style: 0, name: "Dart Count", icon: "🎯", tag: "AMMO", desc: "Digital ammo counter numbers (count down or up)" },
+      { type: 1, style: 2, name: "Ammo Pips", icon: "▓▓", tag: "PIPS", desc: "Segmented ammo pip bar or custom sprite pips" },
+      { type: 2, style: 0, name: "Fire Mode", icon: "🔲", tag: "MODE", desc: "Single / Burst / Auto badges or text" },
+      { type: 3, style: 1, name: "Current RPM", icon: "🏎", tag: "CUR RPM", desc: "Flywheel tachometer & live RPM reading" },
+      { type: 7, style: 0, name: "Target RPM", icon: "🎯", tag: "TGT RPM", desc: "Target speed setpoint & RPM preset label" },
+      { type: 4, style: 0, name: "Status", icon: "ℹ", tag: "STATUS", desc: "Ready, Low Batt, Decel Glide, and Latency" },
+      { type: 5, style: 0, name: "Custom Sprite", icon: "★", tag: "SPRITE", desc: "Custom sprite graphic or badge from atlas" },
+      { type: 6, style: 0, name: "Line / Box", icon: "━", tag: "DIVIDER", desc: "Divider line or frame boundary" }
+    ];
+
+    function renderWidgetPalette() {
+      const container = document.getElementById('hud_widget_palette');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const activeCount = HUD_WIDGETS.filter(w => w.enabled === 1).length;
+      const capEl = document.getElementById('hud_slot_capacity_indicator');
+      if (capEl) {
+        capEl.textContent = `${activeCount} / ${HUD_WIDGETS.length} Slots Active`;
+        capEl.style.color = (activeCount >= HUD_WIDGETS.length) ? '#ef4444' : 'var(--accent-orange)';
+        capEl.style.borderColor = (activeCount >= HUD_WIDGETS.length) ? 'rgba(239, 68, 68, 0.4)' : 'rgba(249, 115, 22, 0.25)';
+      }
+
+      HUD_PALETTE_ITEMS.forEach((item) => {
+        const tile = document.createElement('div');
+        tile.draggable = true;
+        tile.style.cssText = `
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 8px;
+          padding: 0.45rem 0.35rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.25rem;
+          cursor: grab;
+          user-select: none;
+          min-width: 80px;
+          min-height: 72px;
+          transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+        `;
+        tile.title = `${item.name}: ${item.desc}\n• Drag onto screen to position\n• Click to add to available slot`;
+
+        tile.onmouseenter = () => {
+          tile.style.background = 'rgba(249, 115, 22, 0.12)';
+          tile.style.borderColor = 'var(--accent-orange)';
+          tile.style.transform = 'translateY(-2px)';
+          tile.style.boxShadow = '0 4px 12px rgba(249, 115, 22, 0.25)';
+        };
+        tile.onmouseleave = () => {
+          tile.style.background = 'rgba(255,255,255,0.03)';
+          tile.style.borderColor = 'rgba(255,255,255,0.12)';
+          tile.style.transform = 'none';
+          tile.style.boxShadow = 'none';
+        };
+
+        tile.ondragstart = (e) => {
+          e.dataTransfer.setData('text/plain', `palette:${item.type}:${item.style}`);
+          tile.style.opacity = '0.5';
+        };
+        tile.ondragend = () => {
+          tile.style.opacity = '1.0';
+        };
+
+        tile.onclick = () => {
+          addWidgetFromPalette(item.type, item.style);
+        };
+
+        const topRow = document.createElement('div');
+        topRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center; width: 100%;';
+        topRow.innerHTML = `
+          <span style="font-size: 0.62rem; color: var(--accent-orange); font-weight: 800; letter-spacing: 0.5px;">${item.tag}</span>
+          <span style="font-size: 0.68rem; color: rgba(255,255,255,0.4); font-weight: 700;">+</span>
+        `;
+        tile.appendChild(topRow);
+
+        const iconEl = document.createElement('div');
+        iconEl.style.cssText = 'font-size: 1.25rem; line-height: 1; margin: 0.1rem 0;';
+        iconEl.textContent = item.icon;
+        tile.appendChild(iconEl);
+
+        const labelEl = document.createElement('div');
+        labelEl.style.cssText = 'font-size: 0.68rem; font-weight: 700; color: var(--text-primary); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;';
+        labelEl.textContent = item.name;
+        tile.appendChild(labelEl);
+
+        container.appendChild(tile);
+      });
+    }
+
+    function findAvailableHudSlot() {
+      if (selectedHudWidgetIdx >= 0 && selectedHudWidgetIdx < HUD_WIDGETS.length && HUD_WIDGETS[selectedHudWidgetIdx].enabled === 0) {
+        return selectedHudWidgetIdx;
+      }
+      for (let i = 0; i < HUD_WIDGETS.length; i++) {
+        if (HUD_WIDGETS[i].enabled === 0) return i;
+      }
+      return (selectedHudWidgetIdx >= 0 && selectedHudWidgetIdx < HUD_WIDGETS.length) ? selectedHudWidgetIdx : 0;
+    }
+
+    function addWidgetFromPalette(pType, pStyle = 0, posX = null, posY = null) {
+      const slotIdx = findAvailableHudSlot();
+      const w = HUD_WIDGETS[slotIdx];
+      if (!w) return;
+
+      const wasEnabled = (w.enabled === 1);
+      w.enabled = 1;
+      w.type = pType;
+      w.style = pStyle;
+
+      if (posX !== null && posY !== null) {
+        w.x = posX;
+        w.y = posY;
+      } else {
+        if (pType === 0) { w.x = 0; w.y = 13; }
+        else if (pType === 1 && pStyle === 0) { w.x = 128; w.y = 13; }
+        else if (pType === 1 && pStyle === 2) { w.x = 4; w.y = 62; }
+        else if (pType === 2) { w.x = 0; w.y = 30; }
+        else if (pType === 3) { w.x = 128; w.y = 30; }
+        else if (pType === 7) { w.x = 128; w.y = 42; }
+        else if (pType === 4) { w.x = 64; w.y = 47; }
+        else if (pType === 6) { w.x = 0; w.y = 20; w.param2 = 64; }
+        else { w.x = 64; w.y = 32; }
+      }
+
+      if (pType === 1 && pStyle === 2) {
+        w.fontSize = 0;
+        w.align = 0;
+      } else if (pType === 6) {
+        w.fontSize = 0;
+        w.align = 0;
+        if (!w.param2) w.param2 = 64;
+      } else {
+        w.fontSize = 4;
+        if (w.x >= 100) w.align = 2;
+        else if (w.x >= 45 && w.x <= 85) w.align = 1;
+        else w.align = 0;
+      }
+
+      selectedHudWidgetIdx = slotIdx;
+      syncHudInspectorFromSelected();
+      renderHudCanvas();
+      renderWidgetGallery();
+      renderWidgetPalette();
+      scheduleHudLiveMirror(true);
+
+      const typeTitle = WIDGET_TYPE_NAMES[pType] || `Type ${pType}`;
+      if (typeof logToConsole === 'function') {
+        logToConsole(`${wasEnabled ? 'Replaced' : 'Added'} Slot ${slotIdx} with ${typeTitle} at (${w.x}, ${w.y})!`);
+      }
+    }
+
+    function clearHudSlot(slotIdx, event = null) {
+      if (event) event.stopPropagation();
+      const w = HUD_WIDGETS[slotIdx];
+      if (!w) return;
+      w.enabled = 0;
+      renderHudCanvas();
+      renderWidgetGallery();
+      renderWidgetPalette();
+      syncHudInspectorFromSelected();
+      scheduleHudLiveMirror(true);
+      if (typeof logToConsole === 'function') {
+        logToConsole(`Cleared Slot ${slotIdx} (${WIDGET_TYPE_NAMES[w.type] || 'Widget'}). Slot is now free.`);
+      }
     }
 
     function initHudCanvasDrop() {
@@ -10846,12 +11102,22 @@ function updateWriteButtonText() {
       cursorCanvas.ondrop = (e) => {
         e.preventDefault();
         if (container) container.style.borderColor = 'rgba(255,255,255,0.2)';
-        const slotIdx = parseInt(e.dataTransfer.getData('text/plain'));
-        if (isNaN(slotIdx) || slotIdx < 0 || slotIdx >= HUD_WIDGETS.length) return;
+        const rawData = e.dataTransfer.getData('text/plain') || '';
 
         const rect = cursorCanvas.getBoundingClientRect();
         const dropX = Math.max(0, Math.min(127, Math.round((e.clientX - rect.left) * (128 / rect.width))));
         const dropY = Math.max(0, Math.min(63, Math.round((e.clientY - rect.top) * (64 / rect.height))));
+
+        if (rawData.startsWith('palette:')) {
+          const parts = rawData.split(':');
+          const pType = parseInt(parts[1]) || 0;
+          const pStyle = parseInt(parts[2]) || 0;
+          addWidgetFromPalette(pType, pStyle, dropX, dropY);
+          return;
+        }
+
+        const slotIdx = parseInt(rawData);
+        if (isNaN(slotIdx) || slotIdx < 0 || slotIdx >= HUD_WIDGETS.length) return;
 
         const w = HUD_WIDGETS[slotIdx];
         if (w) {
@@ -10862,6 +11128,7 @@ function updateWriteButtonText() {
           syncHudInspectorFromSelected();
           renderHudCanvas();
           renderWidgetGallery();
+          renderWidgetPalette();
           scheduleHudLiveMirror(true);
           if (typeof logToConsole === 'function') {
             logToConsole(`Placed Widget Slot ${slotIdx} (${WIDGET_TYPE_NAMES[w.type] || 'Widget'}) at (${dropX}, ${dropY})!`);
@@ -10923,11 +11190,22 @@ function updateWriteButtonText() {
         const header = document.createElement('div');
         header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 0.65rem; color: var(--text-secondary);';
         header.innerHTML = `<span style="font-weight: 700; color: ${isSelected ? 'var(--accent-orange)' : 'var(--text-primary)'};">#${i}</span>`;
+        
+        const rightSide = document.createElement('div');
+        rightSide.style.cssText = 'display: flex; align-items: center; gap: 0.25rem;';
+
         if (isEnabled) {
-          header.innerHTML += `<span style="color: #10b981; font-weight: 700; font-size: 0.65rem;">ON</span>`;
+          rightSide.innerHTML += `<span style="color: #10b981; font-weight: 700; font-size: 0.65rem;">ON</span>`;
+          const removeBtn = document.createElement('button');
+          removeBtn.innerHTML = '&times;';
+          removeBtn.title = `Clear Slot ${i} (Frees up slot)`;
+          removeBtn.style.cssText = 'background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 50%; width: 14px; height: 14px; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;';
+          removeBtn.onclick = (e) => clearHudSlot(i, e);
+          rightSide.appendChild(removeBtn);
         } else {
-          header.innerHTML += `<span style="color: rgba(255,255,255,0.3); font-size: 0.65rem;">OFF</span>`;
+          rightSide.innerHTML += `<span style="color: rgba(255,255,255,0.3); font-size: 0.65rem;">OFF</span>`;
         }
+        header.appendChild(rightSide);
         card.appendChild(header);
 
         const miniCanvas = document.createElement('canvas');
@@ -10949,11 +11227,16 @@ function updateWriteButtonText() {
             const curV = parseFloat(document.getElementById('hud_sim_v')?.value || 16.8);
             drawMiniText(curV < 4.5 ? 'USB' : `${curV.toFixed(1)}V`);
           } else if (widgetType === 1) {
+            const countUpActive = isHudCountUpMode();
             if (w.style === 2) {
-              for (let d = 0; d < 5; d++) mctx.fillRect(8 + d * 6, 6, 4, 8);
+              for (let d = 0; d < 5; d++) {
+                const filled = countUpActive ? (d < 2) : true;
+                if (filled) mctx.fillRect(8 + d * 6, 6, 4, 8);
+                else mctx.strokeRect(8 + d * 6 + 0.5, 6.5, 3, 7);
+              }
             } else {
               const curMag = parseInt(document.getElementById('hud_sim_mag')?.value || 15);
-              const curDarts = Math.min(curMag, parseInt(document.getElementById('hud_sim_darts')?.value || curMag));
+              const curDarts = Math.min(curMag, parseInt(document.getElementById('hud_sim_darts')?.value ?? (countUpActive ? 0 : curMag)));
               drawMiniText(`${curDarts}/${curMag}`);
             }
           } else if (widgetType === 2) {
@@ -11030,8 +11313,9 @@ function updateWriteButtonText() {
         const nameLabel = document.createElement('div');
         nameLabel.style.cssText = 'font-size: 0.68rem; font-weight: 600; color: ' + (isEnabled ? 'var(--text-primary)' : 'var(--text-secondary)') + '; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;';
         if (isEnabled) {
+          const isUp = (typeof isHudCountUpMode === 'function' && isHudCountUpMode());
           if (widgetType === 0) nameLabel.textContent = 'Voltage';
-          else if (widgetType === 1) nameLabel.textContent = (w.style === 2) ? 'Ammo Pips' : 'Dart Count';
+          else if (widgetType === 1) nameLabel.textContent = (w.style === 2) ? (isUp ? 'Ammo Pips (Up)' : 'Ammo Pips') : (isUp ? 'Dart Count (Up)' : 'Dart Count');
           else if (widgetType === 2) nameLabel.textContent = 'Fire Mode';
           else if (widgetType === 3) nameLabel.textContent = (w.style === 0) ? 'RPM Comb' : (w.style === 3 || w.style === 4) ? 'RPM Preset' : (w.style === 5) ? 'RPM Cur' : 'RPM Tach';
           else if (widgetType === 4) nameLabel.textContent = 'Status';
@@ -11065,6 +11349,7 @@ function updateWriteButtonText() {
       syncHudInspectorFromSelected();
       renderHudCanvas();
       renderWidgetGallery();
+      if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
       scheduleHudLiveMirror(true);
       if (typeof logToConsole === 'function') {
         logToConsole(`Deleted / Disabled Widget Slot ${selectedHudWidgetIdx} from HUD.`);
@@ -11265,6 +11550,8 @@ function updateWriteButtonText() {
       w.style = 0; // default style
       syncHudInspectorFromSelected();
       renderHudCanvas();
+      if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
+      if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
       scheduleHudLiveMirror(true);
     }
 
@@ -11334,12 +11621,13 @@ function updateWriteButtonText() {
         Array.from(slotSelect.options).forEach((opt, idx) => {
           const slotW = HUD_WIDGETS[idx];
           if (slotW) {
+            const isSlotActive = (slotW.enabled === 1);
             const slotType = (slotW.type !== undefined) ? slotW.type : slotW.id;
             const tName = WIDGET_TYPE_NAMES[slotType] || `Type ${slotType}`;
             const styles = HUD_STYLES[slotType] || [];
             const styleObj = styles.find(s => s.val === slotW.style);
             const sName = styleObj ? styleObj.label.split('(')[0].trim() : `Style ${slotW.style}`;
-            opt.textContent = `Slot ${idx}: ${tName} - ${sName}`;
+            opt.textContent = isSlotActive ? `Slot ${idx}: ${tName} - ${sName}` : `Slot ${idx}: [Available / Empty]`;
           }
         });
       }
@@ -11362,6 +11650,19 @@ function updateWriteButtonText() {
       document.getElementById('hud_widget_x_num').value = w.x;
       document.getElementById('hud_widget_y_slider').value = w.y;
       document.getElementById('hud_widget_y_num').value = w.y;
+
+      const ammoModeContainer = document.getElementById('hud_widget_ammo_mode_container');
+      if (ammoModeContainer) {
+        if (widgetType === 1) {
+          ammoModeContainer.style.display = 'block';
+          const ammoModeSel = document.getElementById('hud_widget_ammo_mode');
+          if (ammoModeSel) {
+            ammoModeSel.value = (typeof isHudCountUpMode === 'function' && isHudCountUpMode()) ? '1' : '0';
+          }
+        } else {
+          ammoModeContainer.style.display = 'none';
+        }
+      }
 
       const spriteContainer = document.getElementById('hud_widget_sprite_select_container');
       const spriteLabel = document.getElementById('hud_widget_sprite_select_label');
@@ -11603,6 +11904,7 @@ function updateWriteButtonText() {
       }
       renderHudCanvas();
       if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
+      if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
       scheduleHudLiveMirror();
     }
 
@@ -11980,6 +12282,39 @@ function updateWriteButtonText() {
       scheduleHudLiveMirror();
     }
 
+    function isHudCountUpMode() {
+      const chk = document.getElementById('hud_sim_count_up');
+      if (chk) return chk.checked;
+      const setSel = document.getElementById('set_count_up');
+      if (setSel) return setSel.value === '1';
+      return false;
+    }
+
+    function toggleHudSimCountUp(checked) {
+      const isUp = !!checked;
+      const chk = document.getElementById('hud_sim_count_up');
+      if (chk) chk.checked = isUp;
+      const setSel = document.getElementById('set_count_up');
+      if (setSel) setSel.value = isUp ? '1' : '0';
+      const inspectorSel = document.getElementById('hud_widget_ammo_mode');
+      if (inspectorSel) inspectorSel.value = isUp ? '1' : '0';
+
+      const slider = document.getElementById('hud_sim_darts');
+      const mag = parseInt(document.getElementById('hud_sim_mag')?.value || 15);
+      if (slider) {
+        slider.value = isUp ? 0 : mag;
+      }
+      updateHudSimDartsLabel();
+      renderHudCanvas();
+      if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
+      if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
+      scheduleHudLiveMirror(true);
+    }
+
+    function onHudAmmoModeChanged(val) {
+      toggleHudSimCountUp(val === '1' || val === 1 || val === true);
+    }
+
     function setHudSimMag(val) {
       const magSlider = document.getElementById('hud_sim_mag');
       if (magSlider) magSlider.value = val;
@@ -11989,9 +12324,10 @@ function updateWriteButtonText() {
     function updateHudSimDartsLabel() {
       const slider = document.getElementById('hud_sim_darts');
       const mag = parseInt(document.getElementById('hud_sim_mag')?.value || 15);
-      const cur = slider ? (parseInt(slider.value) || 0) : mag;
+      const isUp = isHudCountUpMode();
+      const cur = slider ? (parseInt(slider.value) || 0) : (isUp ? 0 : mag);
       const readout = document.getElementById('hud_sim_darts_val');
-      if (readout) readout.textContent = `${cur}/${mag}`;
+      if (readout) readout.textContent = `${cur}/${mag}` + (isUp ? ' (Fired)' : ' (Left)');
     }
 
     function simAddDart() {
@@ -12009,7 +12345,11 @@ function updateWriteButtonText() {
       const mag = parseInt(document.getElementById('hud_sim_mag')?.value || 15);
       if (!slider) return;
       let val = parseInt(slider.value) || 0;
-      val = (val > 0) ? (val - 1) : Math.max(0, mag - 1);
+      if (isHudCountUpMode()) {
+        val = (val < mag) ? (val + 1) : 1;
+      } else {
+        val = (val > 0) ? (val - 1) : Math.max(0, mag - 1);
+      }
       slider.value = val;
       onHudSimDartsSliderChange(val);
     }
@@ -12018,8 +12358,9 @@ function updateWriteButtonText() {
       const slider = document.getElementById('hud_sim_darts');
       const mag = parseInt(document.getElementById('hud_sim_mag')?.value || 15);
       if (!slider) return;
-      slider.value = mag;
-      onHudSimDartsSliderChange(mag);
+      const val = isHudCountUpMode() ? 0 : mag;
+      slider.value = val;
+      onHudSimDartsSliderChange(val);
     }
 
     function onHudSimDartsSliderChange(val) {
@@ -12155,7 +12496,9 @@ function updateWriteButtonText() {
                 maxRow = Math.max(maxRow, row);
                 maxCol = Math.max(maxCol, col);
 
-                const isFilled = depleteFromFirst ? (p >= (simMag - simDarts)) : (p < simDarts);
+                const isFilled = (typeof isHudCountUpMode === 'function' && isHudCountUpMode())
+                  ? (p < simDarts)
+                  : (depleteFromFirst ? (p >= (simMag - simDarts)) : (p < simDarts));
 
                 if (isFilled) {
                   if (hasCustomPip) {
