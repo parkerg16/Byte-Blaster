@@ -483,6 +483,10 @@
     
     .badge-blue { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
     .badge-violet { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-red { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); }
+    .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+    .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+    .badge-pink { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.35); }
 
     /* Custom scrollbar */
     ::-webkit-scrollbar {
@@ -749,6 +753,7 @@
             <button class="preset-btn" style="flex: 1; padding: 0.35rem 0; font-size: 0.75rem;" onclick="sendSerialCommand('stream slow')">Stream Slow</button>
             <button class="preset-btn" style="flex: 1; padding: 0.35rem 0; font-size: 0.75rem;" onclick="sendSerialCommand('stream fast')">Stream Fast</button>
             <button class="preset-btn" style="flex: 1; padding: 0.35rem 0; font-size: 0.75rem;" onclick="sendSerialCommand('launchtrace')">Dump Launch</button>
+            <button class="preset-btn" id="btn_sidebar_faults" style="flex: 1; padding: 0.35rem 0; font-size: 0.75rem; border-color: rgba(239, 68, 68, 0.4); color: #f87171;" onclick="fetchFaultLog(); switchTab('dashboard'); setTimeout(() => document.getElementById('fault_history_card')?.scrollIntoView({behavior: 'smooth'}), 50);">Faults</button>
           </div>
           <button class="action-btn" id="btn_download" style="margin-top: 0.25rem; font-size: 0.8rem; padding: 0.5rem; background: linear-gradient(135deg, var(--accent-violet) 0%, var(--accent-pink) 100%); display: none;" onclick="downloadTelemetryCSV()">
             Download Captured CSV
@@ -1496,6 +1501,122 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+      
+      <!-- Blaster Diagnostic Fault History Card -->
+      <div class="visualizer-card" id="fault_history_card" style="border-color: rgba(239, 68, 68, 0.35); background: rgba(17, 24, 39, 0.55); margin-top: 1.5rem;">
+        <div class="section-title" style="color: #f87171; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <svg style="width: 20px; height: 20px; color: #ef4444; flex-shrink: 0;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span>Blaster Diagnostic Fault History</span>
+            <span id="fault_count_badge" class="badge badge-green" style="font-size: 0.65rem;">0 Faults Recorded</span>
+          </div>
+          <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+            <button class="action-btn" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-size: 0.75rem; padding: 0.35rem 0.85rem; width: auto; margin: 0; border-color: rgba(2, 132, 199, 0.4); font-weight: 700;" onclick="fetchFaultLog()">
+              Fetch Fault Log
+            </button>
+            <button class="preset-btn" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; border-color: rgba(239, 68, 68, 0.4); color: #ef4444; background: rgba(239, 68, 68, 0.1);" onclick="clearFaultLogPrompt()">
+              Clear History
+            </button>
+            <button class="preset-btn" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; border-color: rgba(139, 92, 246, 0.4); color: var(--accent-violet); background: rgba(139, 92, 246, 0.1);" onclick="exportFaultLog()">
+              Export JSON
+            </button>
+          </div>
+        </div>
+
+        <div style="padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
+          <div style="margin-bottom: 1rem; line-height: 1.45;">
+            The RP2040 continuously logs hardware protection events (battery sag lockouts, telemetry silence, motor stalls, unexpected stops) to onboard EEPROM. These logs persist across battery disconnects and reboots so you can diagnose sudden cutouts and DShot 0 stops after testing in the field.
+          </div>
+
+          <!-- Summary Metric Cards -->
+          <div id="fault_summary_bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Total Recorded</div>
+              <div id="diag_stat_total" style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-top: 0.2rem;">0</div>
+              <div style="font-size: 0.65rem; color: var(--text-secondary);">Max 16 ring buffer</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Latest Fault Type</div>
+              <div id="diag_stat_latest" style="font-size: 0.85rem; font-weight: 700; color: #34d399; margin-top: 0.35rem;">None (Clean)</div>
+              <div id="diag_stat_latest_time" style="font-size: 0.65rem; color: var(--text-secondary);">No active trips</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Lowest Logged Vbat</div>
+              <div id="diag_stat_min_v" style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-top: 0.2rem;">-- V</div>
+              <div id="diag_stat_min_v_sub" style="font-size: 0.65rem; color: var(--text-secondary);">At trigger time</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Rate Limiter</div>
+              <div style="font-size: 1.05rem; font-weight: 700; color: #38bdf8; margin-top: 0.2rem;">5s Debounce</div>
+              <div style="font-size: 0.65rem; color: var(--text-secondary);">Flash wear-safe</div>
+            </div>
+          </div>
+
+          <!-- Filter & Search Controls -->
+          <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap;">
+            <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Filter:</span>
+            <button class="preset-btn active" id="fault_filter_all" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="setFaultFilter('ALL')">All</button>
+            <button class="preset-btn" id="fault_filter_batt" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="setFaultFilter('BATT')">Battery Sag</button>
+            <button class="preset-btn" id="fault_filter_telem" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="setFaultFilter('TELEM')">Telemetry Timeout</button>
+            <button class="preset-btn" id="fault_filter_stall" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="setFaultFilter('STALL')">Stall Detect</button>
+            <button class="preset-btn" id="fault_filter_stop" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="setFaultFilter('STOP')">DShot 0 Stops</button>
+          </div>
+
+          <!-- Empty State -->
+          <div id="fault_empty_state" style="padding: 2.5rem 1.5rem; text-align: center; color: var(--text-secondary); background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px;">
+            <svg style="width: 36px; height: 36px; color: #34d399; margin-bottom: 0.6rem; opacity: 0.85; display: inline-block;" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem; margin-bottom: 0.25rem;">No Faults Recorded in EEPROM</div>
+            <div style="font-size: 0.8rem; max-width: 500px; margin: 0 auto; line-height: 1.4;">Your blaster's diagnostic ring buffer is clean. If unexpected cutouts occur in the field, connect via USB and click <strong>Fetch Fault Log</strong> to inspect the exact trip conditions.</div>
+          </div>
+
+          <!-- Fault Table Container -->
+          <div id="fault_table_container" style="display: none; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.25);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.03); color: var(--text-secondary); font-size: 0.7rem; text-transform: uppercase;">
+                  <th style="padding: 0.6rem 0.75rem;">#</th>
+                  <th style="padding: 0.6rem 0.75rem;">Uptime</th>
+                  <th style="padding: 0.6rem 0.75rem;">Fault Code &amp; Name</th>
+                  <th style="padding: 0.6rem 0.75rem;">Pack Vbat</th>
+                  <th style="padding: 0.6rem 0.75rem;">Motor Speeds (RPM)</th>
+                  <th style="padding: 0.6rem 0.75rem;">Throttle / Target</th>
+                  <th style="padding: 0.6rem 0.75rem;">Diagnosis &amp; Recommendation</th>
+                </tr>
+              </thead>
+              <tbody id="fault_table_body">
+                <!-- Dynamically populated rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Troubleshooting Guide Drawer -->
+          <details style="margin-top: 1.25rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem;">
+            <summary style="font-weight: 600; color: var(--accent-cyan); cursor: pointer; user-select: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>Diagnostic Reference Guide: What causes fast-ramp cutouts and DShot 0?</span>
+            </summary>
+            <div style="margin-top: 0.85rem; font-size: 0.8rem; line-height: 1.5; color: var(--text-primary); display: flex; flex-direction: column; gap: 0.75rem;">
+              <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444; padding: 0.6rem 0.85rem; border-radius: 0 6px 6px 0;">
+                <strong style="color: #f87171;">1. Emergency Battery Sag (0x01):</strong>
+                During rapid acceleration, the motors demand 35-45A of inrush current. If the battery internal resistance is high, cell voltage can plunge below 3.0V/cell. After the 350ms startup grace period, the firmware locks out the motors and sets DShot to 0 to prevent battery cell reversal or fire.
+                <br><em>Fix:</em> Use high-discharge LiPos (>=75C), ensure the pack is fully charged, or reduce the Max Ramp Step in PID settings.
+              </div>
+              <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b; padding: 0.6rem 0.85rem; border-radius: 0 6px 6px 0;">
+                <strong style="color: #fbbf24;">2. Telemetry Timeout (0x10 / 0x11 / 0x12):</strong>
+                High current switching on ESC FETs generates electromagnetic noise (EMI). If EMI corrupts KISS telemetry packets for more than 150ms during spin, the safety supervisor halts the flywheels (DShot 0) to avoid uncontrolled runaway.
+                <br><em>Fix:</em> Solder a 35V low-ESR electrolytic capacitor across the main power leads and ensure telemetry signal wires are kept away from phase wires.
+              </div>
+              <div style="background: rgba(236, 72, 153, 0.08); border-left: 3px solid #ec4899; padding: 0.6rem 0.85rem; border-radius: 0 6px 6px 0;">
+                <strong style="color: #f472b6;">3. Unexpected DShot 0 Stops (0x50):</strong>
+                Under normal operation, the firmware never sends DShot 0 while a user trigger is held down. If DShot 0 is observed, this entry captures that the supervisor forced an emergency cutoff in response to a safety condition. Check preceding entries to find the initiating cause.
+              </div>
+            </div>
+          </details>
         </div>
       </div>
       
@@ -3889,6 +4010,300 @@ function updateWriteButtonText() {
     }
     window.queryBlasterDartStatus = queryBlasterDartStatus;
 
+    // ------------------------------------------------------------------------
+    // Blaster Diagnostic Fault History & Error Parsing
+    // ------------------------------------------------------------------------
+    window.blasterFaultLog = [];
+    window.blasterFaultLogPending = null;
+    window.activeFaultFilter = 'ALL';
+
+    const FAULT_DEFINITIONS = {
+      0x00: {
+        name: 'ERR_NONE',
+        label: 'No Error',
+        badgeClass: 'badge-green',
+        color: '#34d399',
+        cause: 'Normal healthy operation.',
+        fix: 'None required.'
+      },
+      0x01: {
+        name: 'ERR_BATT_SAG_EMERGENCY',
+        label: 'Emergency Battery Sag (<3.0V/cell)',
+        badgeClass: 'badge-red',
+        color: '#ef4444',
+        cause: 'Inrush current surge during rapid motor spin-up or high target RPM pulled battery voltage below 3.0V/cell cutoff.',
+        fix: 'Reduce Spin-up Acceleration / Max Ramp Step, lower target RPM preset, or use a higher C-rating LiPo pack with lower internal resistance.'
+      },
+      0x02: {
+        name: 'ERR_BATT_LOW_REST',
+        label: 'Low Resting Voltage (<3.2V/cell)',
+        badgeClass: 'badge-red',
+        color: '#f87171',
+        cause: 'Battery pack voltage at rest was below 3.2V/cell before firing was attempted.',
+        fix: 'Recharge or swap battery pack. Operating flywheels on depleted cells causes immediate lockouts.'
+      },
+      0x03: {
+        name: 'ERR_BATT_CONFIG_INVALID',
+        label: 'Invalid Battery Configuration',
+        badgeClass: 'badge-violet',
+        color: '#a78bfa',
+        cause: 'Startup voltage did not fall into recognized 3S, 4S, 5S, or 6S ranges (11.1V - 25.2V).',
+        fix: 'Check battery connection, balance lead, and wiring.'
+      },
+      0x10: {
+        name: 'ERR_TELEM_TIMEOUT_M1',
+        label: 'Motor 1 Telemetry Timeout (>150ms)',
+        badgeClass: 'badge-amber',
+        color: '#f59e0b',
+        cause: 'No valid KISS/DShot telemetry received from ESC 1 for over 150ms while spinning. Commutation EMI noise or wire disconnect.',
+        fix: 'Check ESC 1 telemetry solder joint/pin. Solder a 35V low-ESR electrolytic capacitor across power leads to suppress switching spikes.'
+      },
+      0x11: {
+        name: 'ERR_TELEM_TIMEOUT_M2',
+        label: 'Motor 2 Telemetry Timeout (>150ms)',
+        badgeClass: 'badge-amber',
+        color: '#f59e0b',
+        cause: 'No valid KISS/DShot telemetry received from ESC 2 for over 150ms while spinning.',
+        fix: 'Check ESC 2 telemetry solder joint/pin and wiring.'
+      },
+      0x12: {
+        name: 'ERR_TELEM_TIMEOUT_BOTH',
+        label: 'Dual ESC Telemetry Lost (>150ms)',
+        badgeClass: 'badge-red',
+        color: '#ef4444',
+        cause: 'Both ESCs stopped reporting telemetry simultaneously, typically caused by severe switching noise across shared ground/power.',
+        fix: 'Add a 35V low-ESR capacitor on the main power rails; ensure telemetry signal line is physically separated from phase wires.'
+      },
+      0x20: {
+        name: 'ERR_MOTOR_STALL_M1',
+        label: 'Motor 1 Stall Detected',
+        badgeClass: 'badge-red',
+        color: '#ef4444',
+        cause: 'High throttle was commanded but Motor 1 RPM stayed at 0 or collapsed. Flywheel jam or mechanical stall.',
+        fix: 'Clear dart jam in flywheel cage, check motor bearings and flywheel clearance.'
+      },
+      0x21: {
+        name: 'ERR_MOTOR_STALL_M2',
+        label: 'Motor 2 Stall Detected',
+        badgeClass: 'badge-red',
+        color: '#ef4444',
+        cause: 'High throttle was commanded but Motor 2 RPM stayed at 0 or collapsed.',
+        fix: 'Clear dart jam in flywheel cage, check motor bearings and flywheel clearance.'
+      },
+      0x30: {
+        name: 'ERR_SOLENOID_WATCHDOG',
+        label: 'Solenoid Watchdog Safety Cutoff',
+        badgeClass: 'badge-amber',
+        color: '#f59e0b',
+        cause: 'Pusher solenoid remained energized beyond maximum pulse duration, cut off to prevent coil overheating/burnout.',
+        fix: 'Check pusher return spring and cycle dwell settings.'
+      },
+      0x38: {
+        name: 'ERR_WATCHDOG_REBOOT',
+        label: 'RP2040 Hardware Watchdog Reboot',
+        badgeClass: 'badge-red',
+        color: '#ef4444',
+        cause: 'MCU rebooted due to hardware watchdog timeout or 5V logic brownout under load.',
+        fix: 'Verify 5V regulator stability under high current loads.'
+      },
+      0x40: {
+        name: 'ERR_GATE_TIMEOUT',
+        label: 'IR Dart Gate Timeout',
+        badgeClass: 'badge-blue',
+        color: '#38bdf8',
+        cause: 'Dart feeder executed a shot but IR beam break gate did not detect dart passage before timeout expired.',
+        fix: 'Inspect IR emitter/receiver lenses, clean dust, or verify dart magazine feed.'
+      },
+      0x50: {
+        name: 'ERR_DSHOT_UNEXPECTED_STOP',
+        label: 'Unexpected DShot 0 Stop',
+        badgeClass: 'badge-pink',
+        color: '#ec4899',
+        cause: 'DShot output was clamped to STOP (0) while a rev request was active, likely forced by supervisor fault.',
+        fix: 'Check preceding fault log entries (battery sag or telemetry timeout) to see what triggered supervisor fault mode.'
+      }
+    };
+
+    function formatUptime(sec) {
+      if (typeof sec !== 'number' || isNaN(sec) || sec < 0) return '0s';
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      if (h > 0) return `${h}h ${m}m ${s}s`;
+      if (m > 0) return `${m}m ${s}s`;
+      return `${s}s`;
+    }
+
+    async function fetchFaultLog() {
+      if (!port || !port.readable) {
+        logToConsole("Cannot fetch fault log: Blaster serial not connected.", true);
+        return;
+      }
+      window.blasterFaultLogPending = [];
+      logToConsole("Requesting diagnostic fault log from blaster...");
+      await sendSerialCommand("errors get");
+    }
+    window.fetchFaultLog = fetchFaultLog;
+
+    async function clearFaultLogPrompt() {
+      if (!port || !port.readable) {
+        logToConsole("Cannot clear fault log: Blaster serial not connected.", true);
+        return;
+      }
+      if (confirm("Are you sure you want to clear all diagnostic fault logs from blaster EEPROM?")) {
+        logToConsole("Clearing diagnostic fault history from blaster...");
+        await sendSerialCommand("errors clear");
+      }
+    }
+    window.clearFaultLogPrompt = clearFaultLogPrompt;
+
+    function exportFaultLog() {
+      const logs = window.blasterFaultLog || [];
+      if (logs.length === 0) {
+        alert("No fault logs available to export.");
+        return;
+      }
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", `blaster_fault_log_${new Date().toISOString().slice(0,19).replace(/[:T]/g, "_")}.json`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+    }
+    window.exportFaultLog = exportFaultLog;
+
+    function setFaultFilter(filter) {
+      window.activeFaultFilter = filter;
+      ['all', 'batt', 'telem', 'stall', 'stop'].forEach(f => {
+        const btn = document.getElementById(`fault_filter_${f}`);
+        if (btn) btn.classList.toggle('active', f.toUpperCase() === filter.toUpperCase());
+      });
+      updateFaultLogUI();
+    }
+    window.setFaultFilter = setFaultFilter;
+
+    function updateFaultLogUI() {
+      const logs = window.blasterFaultLog || [];
+      const badge = document.getElementById('fault_count_badge');
+      const emptyState = document.getElementById('fault_empty_state');
+      const tableContainer = document.getElementById('fault_table_container');
+      const tableBody = document.getElementById('fault_table_body');
+      const statTotal = document.getElementById('diag_stat_total');
+      const statLatest = document.getElementById('diag_stat_latest');
+      const statLatestTime = document.getElementById('diag_stat_latest_time');
+      const statMinV = document.getElementById('diag_stat_min_v');
+
+      if (statTotal) statTotal.textContent = logs.length;
+
+      if (logs.length === 0) {
+        if (badge) {
+          badge.textContent = "0 Faults Recorded";
+          badge.className = "badge badge-green";
+        }
+        if (statLatest) {
+          statLatest.textContent = "None (Clean)";
+          statLatest.style.color = "#34d399";
+        }
+        if (statLatestTime) statLatestTime.textContent = "No active trips";
+        if (statMinV) statMinV.textContent = "-- V";
+        if (emptyState) emptyState.style.display = "block";
+        if (tableContainer) tableContainer.style.display = "none";
+        return;
+      }
+
+      if (badge) {
+        badge.textContent = `${logs.length} Fault${logs.length > 1 ? 's' : ''} Logged`;
+        badge.className = "badge badge-red";
+      }
+
+      // Compute statistics
+      const latestEntry = logs[logs.length - 1];
+      const latestDef = FAULT_DEFINITIONS[latestEntry.code] || { name: latestEntry.name || 'UNKNOWN', color: '#ef4444' };
+      if (statLatest) {
+        statLatest.textContent = latestDef.name;
+        statLatest.style.color = latestDef.color;
+      }
+      if (statLatestTime) {
+        statLatestTime.textContent = `Uptime: ${formatUptime(latestEntry.uptime)}`;
+      }
+
+      let minVoltage = 999;
+      logs.forEach(l => {
+        if (l.vbat > 0 && l.vbat < minVoltage) minVoltage = l.vbat;
+      });
+      if (statMinV) {
+        statMinV.textContent = minVoltage < 900 ? `${minVoltage.toFixed(2)} V` : '-- V';
+        statMinV.style.color = minVoltage < 11.0 ? '#ef4444' : 'var(--text-primary)';
+      }
+
+      // Filter entries
+      const filter = window.activeFaultFilter || 'ALL';
+      const filtered = logs.filter(entry => {
+        if (filter === 'ALL') return true;
+        if (filter === 'BATT') return entry.code >= 0x01 && entry.code <= 0x03;
+        if (filter === 'TELEM') return entry.code >= 0x10 && entry.code <= 0x12;
+        if (filter === 'STALL') return entry.code === 0x20 || entry.code === 0x21;
+        if (filter === 'STOP') return entry.code === 0x50;
+        return true;
+      });
+
+      if (emptyState) emptyState.style.display = "none";
+      if (tableContainer) tableContainer.style.display = "block";
+      if (!tableBody) return;
+
+      tableBody.innerHTML = '';
+
+      // Render in reverse chronological order (newest first)
+      const reversed = [...filtered].reverse();
+      reversed.forEach((entry, idx) => {
+        const def = FAULT_DEFINITIONS[entry.code] || {
+          name: entry.name || `ERR_0x${entry.code.toString(16)}`,
+          label: entry.name || `Error 0x${entry.code.toString(16)}`,
+          badgeClass: 'badge-pink',
+          color: '#ec4899',
+          cause: 'Unspecified firmware protection condition.',
+          fix: 'Review system status and power supply.'
+        };
+
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border-color)';
+        tr.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)';
+
+        const vbatColor = (entry.vbat > 0 && entry.vbat < 12.0) ? '#ef4444' : 'var(--text-primary)';
+
+        tr.innerHTML = `
+          <td style="padding: 0.65rem 0.75rem; font-weight: 600; color: var(--text-muted);">${entry.idx + 1}</td>
+          <td style="padding: 0.65rem 0.75rem; white-space: nowrap;">
+            <div style="font-weight: 600; color: var(--text-primary);">${formatUptime(entry.uptime)}</div>
+            <div style="font-size: 0.65rem; color: var(--text-muted);">${entry.uptime}s</div>
+          </td>
+          <td style="padding: 0.65rem 0.75rem;">
+            <span class="badge ${def.badgeClass}" style="margin-bottom: 0.2rem;">${entry.codeHex || ('0x' + entry.code.toString(16))}</span>
+            <div style="font-weight: 600; color: ${def.color}; font-size: 0.75rem;">${def.name}</div>
+          </td>
+          <td style="padding: 0.65rem 0.75rem; white-space: nowrap;">
+            <div style="font-size: 0.9rem; font-weight: 700; color: ${vbatColor};">${entry.vbat.toFixed(2)} V</div>
+            <div style="font-size: 0.65rem; color: var(--text-muted);">${(entry.vbat / 4.0).toFixed(2)}V/cell avg</div>
+          </td>
+          <td style="padding: 0.65rem 0.75rem; white-space: nowrap;">
+            <div><strong style="color: var(--accent-cyan);">M1:</strong> ${entry.rpm1.toLocaleString()} RPM</div>
+            <div><strong style="color: var(--accent-violet);">M2:</strong> ${entry.rpm2.toLocaleString()} RPM</div>
+          </td>
+          <td style="padding: 0.65rem 0.75rem; white-space: nowrap;">
+            <div><strong style="color: var(--text-secondary);">Thr:</strong> ${entry.thr1} / ${entry.thr2}</div>
+            <div style="font-size: 0.65rem; color: var(--text-muted);">Target: ${entry.target.toLocaleString()} RPM</div>
+          </td>
+          <td style="padding: 0.65rem 0.75rem; max-width: 320px;">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.15rem;">${def.cause}</div>
+            <div style="color: var(--accent-cyan); font-size: 0.72rem; line-height: 1.35;"><strong>Fix:</strong> ${def.fix}</div>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+    window.updateFaultLogUI = updateFaultLogUI;
+
     function formatBlasterSettingValue(key, val) {
       if (key === 'dart_detect') {
         const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
@@ -6005,7 +6420,9 @@ function updateWriteButtonText() {
           await sendSerialCommand("freewheel show");
           await new Promise(r => setTimeout(r, 80));
           await sendSerialCommand("ff show");
-          logToConsole("Board settings loaded into the UI.");
+          await new Promise(r => setTimeout(r, 80));
+          await sendSerialCommand("errors get");
+          logToConsole("Board settings and diagnostic fault history loaded into the UI.");
           logToConsole("Streaming is off. Use Basic/Full or Slow/Fast only while capturing diagnostics.");
         }, 500);
 
@@ -6252,6 +6669,59 @@ function updateWriteButtonText() {
     // Parse incoming lines
     function parseSerialLine(line) {
       if (!line) return;
+
+      // Match incoming fault log header: fault_log:count=N
+      const faultHeaderMatch = line.match(/^fault_log:count=(\d+)/i);
+      if (faultHeaderMatch) {
+        window.blasterFaultLogPending = [];
+        window.blasterFaultLogExpected = parseInt(faultHeaderMatch[1], 10);
+        if (window.blasterFaultLogExpected === 0) {
+          window.blasterFaultLog = [];
+          if (typeof updateFaultLogUI === 'function') updateFaultLogUI();
+          logToConsole("Diagnostic fault history: 0 faults recorded in EEPROM.");
+        }
+        return;
+      }
+
+      // Match incoming fault log entry:
+      // fault:idx=0,uptime=42,code=0x01,name=ERR_BATT_SAG_EMERGENCY,vbat=10.45,rpm1=18240,rpm2=17950,thr1=1500,thr2=1500,target=30000,flags=0x00
+      const faultEntryMatch = line.match(/^fault:idx=(\d+),uptime=(\d+),code=0x([0-9a-fA-F]+),name=([A-Za-z0-9_]+),vbat=([\d\.\-]+),rpm1=(\d+),rpm2=(\d+),thr1=(\d+),thr2=(\d+),target=(\d+),flags=0x([0-9a-fA-F]+)/i);
+      if (faultEntryMatch) {
+        if (!window.blasterFaultLogPending) window.blasterFaultLogPending = [];
+        const entry = {
+          idx: parseInt(faultEntryMatch[1], 10),
+          uptime: parseInt(faultEntryMatch[2], 10),
+          code: parseInt(faultEntryMatch[3], 16),
+          codeHex: '0x' + faultEntryMatch[3].toUpperCase().padStart(2, '0'),
+          name: faultEntryMatch[4],
+          vbat: parseFloat(faultEntryMatch[5]),
+          rpm1: parseInt(faultEntryMatch[6], 10),
+          rpm2: parseInt(faultEntryMatch[7], 10),
+          thr1: parseInt(faultEntryMatch[8], 10),
+          thr2: parseInt(faultEntryMatch[9], 10),
+          target: parseInt(faultEntryMatch[10], 10),
+          flags: parseInt(faultEntryMatch[11], 16)
+        };
+        window.blasterFaultLogPending.push(entry);
+        return;
+      }
+
+      // Match incoming fault log end: fault_log:end
+      if (/^fault_log:end/i.test(line)) {
+        window.blasterFaultLog = window.blasterFaultLogPending || [];
+        window.blasterFaultLogPending = null;
+        if (typeof updateFaultLogUI === 'function') updateFaultLogUI();
+        logToConsole(`Loaded ${window.blasterFaultLog.length} diagnostic fault entries from blaster.`);
+        return;
+      }
+
+      // Match errors cleared response: errors: cleared
+      if (/^errors:\s*cleared/i.test(line)) {
+        window.blasterFaultLog = [];
+        if (typeof updateFaultLogUI === 'function') updateFaultLogUI();
+        logToConsole("Blaster diagnostic fault history cleared successfully.");
+        return;
+      }
 
       // Match incoming HUD layout: hud_data:<flag>,<w0_en>,...
       const hudDataMatch = line.match(/^hud_data:([\d,-]+)/i);
