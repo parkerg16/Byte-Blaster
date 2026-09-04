@@ -2682,7 +2682,7 @@
                       <input type="hidden" id="hud_sim_firemode" value="0">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.35rem;">
-                      <button type="button" id="btn_sim_fm_0" class="preset-btn" style="padding: 0.35rem 0.4rem; font-size: 0.75rem; text-align: center; background: var(--accent-orange); color: #fff; border-color: var(--accent-orange); font-weight: 700;" onclick="setHudSimFireMode(0)">Semi [S]</button>
+                      <button type="button" id="btn_sim_fm_0" class="preset-btn" style="padding: 0.35rem 0.4rem; font-size: 0.75rem; text-align: center; background: var(--accent-orange); color: #fff; border-color: var(--accent-orange); font-weight: 700;" onclick="setHudSimFireMode(0)">Single [S]</button>
                       <button type="button" id="btn_sim_fm_1" class="preset-btn" style="padding: 0.35rem 0.4rem; font-size: 0.75rem; text-align: center;" onclick="setHudSimFireMode(1)">Burst [B]</button>
                       <button type="button" id="btn_sim_fm_2" class="preset-btn" style="padding: 0.35rem 0.4rem; font-size: 0.75rem; text-align: center;" onclick="setHudSimFireMode(2)">Auto [A]</button>
                     </div>
@@ -9457,7 +9457,7 @@ function updateWriteButtonText() {
         { val: 3, label: "Value Only (15)" }
       ],
       2: [
-        { val: 0, label: "Text Label (SEMI / BURST / AUTO)" },
+        { val: 0, label: "Text Label (SINGLE / BURST / AUTO)" },
         { val: 1, label: "Tactical Weapon Badges" },
         { val: 2, label: "Single Letter ([S], [B], [A])" }
       ],
@@ -9751,7 +9751,7 @@ function updateWriteButtonText() {
 
     Object.entries(U8G2_HUD_FONT_BYTES_B64).forEach(([name, b64]) => importU8g2HudFont(name, b64));
     const HUD_EXACT_FONT_NAMES = Object.keys(U8G2_HUD_FONT_BYTES_B64);
-    const HUD_PARITY_PREVIEW_REV = "u8g2-r2-status-v3";
+    const HUD_PARITY_PREVIEW_REV = "u8g2-r2-status-view-v6";
     window.U8G2_HUD_FONTS = U8G2_HUD_FONTS;
     window.U8G2_HUD_FONT_BYTES_B64 = U8G2_HUD_FONT_BYTES_B64;
     window.HUD_PARITY_PREVIEW_REV = HUD_PARITY_PREVIEW_REV;
@@ -9955,6 +9955,7 @@ function updateWriteButtonText() {
     let widgetOrigY = 0;
     let spriteSliceGrid = 16;
     let hudMirrorDebounceTimer = null;
+    let hudFrameViewMode = 'preview';
 
     function initHudDesigner() {
       hudCanvas = document.getElementById('hud_canvas');
@@ -11183,7 +11184,7 @@ function updateWriteButtonText() {
       scheduleHudLiveMirror();
     }
 
-    function renderHudCanvas() {
+    function renderHudCanvas({ forcePreview = false } = {}) {
       if (!hudCtx || !hudCursorCtx) return;
 
       hudCtx.fillStyle = '#000';
@@ -11342,10 +11343,10 @@ function updateWriteButtonText() {
 
           case 2: { // Firing Mode
             if (w.style === 1) { // Badges
-              let bW = (simFireMode === 0) ? 3 : (simFireMode === 1) ? 11 : 15;
+              let bW = (simFireMode === 0) ? 2 : (simFireMode === 1) ? 10 : 15;
               drawW = bW; drawH = 7;
               const drawX = getAlignedX(w.x, drawW, alignMode);
-              if (simFireMode === 0) { // Semi
+              if (simFireMode === 0) { // Single
                 hudCtx.fillRect(drawX, w.y - 6, 2, 6);
               } else if (simFireMode === 1) { // Burst
                 hudCtx.fillRect(drawX, w.y - 6, 2, 6);
@@ -11359,7 +11360,7 @@ function updateWriteButtonText() {
               const textBox = drawAlignedHudText(code, w.x, w.y, fSize, false, alignMode);
               drawW = textBox.width;
             } else {
-              const modeStr = (simFireMode === 0) ? 'SEMI' : (simFireMode === 1) ? 'BURST' : 'AUTO';
+              const modeStr = (simFireMode === 0) ? 'SINGLE' : (simFireMode === 1) ? 'BURST' : 'AUTO';
               const textBox = drawAlignedHudText(modeStr, w.x, w.y, fSize, false, alignMode);
               drawW = textBox.width;
             }
@@ -11591,7 +11592,13 @@ function updateWriteButtonText() {
         }
       });
 
-      scheduleHudLiveMirror();
+      if (!forcePreview && hudFrameViewMode !== 'preview') {
+        drawHudParityFrameView();
+        hudCursorCtx.clearRect(0, 0, 128, 64);
+      }
+
+      updateHudParityViewButtons();
+      if (!forcePreview) scheduleHudLiveMirror();
     }
 
     function normalizeHudFrameHex(rawHex) {
@@ -11619,6 +11626,67 @@ function updateWriteButtonText() {
       return getSsd1306Bit(bytes, 127 - x, 63 - y);
     }
 
+    function updateHudParityViewButtons() {
+      const hasFrame = !!window.lastHudFrameComparison;
+      ['preview', 'blaster', 'diff'].forEach(mode => {
+        const btn = document.getElementById(`btn_hud_view_${mode}`);
+        if (!btn) return;
+        btn.classList.toggle('active', hudFrameViewMode === mode);
+        btn.disabled = (mode !== 'preview' && !hasFrame);
+      });
+    }
+
+    function setHudParityViewMode(mode) {
+      if (!['preview', 'blaster', 'diff'].includes(mode)) mode = 'preview';
+      if (mode !== 'preview' && !window.lastHudFrameComparison) {
+        if (typeof logToConsole === 'function') logToConsole("Run Parity Test before viewing the blaster frame.", true);
+        mode = 'preview';
+      }
+      hudFrameViewMode = mode;
+      updateHudParityViewButtons();
+      renderHudCanvas();
+    }
+
+    function drawHudParityFrameView() {
+      const result = window.lastHudFrameComparison;
+      if (!result || !hudCtx) return;
+
+      const preview = hudFrameHexToBytes(result.previewHex);
+      const firmware = hudFrameHexToBytes(result.firmwareHex);
+      hudCtx.save();
+      hudCtx.imageSmoothingEnabled = false;
+      hudCtx.fillStyle = '#000';
+      hudCtx.fillRect(0, 0, 128, 64);
+
+      if (hudFrameViewMode === 'blaster') {
+        hudCtx.fillStyle = '#fff';
+        for (let y = 0; y < 64; y++) {
+          for (let x = 0; x < 128; x++) {
+            if (getFirmwareHudBit(firmware, x, y)) hudCtx.fillRect(x, y, 1, 1);
+          }
+        }
+      } else if (hudFrameViewMode === 'diff') {
+        for (let y = 0; y < 64; y++) {
+          for (let x = 0; x < 128; x++) {
+            const previewOn = getSsd1306Bit(preview, x, y);
+            const firmwareOn = getFirmwareHudBit(firmware, x, y);
+            if (previewOn && firmwareOn) {
+              hudCtx.fillStyle = 'rgba(255,255,255,0.65)';
+              hudCtx.fillRect(x, y, 1, 1);
+            } else if (previewOn) {
+              hudCtx.fillStyle = '#f97316';
+              hudCtx.fillRect(x, y, 1, 1);
+            } else if (firmwareOn) {
+              hudCtx.fillStyle = '#06b6d4';
+              hudCtx.fillRect(x, y, 1, 1);
+            }
+          }
+        }
+      }
+
+      hudCtx.restore();
+    }
+
     function packHudPreviewFrameBytes() {
       const canvas = document.getElementById('hud_canvas');
       if (!canvas) throw new Error("HUD preview canvas is not available.");
@@ -11639,8 +11707,10 @@ function updateWriteButtonText() {
     }
 
     function getHudPreviewFrameHex({ rerender = true } = {}) {
-      if (rerender) renderHudCanvas();
-      return bytesToHudFrameHex(packHudPreviewFrameBytes());
+      if (rerender) renderHudCanvas({ forcePreview: true });
+      const hex = bytesToHudFrameHex(packHudPreviewFrameBytes());
+      if (rerender && hudFrameViewMode !== 'preview') renderHudCanvas();
+      return hex;
     }
 
     function compareHudFrameHex(previewHex, firmwareHex, maxSamples = 32) {
@@ -11667,6 +11737,8 @@ function updateWriteButtonText() {
       const previewHex = getHudPreviewFrameHex({ rerender: true });
       const result = compareHudFrameHex(previewHex, firmwareHex);
       window.lastHudFrameComparison = result;
+      if (!result.match && hudFrameViewMode === 'preview') hudFrameViewMode = 'diff';
+      updateHudParityViewButtons();
       if (typeof logToConsole === 'function') {
         if (result.match) {
           logToConsole("HUD parity: preview matches blaster framebuffer exactly.");
@@ -11675,6 +11747,7 @@ function updateWriteButtonText() {
           logToConsole(`HUD parity: ${result.mismatchCount} pixels differ. First mismatches: ${samples}`, true);
         }
       }
+      if (hudFrameViewMode !== 'preview') renderHudCanvas();
       return result;
     }
 
@@ -11779,6 +11852,7 @@ function updateWriteButtonText() {
     window.compareHudFrameHex = compareHudFrameHex;
     window.compareHudPreviewToFrameHex = compareHudPreviewToFrameHex;
     window.copyHudPreviewFrameHex = copyHudPreviewFrameHex;
+    window.setHudParityViewMode = setHudParityViewMode;
     window.requestHudFrameCompare = requestHudFrameCompare;
     window.runHudParityCheck = runHudParityCheck;
     window.buildHudSerialCommand = buildHudSerialCommand;
@@ -11851,6 +11925,7 @@ function updateWriteButtonText() {
 
     function scheduleHudLiveMirror(immediate = false) {
       if (hudLiveMirrorSuspended) return;
+      if (hudFrameViewMode !== 'preview') return;
       const mirrorActive = document.getElementById('hud_live_mirror')?.checked;
       if (!mirrorActive || !port || !port.writable) return;
 
