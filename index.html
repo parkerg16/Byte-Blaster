@@ -1300,6 +1300,97 @@
         </div>
       </div>
 
+      <!-- Closed-Loop Dart Impact & Solenoid Diagnostics Card -->
+      <div class="visualizer-card" id="dart_diagnostics_card" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(17, 24, 39, 0.45); margin-top: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+          <div class="section-title" style="color: var(--accent-green); margin-bottom: 0;">
+            Closed-Loop Dart Impact & Solenoid Diagnostics
+            <span class="badge badge-cyan" style="font-size: 0.65rem; margin-left: 0.4rem;">Live Telemetry</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button id="btn_stream_query_dart" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.72rem;" onclick="queryBlasterDartStatus()">Sync from Blaster</button>
+          </div>
+        </div>
+
+        <!-- Live Impact Metrics Strip -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.6rem; margin-bottom: 1rem;">
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Last Shot Impact</div>
+            <div id="val_stream_dart_status" style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); margin-top: 0.15rem;">Ready / Awaiting Shot</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">RPM Drop (Dip)</div>
+            <div id="val_stream_dart_drop" style="font-size: 0.95rem; font-weight: 700; color: #f59e0b; margin-top: 0.15rem;">-- RPM</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Peak ➜ Bottom RPM</div>
+            <div id="val_stream_dart_peak_bottom" style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-top: 0.15rem;">-- ➜ --</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Impact Window</div>
+            <div id="val_stream_dart_window" style="font-size: 0.95rem; font-weight: 700; color: var(--accent-cyan); margin-top: 0.15rem;">-- ms</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Solenoid Pulse</div>
+            <div id="val_stream_solenoid_state" style="font-size: 0.85rem; font-weight: 700; color: #f97316; margin-top: 0.15rem;">IDLE</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Darts / Dry Fires</div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-top: 0.15rem;">
+              <span id="val_stream_dart_count" style="color: var(--accent-green);">0</span> / <span id="val_stream_dry_count" style="color: var(--accent-pink);">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Interactive Dart Detection Tuning Controls -->
+        <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem 1rem;">
+          <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>Live Dart Detection Tuning</span>
+            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; text-transform: none; font-size: 0.75rem; font-weight: normal; color: var(--text-secondary);">
+              <input type="checkbox" id="stream_dart_detect" onchange="syncStreamDartField('dart_detect', this.checked, 'checkbox')">
+              <span>Enable Closed-Loop Detection</span>
+            </label>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; font-size: 0.8rem;">
+            <div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                <span style="color: var(--text-secondary);">Drop RPM Threshold:</span>
+                <strong id="val_stream_dart_drop_rpm" style="color: #f59e0b;">800 RPM</strong>
+              </div>
+              <input type="range" id="stream_dart_drop_rpm" min="200" max="3000" step="25" value="800" oninput="syncStreamDartField('dart_drop_rpm', this.value, 'range')" style="width: 100%;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary);">
+                <span>200 RPM (Sensitive)</span>
+                <span>3000 RPM (Stiff)</span>
+              </div>
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                <span style="color: var(--text-secondary);">Impact Window:</span>
+                <strong id="val_stream_dart_window_ms" style="color: var(--accent-cyan);">50 ms</strong>
+              </div>
+              <input type="range" id="stream_dart_window_ms" min="20" max="150" step="5" value="50" oninput="syncStreamDartField('dart_window_ms', this.value, 'range')" style="width: 100%;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary);">
+                <span>20 ms</span>
+                <span>150 ms</span>
+              </div>
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                <span style="color: var(--text-secondary);">Min Detection RPM:</span>
+                <strong id="val_stream_dart_min_rpm" style="color: var(--accent-violet);">6,000 RPM</strong>
+              </div>
+              <input type="range" id="stream_dart_min_rpm" min="3000" max="15000" step="250" value="6000" oninput="syncStreamDartField('dart_min_rpm', this.value, 'range')" style="width: 100%;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary);">
+                <span>3,000 RPM</span>
+                <span>15,000 RPM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Shot Analyzer & PID Predictor Card -->
       <div class="visualizer-card" id="analyzer_card" style="border-color: rgba(139, 92, 246, 0.25); background: rgba(17, 24, 39, 0.45);">
         <div class="section-title" style="color: var(--accent-violet);">
@@ -3516,6 +3607,10 @@ function updateWriteButtonText() {
       if (cb && cb.checked !== isEnabled) {
         cb.checked = isEnabled;
       }
+      const streamCb = document.getElementById('stream_dart_detect');
+      if (streamCb && streamCb.checked !== isEnabled) {
+        streamCb.checked = isEnabled;
+      }
 
       // 1. Update summary badge in settings row
       const badge = document.getElementById('val_dart_detect_badge');
@@ -3588,25 +3683,163 @@ function updateWriteButtonText() {
       } else if (metric === 'last_shot_rpm_drop') {
         const dropEl = document.getElementById('val_diag_last_drop');
         if (dropEl) dropEl.textContent = `${Math.round(num)} RPM`;
+        const sDrop = document.getElementById('val_stream_dart_drop');
+        if (sDrop) sDrop.textContent = `-${Math.round(num).toLocaleString()} RPM`;
       } else if (metric === 'last_shot_dart_detected') {
+        const isDart = Math.round(num) === 1;
         const resEl = document.getElementById('val_diag_last_result');
         if (resEl) {
-          if (Math.round(num) === 1) {
-            resEl.textContent = 'Dart Confirmed';
-            resEl.style.color = 'var(--accent-green)';
-          } else {
-            resEl.textContent = 'Dry Fire / None';
-            resEl.style.color = 'var(--accent-pink)';
-          }
+          resEl.textContent = isDart ? 'Dart Confirmed' : 'Dry Fire / None';
+          resEl.style.color = isDart ? 'var(--accent-green)' : 'var(--accent-pink)';
+        }
+        const sStatus = document.getElementById('val_stream_dart_status');
+        if (sStatus) {
+          sStatus.textContent = isDart ? 'CONFIRMED IMPACT' : 'DRY FIRE / JAM';
+          sStatus.style.color = isDart ? 'var(--accent-green)' : 'var(--accent-pink)';
         }
       } else if (metric === 'dart_detections_count') {
         const countEl = document.getElementById('val_diag_dart_count');
         if (countEl) countEl.textContent = Math.round(num);
+        const sCount = document.getElementById('val_stream_dart_count');
+        if (sCount) sCount.textContent = Math.round(num);
       } else if (metric === 'dry_fires_count') {
         const dryEl = document.getElementById('val_diag_dry_count');
         if (dryEl) dryEl.textContent = Math.round(num);
+        const sDry = document.getElementById('val_stream_dry_count');
+        if (sDry) sDry.textContent = Math.round(num);
       }
     }
+
+    function handleDartEvent(dartEvent) {
+      if (!dartEvent) return;
+      const drop = Math.round(dartEvent.drop);
+      const peak = Math.round(dartEvent.peak);
+      const bottom = Math.round(dartEvent.bottom);
+      const windowMs = Math.round(dartEvent.window);
+      const detected = !!dartEvent.detected;
+
+      // Update streaming diagnostic strip
+      const statusEl = document.getElementById('val_stream_dart_status');
+      if (statusEl) {
+        statusEl.textContent = detected ? 'CONFIRMED IMPACT' : 'DRY FIRE / JAM';
+        statusEl.style.color = detected ? 'var(--accent-green)' : 'var(--accent-pink)';
+      }
+
+      const dropEl = document.getElementById('val_stream_dart_drop');
+      if (dropEl) {
+        dropEl.textContent = `-${drop.toLocaleString()} RPM`;
+        dropEl.style.color = detected ? '#10b981' : '#f59e0b';
+      }
+
+      const peakBottomEl = document.getElementById('val_stream_dart_peak_bottom');
+      if (peakBottomEl) {
+        peakBottomEl.textContent = `${peak.toLocaleString()} ➜ ${bottom.toLocaleString()} RPM`;
+      }
+
+      const winEl = document.getElementById('val_stream_dart_window');
+      if (winEl) {
+        winEl.textContent = `${windowMs} ms`;
+      }
+
+      // Also update settings page diagnostics
+      const diagDrop = document.getElementById('val_diag_last_drop');
+      if (diagDrop) diagDrop.textContent = `${drop} RPM`;
+      const diagRes = document.getElementById('val_diag_last_result');
+      if (diagRes) {
+        diagRes.textContent = detected ? 'Dart Confirmed' : 'Dry Fire / None';
+        diagRes.style.color = detected ? 'var(--accent-green)' : 'var(--accent-pink)';
+      }
+
+      if (detected) {
+        const c1 = document.getElementById('val_diag_dart_count');
+        const c2 = document.getElementById('val_stream_dart_count');
+        const currentCnt = c2 ? parseInt(c2.textContent, 10) || 0 : 0;
+        if (c1) c1.textContent = currentCnt + 1;
+        if (c2) c2.textContent = currentCnt + 1;
+      } else {
+        const y1 = document.getElementById('val_diag_dry_count');
+        const y2 = document.getElementById('val_stream_dry_count');
+        const currentDry = y2 ? parseInt(y2.textContent, 10) || 0 : 0;
+        if (y1) y1.textContent = currentDry + 1;
+        if (y2) y2.textContent = currentDry + 1;
+      }
+
+      if (dartEvent.ammo !== null && dartEvent.ammo !== undefined) {
+        const ammoEl = document.getElementById('display_ammo_count');
+        if (ammoEl) ammoEl.textContent = dartEvent.ammo;
+      }
+
+      // If live graph is currently active and running, plot dip marker on chart
+      if (dynamicsChart && liveGraphStartMs !== null) {
+        const nowMs = (rollingBuffer.length > 0 && rollingBuffer[rollingBuffer.length - 1].boardMs !== null)
+          ? rollingBuffer[rollingBuffer.length - 1].boardMs
+          : Date.now();
+        const relTime = Math.max(0, nowMs - liveGraphStartMs);
+        liveGraphDartEvents.push({
+          x: relTime,
+          y: bottom,
+          detail: `Dart Impact: -${drop} RPM in ${windowMs}ms (Peak: ${peak.toLocaleString()} ➜ Min: ${bottom.toLocaleString()} RPM)`
+        });
+        if (dynamicsChart.data.datasets[12]) {
+          dynamicsChart.data.datasets[12].data = liveGraphDartEvents;
+          dynamicsChart.update('none');
+        }
+      }
+
+      logToConsole(`[DART IMPACT] Drop: -${drop} RPM in ${windowMs}ms (${peak.toLocaleString()} ➜ ${bottom.toLocaleString()} RPM) - ${detected ? 'Confirmed Dart' : 'Dry Fire'}`);
+    }
+    window.handleDartEvent = handleDartEvent;
+
+    let dartDebounceTimer = null;
+    function syncStreamDartField(key, val, controlType = 'range') {
+      const streamValDisp = document.getElementById('val_stream_' + key);
+      if (streamValDisp) {
+        if (key === 'dart_drop_rpm' || key === 'dart_min_rpm') {
+          streamValDisp.textContent = `${Math.round(Number(val)).toLocaleString()} RPM`;
+        } else if (key === 'dart_window_ms') {
+          streamValDisp.textContent = `${Math.round(Number(val))} ms`;
+        }
+      }
+
+      // Sync settings tab input
+      const setEl = document.getElementById('set_' + key);
+      if (setEl) {
+        if (controlType === 'checkbox') {
+          setEl.checked = !!val;
+        } else {
+          setEl.value = val;
+        }
+        syncBlasterField(key, val, controlType);
+      }
+
+      // Send to board immediately if connected
+      if (port && port.writable) {
+        clearTimeout(dartDebounceTimer);
+        dartDebounceTimer = setTimeout(async () => {
+          if (key === 'dart_detect') {
+            const cmd = (val === true || val === 'true' || val === 1 || val === '1') ? 'dart_detect 1' : 'dart_detect 0';
+            await sendSerialCommand(cmd);
+          } else if (key === 'dart_drop_rpm') {
+            await sendSerialCommand(`dart_detect drop ${Math.round(Number(val))}`);
+          } else if (key === 'dart_window_ms') {
+            await sendSerialCommand(`dart_detect window ${Math.round(Number(val))}`);
+          } else if (key === 'dart_min_rpm') {
+            await sendSerialCommand(`dart_detect min_rpm ${Math.round(Number(val))}`);
+          }
+        }, 100);
+      }
+    }
+    window.syncStreamDartField = syncStreamDartField;
+
+    async function queryBlasterDartStatus() {
+      if (!port || !port.writable) {
+        logToConsole("Cannot query dart status: Blaster serial not connected.");
+        return;
+      }
+      await sendSerialCommand("dart_detect");
+      logToConsole("Queried live dart detection status from blaster...");
+    }
+    window.queryBlasterDartStatus = queryBlasterDartStatus;
 
     function formatBlasterSettingValue(key, val) {
       if (key === 'dart_detect') {
@@ -3997,6 +4230,21 @@ function updateWriteButtonText() {
       }
       if (key === 'dart_detect') {
         updateDartDetectState(controlType === 'checkbox' ? el.checked : val);
+      } else if (key === 'dart_drop_rpm') {
+        const sEl = document.getElementById('stream_dart_drop_rpm');
+        if (sEl) sEl.value = val;
+        const sDisp = document.getElementById('val_stream_dart_drop_rpm');
+        if (sDisp) sDisp.textContent = `${Math.round(Number(val)).toLocaleString()} RPM`;
+      } else if (key === 'dart_window_ms') {
+        const sEl = document.getElementById('stream_dart_window_ms');
+        if (sEl) sEl.value = val;
+        const sDisp = document.getElementById('val_stream_dart_window_ms');
+        if (sDisp) sDisp.textContent = `${Math.round(Number(val))} ms`;
+      } else if (key === 'dart_min_rpm') {
+        const sEl = document.getElementById('stream_dart_min_rpm');
+        if (sEl) sEl.value = val;
+        const sDisp = document.getElementById('val_stream_dart_min_rpm');
+        if (sDisp) sDisp.textContent = `${Math.round(Number(val)).toLocaleString()} RPM`;
       }
       
       // Mark key as dirty and add indicator styling
@@ -4739,7 +4987,20 @@ function updateWriteButtonText() {
           borderColor: 'rgba(255, 255, 255, 0.1)',
           borderWidth: 1,
           titleFont: { family: 'Space Grotesk' },
-          bodyFont: { family: 'Outfit' }
+          bodyFont: { family: 'Outfit' },
+          callbacks: {
+            label: function(context) {
+              if (context.datasetIndex === 8) {
+                return `Solenoid Fired (${Math.round(context.parsed.x)} ms)`;
+              }
+              if (context.datasetIndex === 12) {
+                const raw = context.raw;
+                if (raw && raw.detail) return raw.detail;
+                return `Dart Impact: ${Math.round(context.parsed.y)} RPM`;
+              }
+              return (context.dataset.label || '') + ': ' + (typeof context.parsed.y === 'number' ? Math.round(context.parsed.y) : context.parsed.y);
+            }
+          }
         }
       },
       scales: {
@@ -4846,6 +5107,7 @@ function updateWriteButtonText() {
             data: [],
             borderColor: '#f97316',
             borderWidth: 1.5,
+            borderDash: [5, 5],
             yAxisID: 'y1',
             pointRadius: 0,
             hidden: true
@@ -4932,6 +5194,16 @@ function updateWriteButtonText() {
             yAxisID: 'y1',
             pointRadius: 0,
             showLine: true
+          },
+          {
+            label: 'Dart Impact / RPM Drop',
+            data: [],
+            borderColor: '#10b981',
+            backgroundColor: '#10b981',
+            pointRadius: 7,
+            pointStyle: 'triangle',
+            showLine: false,
+            yAxisID: 'y'
           }
         ]
       },
@@ -5398,6 +5670,8 @@ function updateWriteButtonText() {
     let liveGraphCurrentM1 = [];
     let liveGraphCurrentM2 = [];
     let liveGraphCurrentTarget = [];
+    let liveGraphSolenoidEvents = [];
+    let liveGraphDartEvents = [];
     let liveGraphLastUpdateMs = 0;
     let lastTelemetryTarget = 0;
     let latestLaunchMetrics = {
@@ -5996,6 +6270,105 @@ function updateWriteButtonText() {
         return;
       }
 
+      // Match incoming closed-loop dart impact telemetry event:
+      // DART_EVENT: drop=1250,window=45,peak=30200,bottom=28950,detected=1,ammo=15
+      const dartEventMatch = line.match(/^DART_EVENT:\s*(?:start=(\d+),)?drop=(\d+),window=(\d+),peak=(\d+)(?:,bottom=(\d+))?,detected=([01])(?:,ammo=(\d+))?/i);
+      if (dartEventMatch) {
+        const drop = parseInt(dartEventMatch[2]);
+        const windowMs = parseInt(dartEventMatch[3]);
+        const peak = parseInt(dartEventMatch[4]);
+        const bottom = dartEventMatch[5] ? parseInt(dartEventMatch[5]) : Math.max(0, peak - drop);
+        const detected = dartEventMatch[6] === '1';
+        const ammo = dartEventMatch[7] ? parseInt(dartEventMatch[7]) : null;
+        handleDartEvent({
+          start: dartEventMatch[1] ? parseInt(dartEventMatch[1]) : null,
+          drop: drop,
+          window: windowMs,
+          peak: peak,
+          bottom: bottom,
+          detected: detected,
+          ammo: ammo,
+          timestamp: Date.now()
+        });
+        return;
+      }
+
+      // Match dart_detect query status:
+      // dart_detect: enabled=1 drop_rpm=800 window_ms=50 eff_window=50 min_rpm=6000 last_drop=1200 last_detected=1 darts_detected=12 dry_fires=1
+      const dartStatusMatch = line.match(/^dart_detect:\s*(?:enabled=([01]))?\s*(?:drop_rpm=(\d+))?\s*(?:window_ms=(\d+))?\s*(?:eff_window=(\d+))?\s*(?:min_rpm=(\d+))?\s*(?:last_drop=(\d+))?\s*(?:last_detected=([01]))?\s*(?:darts_detected=(\d+))?\s*(?:dry_fires=(\d+))?/i);
+      if (dartStatusMatch && (dartStatusMatch[1] !== undefined || dartStatusMatch[2] !== undefined)) {
+        if (dartStatusMatch[1] !== undefined) updateDartDetectState(dartStatusMatch[1] === '1');
+        if (dartStatusMatch[2] !== undefined) {
+          const val = parseInt(dartStatusMatch[2]);
+          const el1 = document.getElementById('set_dart_drop_rpm');
+          const el2 = document.getElementById('stream_dart_drop_rpm');
+          if (el1) el1.value = val;
+          if (el2) el2.value = val;
+          const disp1 = document.getElementById('val_set_dart_drop_rpm');
+          const disp2 = document.getElementById('val_stream_dart_drop_rpm');
+          if (disp1) disp1.textContent = `${val} RPM`;
+          if (disp2) disp2.textContent = `${val.toLocaleString()} RPM`;
+        }
+        if (dartStatusMatch[3] !== undefined) {
+          const val = parseInt(dartStatusMatch[3]);
+          const el1 = document.getElementById('set_dart_window_ms');
+          const el2 = document.getElementById('stream_dart_window_ms');
+          if (el1) el1.value = val;
+          if (el2) el2.value = val;
+          const disp1 = document.getElementById('val_set_dart_window_ms');
+          const disp2 = document.getElementById('val_stream_dart_window_ms');
+          if (disp1) disp1.textContent = `${val} ms`;
+          if (disp2) disp2.textContent = `${val} ms`;
+        }
+        if (dartStatusMatch[5] !== undefined) {
+          const val = parseInt(dartStatusMatch[5]);
+          const el1 = document.getElementById('set_dart_min_rpm');
+          const el2 = document.getElementById('stream_dart_min_rpm');
+          if (el1) el1.value = val;
+          if (el2) el2.value = val;
+          const disp1 = document.getElementById('val_set_dart_min_rpm');
+          const disp2 = document.getElementById('val_stream_dart_min_rpm');
+          if (disp1) disp1.textContent = `${val} RPM`;
+          if (disp2) disp2.textContent = `${val.toLocaleString()} RPM`;
+        }
+        if (dartStatusMatch[6] !== undefined) {
+          const dropVal = parseInt(dartStatusMatch[6]);
+          const d1 = document.getElementById('val_diag_last_drop');
+          const d2 = document.getElementById('val_stream_dart_drop');
+          if (d1) d1.textContent = `${dropVal} RPM`;
+          if (d2) d2.textContent = `-${dropVal} RPM`;
+        }
+        if (dartStatusMatch[7] !== undefined) {
+          const det = dartStatusMatch[7] === '1';
+          const r1 = document.getElementById('val_diag_last_result');
+          const r2 = document.getElementById('val_stream_dart_status');
+          if (r1) {
+            r1.textContent = det ? 'Dart Confirmed' : 'Dry Fire / None';
+            r1.style.color = det ? 'var(--accent-green)' : 'var(--accent-pink)';
+          }
+          if (r2) {
+            r2.textContent = det ? 'CONFIRMED IMPACT' : 'DRY FIRE / JAM';
+            r2.style.color = det ? 'var(--accent-green)' : 'var(--accent-pink)';
+          }
+        }
+        if (dartStatusMatch[8] !== undefined) {
+          const cnt = parseInt(dartStatusMatch[8]);
+          const c1 = document.getElementById('val_diag_dart_count');
+          const c2 = document.getElementById('val_stream_dart_count');
+          if (c1) c1.textContent = cnt;
+          if (c2) c2.textContent = cnt;
+        }
+        if (dartStatusMatch[9] !== undefined) {
+          const dry = parseInt(dartStatusMatch[9]);
+          const y1 = document.getElementById('val_diag_dry_count');
+          const y2 = document.getElementById('val_stream_dry_count');
+          if (y1) y1.textContent = dry;
+          if (y2) y2.textContent = dry;
+        }
+        logToConsole("Dart detection settings and counters synchronized from blaster.");
+        return;
+      }
+
       // Match dart detection telemetry metrics and terminal state responses
       const dartMetricMatch = line.match(/^\s*(last_shot_rpm_drop|last_shot_dart_detected|dart_detections_count|dry_fires_count|dart_detect_enabled)=([0-9\.]+)/i);
       if (dartMetricMatch) {
@@ -6090,8 +6463,8 @@ function updateWriteButtonText() {
         return;
       }
       
-      // Look for format TARGET:X,RPM1:Y,RPM2:Z, optionally with MS, throttle, model-current, voltage, fault, and motion mode fields.
-      const regex = /(?:MS:(\d+),)?TARGET:(\d+),RPM1:(\d+),RPM2:(\d+)(?:,THR1:(\d+),THR2:(\d+))?(?:,IT1:([\d\.\-]+),IE1:([\d\.\-]+),IT2:([\d\.\-]+),IE2:([\d\.\-]+))?(?:,VB:([\d\.]+),FLT:([A-Za-z]+),MD:([A-Za-z]+))?/i;
+      // Look for format TARGET:X,RPM1:Y,RPM2:Z, optionally with MS, throttle, model-current, voltage, fault, motion mode, SOL, and DD fields.
+      const regex = /(?:MS:(\d+),)?TARGET:(\d+),RPM1:(\d+),RPM2:(\d+)(?:,THR1:(\d+),THR2:(\d+))?(?:,IT1:([\d\.\-]+),IE1:([\d\.\-]+),IT2:([\d\.\-]+),IE2:([\d\.\-]+))?(?:,VB:([\d\.]+),FLT:([A-Za-z]+),MD:([A-Za-z]+))?(?:,SOL:(\d+))?(?:,DD:(\d+))?/i;
       const match = line.match(regex);
       
       if (match) {
@@ -6108,6 +6481,8 @@ function updateWriteButtonText() {
         const voltage = match[11] ? parseFloat(match[11]) : null;
         const fault = match[12] ? match[12].toUpperCase() : 'NONE';
         const mode = match[13] ? match[13].toUpperCase() : 'STOP';
+        const sol = match[14] ? parseInt(match[14]) : 0;
+        const dd = match[15] ? parseInt(match[15]) : 0;
         
         const healthEl = document.getElementById('live_system_health');
         if (healthEl) {
@@ -6152,6 +6527,8 @@ function updateWriteButtonText() {
           voltage: voltage,
           fault: fault,
           mode: mode,
+          sol: sol,
+          dd: dd,
           timestamp: Date.now(),
           boardMs: boardMs
         };
@@ -6222,12 +6599,17 @@ function updateWriteButtonText() {
         liveGraphCurrentM1 = [];
         liveGraphCurrentM2 = [];
         liveGraphCurrentTarget = [];
+        liveGraphSolenoidEvents = [];
+        liveGraphDartEvents = [];
         dynamicsChart.data.datasets[6].data = [];
         dynamicsChart.data.datasets[7].data = [];
         dynamicsChart.data.datasets[8].data = [];
         dynamicsChart.data.datasets[9].data = [];
         dynamicsChart.data.datasets[10].data = [];
         dynamicsChart.data.datasets[11].data = [];
+        if (dynamicsChart.data.datasets[12]) {
+          dynamicsChart.data.datasets[12].data = [];
+        }
       }
 
       let relTime = sampleMs - liveGraphStartMs;
@@ -6239,6 +6621,8 @@ function updateWriteButtonText() {
         liveGraphCurrentM1 = [];
         liveGraphCurrentM2 = [];
         liveGraphCurrentTarget = [];
+        liveGraphSolenoidEvents = [];
+        liveGraphDartEvents = [];
       }
 
       liveGraphDataM1.push({ x: relTime, y: point.rpm1, throttle: point.throttle1 });
@@ -6259,6 +6643,24 @@ function updateWriteButtonText() {
       }
       updateLaunchCurrentPanel();
 
+      if (point.sol === 1) {
+        const curRpm = Math.max(point.rpm1, point.rpm2);
+        const lastSol = liveGraphSolenoidEvents.length > 0 ? liveGraphSolenoidEvents[liveGraphSolenoidEvents.length - 1] : null;
+        if (!lastSol || (relTime - lastSol.x >= 35)) {
+          liveGraphSolenoidEvents.push({ x: relTime, y: curRpm });
+        }
+      }
+      const solEl = document.getElementById('val_stream_solenoid_state');
+      if (solEl) {
+        if (point.sol === 1) {
+          solEl.textContent = 'PULSE ON (FIRE)';
+          solEl.style.color = '#f97316';
+        } else {
+          solEl.textContent = 'IDLE';
+          solEl.style.color = 'var(--text-secondary)';
+        }
+      }
+
       const windowStart = Math.max(0, relTime - 3000);
       while (liveGraphDataM1.length > 0 && liveGraphDataM1[0].x < windowStart) {
         liveGraphDataM1.shift();
@@ -6275,12 +6677,22 @@ function updateWriteButtonText() {
       while (liveGraphCurrentTarget.length > 0 && liveGraphCurrentTarget[0].x < windowStart) {
         liveGraphCurrentTarget.shift();
       }
+      while (liveGraphSolenoidEvents.length > 0 && liveGraphSolenoidEvents[0].x < windowStart) {
+        liveGraphSolenoidEvents.shift();
+      }
+      while (liveGraphDartEvents.length > 0 && liveGraphDartEvents[0].x < windowStart) {
+        liveGraphDartEvents.shift();
+      }
 
       dynamicsChart.data.datasets[4].data = liveGraphDataM1;
       dynamicsChart.data.datasets[5].data = liveGraphDataM2;
+      dynamicsChart.data.datasets[8].data = liveGraphSolenoidEvents;
       dynamicsChart.data.datasets[9].data = liveGraphCurrentM1;
       dynamicsChart.data.datasets[10].data = liveGraphCurrentM2;
       dynamicsChart.data.datasets[11].data = liveGraphCurrentTarget;
+      if (dynamicsChart.data.datasets[12]) {
+        dynamicsChart.data.datasets[12].data = liveGraphDartEvents;
+      }
       dynamicsChart.options.scales.x.min = windowStart;
       dynamicsChart.options.scales.x.max = Math.max(300, Math.ceil((relTime + 50) / 50) * 50);
 
@@ -6347,8 +6759,8 @@ function updateWriteButtonText() {
             const rawHistMs = (histPoint.boardMs !== null && histPoint.boardMs !== undefined) ? histPoint.boardMs : histPoint.timestamp;
             const histMs = Number.isFinite(rawHistMs) ? rawHistMs : triggerTimestamp;
             const relTime = 10.0 + (histMs - triggerTimestamp);
-            capturedDataM1.push({ x: relTime, y: histPoint.rpm1 || 0, throttle: histPoint.throttle1 || 0, targetCurrent: histPoint.targetCurrent1, estimatedCurrent: histPoint.estimatedCurrent1 });
-            capturedDataM2.push({ x: relTime, y: histPoint.rpm2 || 0, throttle: histPoint.throttle2 || 0, targetCurrent: histPoint.targetCurrent2, estimatedCurrent: histPoint.estimatedCurrent2 });
+            capturedDataM1.push({ x: relTime, y: histPoint.rpm1 || 0, throttle: histPoint.throttle1 || 0, targetCurrent: histPoint.targetCurrent1, estimatedCurrent: histPoint.estimatedCurrent1, sol: histPoint.sol || 0, dd: histPoint.dd || 0 });
+            capturedDataM2.push({ x: relTime, y: histPoint.rpm2 || 0, throttle: histPoint.throttle2 || 0, targetCurrent: histPoint.targetCurrent2, estimatedCurrent: histPoint.estimatedCurrent2, sol: histPoint.sol || 0, dd: histPoint.dd || 0 });
           }
         }
       } else if (captureState === 'RECORDING') {
@@ -6356,8 +6768,8 @@ function updateWriteButtonText() {
         const currentMs = Number.isFinite(rawCurrentMs) ? rawCurrentMs : Date.now();
         const relTime = 10.0 + (currentMs - triggerTimestamp);
         
-        capturedDataM1.push({ x: relTime, y: point.rpm1 || 0, throttle: point.throttle1 || 0, targetCurrent: point.targetCurrent1, estimatedCurrent: point.estimatedCurrent1 });
-        capturedDataM2.push({ x: relTime, y: point.rpm2 || 0, throttle: point.throttle2 || 0, targetCurrent: point.targetCurrent2, estimatedCurrent: point.estimatedCurrent2 });
+        capturedDataM1.push({ x: relTime, y: point.rpm1 || 0, throttle: point.throttle1 || 0, targetCurrent: point.targetCurrent1, estimatedCurrent: point.estimatedCurrent1, sol: point.sol || 0, dd: point.dd || 0 });
+        capturedDataM2.push({ x: relTime, y: point.rpm2 || 0, throttle: point.throttle2 || 0, targetCurrent: point.targetCurrent2, estimatedCurrent: point.estimatedCurrent2, sol: point.sol || 0, dd: point.dd || 0 });
         
         // Check if target reached
         if (!reachedTarget && (point.rpm1 >= target_95 && point.rpm2 >= target_95)) {
@@ -6408,17 +6820,58 @@ function updateWriteButtonText() {
       const target_95 = 0.95 * target_rpm;
       let realRampMs = -1;
       let solenoidFiredMs = -1;
+      let solenoidMarker = null;
+      let dartDipMarker = null;
       
       for (let i = 0; i < capturedDataM1.length; i++) {
         const pt1 = capturedDataM1[i];
         const pt2 = capturedDataM2[i] || pt1;
         const avgRpm = ((pt1?.y ?? 0) + (pt2?.y ?? 0)) / 2.0;
+        if (!solenoidMarker && (pt1.sol === 1 || pt2.sol === 1)) {
+          solenoidMarker = { x: pt1.x, y: avgRpm };
+        }
         if (solenoidFiredMs < 0 && pt1.x > 10.0 && avgRpm >= target_92) {
           solenoidFiredMs = pt1.x - 10.0;
         }
         if (realRampMs < 0 && pt1.x > 10.0 && avgRpm >= target_95) {
           realRampMs = pt1.x - 10.0;
           break;
+        }
+      }
+
+      // If solenoid energized marker was recorded, search for dart RPM dip in window
+      if (solenoidMarker) {
+        let minDipRpm = Infinity;
+        let minDipPt = null;
+        let peakRpm = solenoidMarker.y;
+        for (let i = 0; i < capturedDataM1.length; i++) {
+          const pt1 = capturedDataM1[i];
+          if (pt1.x >= solenoidMarker.x && pt1.x <= solenoidMarker.x + 150) {
+            const pt2 = capturedDataM2[i] || pt1;
+            const avgRpm = ((pt1?.y ?? 0) + (pt2?.y ?? 0)) / 2.0;
+            if (avgRpm > peakRpm && minDipPt === null) {
+              peakRpm = avgRpm;
+            }
+            if (avgRpm < minDipRpm) {
+              minDipRpm = avgRpm;
+              minDipPt = { x: pt1.x, y: Math.round(minDipRpm) };
+            }
+          }
+        }
+        if (minDipPt && (peakRpm - minDipRpm >= 200)) {
+          const drop = Math.round(peakRpm - minDipRpm);
+          const winMs = Math.round(minDipPt.x - solenoidMarker.x);
+          minDipPt.detail = `Dart Impact: -${drop} RPM in ${winMs}ms (Peak: ${Math.round(peakRpm)} ➜ Min: ${Math.round(minDipRpm)} RPM)`;
+          dartDipMarker = minDipPt;
+          handleDartEvent({
+            start: null,
+            drop: drop,
+            window: winMs,
+            peak: Math.round(peakRpm),
+            bottom: Math.round(minDipRpm),
+            detected: true,
+            ammo: null
+          });
         }
       }
       
@@ -6461,10 +6914,17 @@ function updateWriteButtonText() {
       }
       
       // 8: Solenoid Fired (Orange)
-      if (solenoidFiredMs > 0) {
+      if (solenoidMarker) {
+        dynamicsChart.data.datasets[8].data = [solenoidMarker];
+      } else if (solenoidFiredMs > 0) {
         dynamicsChart.data.datasets[8].data = [{ x: 10.0 + solenoidFiredMs, y: target_92 }];
       } else {
         dynamicsChart.data.datasets[8].data = [];
+      }
+
+      // 12: Dart Impact / RPM Drop (Green Triangle)
+      if (dynamicsChart.data.datasets[12]) {
+        dynamicsChart.data.datasets[12].data = dartDipMarker ? [dartDipMarker] : [];
       }
       
       // Adjust X-axis max dynamically
@@ -6497,6 +6957,11 @@ function updateWriteButtonText() {
       dynamicsChart.data.datasets[9].data = [];
       dynamicsChart.data.datasets[10].data = [];
       dynamicsChart.data.datasets[11].data = [];
+      if (dynamicsChart.data.datasets[12]) {
+        dynamicsChart.data.datasets[12].data = [];
+      }
+      liveGraphSolenoidEvents = [];
+      liveGraphDartEvents = [];
       dynamicsChart.options.scales.x.min = -50;
       dynamicsChart.options.scales.x.max = 300;
       dynamicsChart.update();
