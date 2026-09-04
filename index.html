@@ -9219,15 +9219,24 @@ function updateWriteButtonText() {
         select.innerHTML = '';
         let foundAssets = false;
         
+        // Show only the past 3 releases
+        const validReleases = [];
         for (const rel of releases) {
-          const blasterAssets = rel.assets
-            .filter(a => /^Byte_Blaster_RP2040_.*\.(uf2|bin)$/i.test(a.name))
-            .sort((a, b) => {
-              const aBin = a.name.toLowerCase().endsWith('.bin') ? 0 : 1;
-              const bBin = b.name.toLowerCase().endsWith('.bin') ? 0 : 1;
-              return aBin - bBin || a.name.localeCompare(b.name);
-            });
-          for (const asset of blasterAssets) {
+          if (rel.draft) continue;
+          const blasterAssets = (rel.assets || []).filter(a => /^Byte_Blaster_RP2040_.*\.(uf2|bin)$/i.test(a.name));
+          if (blasterAssets.length > 0) {
+            validReleases.push({ rel, blasterAssets });
+            if (validReleases.length >= 3) break;
+          }
+        }
+
+        for (const { rel, blasterAssets } of validReleases) {
+          const sortedAssets = blasterAssets.sort((a, b) => {
+            const aBin = a.name.toLowerCase().endsWith('.bin') ? 0 : 1;
+            const bBin = b.name.toLowerCase().endsWith('.bin') ? 0 : 1;
+            return aBin - bBin || a.name.localeCompare(b.name);
+          });
+          for (const asset of sortedAssets) {
             const option = document.createElement('option');
             option.value = firmwareRawContentUrl(rel.tag_name, asset.name);
             option.dataset.releaseUrl = asset.browser_download_url;
