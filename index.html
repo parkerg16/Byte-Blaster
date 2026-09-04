@@ -10682,7 +10682,7 @@ function updateWriteButtonText() {
 
     Object.entries(U8G2_HUD_FONT_BYTES_B64).forEach(([name, b64]) => importU8g2HudFont(name, b64));
     const HUD_EXACT_FONT_NAMES = Object.keys(U8G2_HUD_FONT_BYTES_B64);
-    const HUD_PARITY_PREVIEW_REV = "u8g2-r2-status-view-v6";
+    const HUD_PARITY_PREVIEW_REV = "u8g2-r2-status-view-v7";
     window.U8G2_HUD_FONTS = U8G2_HUD_FONTS;
     window.U8G2_HUD_FONT_BYTES_B64 = U8G2_HUD_FONT_BYTES_B64;
     window.HUD_PARITY_PREVIEW_REV = HUD_PARITY_PREVIEW_REV;
@@ -10719,14 +10719,22 @@ function updateWriteButtonText() {
       const scale = mapping.scale || 1;
       let width = 0;
       let lastGlyph = null;
+      let initialXOffset = -64;
       for (const ch of str) {
         const glyph = font.glyphs[ch];
         if (!glyph) continue;
+        if (initialXOffset === -64) {
+          initialXOffset = glyph.x;
+        }
         width += glyph.d;
         lastGlyph = glyph;
       }
       if (!lastGlyph) return 0;
-      return Math.ceil(Math.max(0, width - lastGlyph.d + lastGlyph.w + lastGlyph.x) * scale);
+      let totalW = width - lastGlyph.d + lastGlyph.w + lastGlyph.x;
+      if (initialXOffset > 0) {
+        totalW += initialXOffset;
+      }
+      return Math.ceil(Math.max(0, totalW) * scale);
     }
 
     function drawHudText(ctx, text, x, baselineY, sizeCode, preferDigits = false) {
@@ -10815,9 +10823,9 @@ function updateWriteButtonText() {
     }
 
     function getAlignedX(rawX, width, alignMode) {
-      if (alignMode === 1) return Math.round(rawX - (width / 2)); // Center
-      if (alignMode === 2) return Math.round(rawX - width);       // Right
-      return rawX;                                                // Left
+      if (alignMode === 1) return rawX - Math.floor(width / 2); // Center (integer division matching firmware)
+      if (alignMode === 2) return rawX - width;                 // Right
+      return rawX;                                              // Left
     }
 
     function onHudRpmLabelsChanged() {
@@ -12390,15 +12398,15 @@ function updateWriteButtonText() {
       const configuredCells = (configuredCellsRaw > 0) ? configuredCellsRaw : Math.max(3, Math.min(6, Math.round(simV / 3.8)));
 
       function getAlignedX(rawX, width, alignMode) {
-        if (alignMode === 1) return Math.round(rawX - (width / 2)); // Center
-        if (alignMode === 2) return Math.round(rawX - width);       // Right
-        return rawX;                                                // Left
+        if (alignMode === 1) return rawX - Math.floor(width / 2); // Center (integer division matching firmware)
+        if (alignMode === 2) return rawX - width;                 // Right
+        return rawX;                                              // Left
       }
 
-      function drawAlignedHudText(str, rawX, baselineY, sizeCode, isBold = false, textAlignMode = 0) {
-        const width = measureHudText(str, sizeCode, isBold);
+      function drawAlignedHudText(str, rawX, baselineY, sizeCode, preferDigits = false, textAlignMode = 0) {
+        const width = measureHudText(str, sizeCode, preferDigits);
         const drawX = getAlignedX(rawX, width, textAlignMode);
-        drawHudText(hudCtx, str, drawX, baselineY, sizeCode, isBold);
+        drawHudText(hudCtx, str, drawX, baselineY, sizeCode, preferDigits);
         return { drawX, width, height: getFontHeight(sizeCode) };
       }
 
@@ -12417,7 +12425,7 @@ function updateWriteButtonText() {
         switch (widgetType) {
           case 0: { // Voltage
             if (w.style === 1) { // 4-bar battery
-              drawW = 19; drawH = 9;
+              drawW = 18; drawH = 9;
               const drawX = getAlignedX(w.x, drawW, alignMode);
               hudCtx.strokeRect(drawX + 0.5, w.y - 7.5, 16, 8);
               hudCtx.fillRect(drawX + 16.5, w.y - 5.5, 2, 4);
