@@ -4304,7 +4304,12 @@ function updateWriteButtonText() {
     }
     window.updateFaultLogUI = updateFaultLogUI;
 
+    let liveBrightnessDebounceTimer = null;
+
     function formatBlasterSettingValue(key, val) {
+      if (key === 'brightness') {
+        return Math.round(Number(val));
+      }
       if (key === 'dart_detect') {
         const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
         return enabled ? 'Active (RPM Drop)' : 'Legacy (Solenoid Pulse)';
@@ -4732,6 +4737,13 @@ function updateWriteButtonText() {
       }
       mirrorLinkedPidSetting(key, val);
       updateWriteButtonText();
+
+      if (key === 'brightness' && typeof port !== 'undefined' && port && port.writable) {
+        clearTimeout(liveBrightnessDebounceTimer);
+        liveBrightnessDebounceTimer = setTimeout(() => {
+          sendSerialCommand(`settings set brightness ${Math.round(Number(val))}`);
+        }, 60);
+      }
       
       // Sync corresponding simulator parameters if they map directly:
       if (key === 'motor_kv') {
