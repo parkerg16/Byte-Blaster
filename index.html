@@ -4077,23 +4077,23 @@ function updateWriteButtonText() {
       },
       0x10: {
         name: 'ERR_TELEM_TIMEOUT_M1',
-        label: 'Motor 1 Telemetry Timeout (>150ms)',
+        label: 'Motor 1 Telemetry Timeout (>80ms)',
         badgeClass: 'badge-amber',
         color: '#f59e0b',
-        cause: 'No valid KISS/DShot telemetry received from ESC 1 for over 150ms while spinning. Commutation EMI noise or wire disconnect.',
+        cause: 'No valid bidirectional DShot telemetry received from ESC 1 for over 80ms while spinning. Commutation EMI noise or wire disconnect.',
         fix: 'Check ESC 1 telemetry solder joint/pin. Solder a 35V low-ESR electrolytic capacitor across power leads to suppress switching spikes.'
       },
       0x11: {
         name: 'ERR_TELEM_TIMEOUT_M2',
-        label: 'Motor 2 Telemetry Timeout (>150ms)',
+        label: 'Motor 2 Telemetry Timeout (>80ms)',
         badgeClass: 'badge-amber',
         color: '#f59e0b',
-        cause: 'No valid KISS/DShot telemetry received from ESC 2 for over 150ms while spinning.',
+        cause: 'No valid bidirectional DShot telemetry received from ESC 2 for over 80ms while spinning.',
         fix: 'Check ESC 2 telemetry solder joint/pin and wiring.'
       },
       0x12: {
         name: 'ERR_TELEM_TIMEOUT_BOTH',
-        label: 'Dual ESC Telemetry Lost (>150ms)',
+        label: 'Dual ESC Telemetry Lost (>80ms)',
         badgeClass: 'badge-red',
         color: '#ef4444',
         cause: 'Both ESCs stopped reporting telemetry simultaneously, typically caused by severe switching noise across shared ground/power.',
@@ -6249,6 +6249,7 @@ function updateWriteButtonText() {
     let capturedDataM1 = [];
     let capturedDataM2 = [];
     let capturePidSnapshot = null;
+    let captureTargetRpm = 0;
     let triggerTimestamp = 0;
     let reachedTarget = false;
     let targetReachedTime = 0;
@@ -6291,10 +6292,53 @@ function updateWriteButtonText() {
       return Number.isFinite(value) ? value : fallback;
     }
 
-    function buildCapturePidSnapshot() {
+    function validCaptureTarget(value) {
+      const target = Number(value);
+      return Number.isFinite(target) && target > 500 ? target : 0;
+    }
+
+    function getCaptureTargetRpm(fallback = 30000) {
+      const capturedTarget = validCaptureTarget(captureTargetRpm);
+      if (capturedTarget > 0) return capturedTarget;
+      const snapshotTarget = validCaptureTarget(capturePidSnapshot?.targetRpm);
+      if (snapshotTarget > 0) return snapshotTarget;
+      return readNumericInput('rp2040_target_rpm', fallback);
+    }
+
+    function refreshCaptureTargetRpm(point) {
+      const pointTarget = validCaptureTarget(point?.target);
+      if (pointTarget > captureTargetRpm) {
+        captureTargetRpm = pointTarget;
+        if (capturePidSnapshot) {
+          capturePidSnapshot.targetRpm = pointTarget;
+        }
+      }
+      return getCaptureTargetRpm(0);
+    }
+
+    function captureTelemetryPoint(point, relTime, motorIndex) {
+      const isM1 = motorIndex === 1;
+      return {
+        x: relTime,
+        y: isM1 ? (point.rpm1 || 0) : (point.rpm2 || 0),
+        throttle: isM1 ? (point.throttle1 || 0) : (point.throttle2 || 0),
+        target: Number.isFinite(point.target) ? point.target : null,
+        targetCurrent: isM1 ? point.targetCurrent1 : point.targetCurrent2,
+        estimatedCurrent: isM1 ? point.estimatedCurrent1 : point.estimatedCurrent2,
+        v: Number.isFinite(point.voltage) ? point.voltage : null,
+        fault: point.fault || 'NONE',
+        mode: point.mode || 'STOP',
+        sol: point.sol || 0,
+        dd: point.dd || 0,
+        son: Number.isFinite(point.son) ? point.son : null
+      };
+    }
+
+    function buildCapturePidSnapshot(targetOverride = null) {
+      const targetRpm = validCaptureTarget(targetOverride) || readNumericInput('rp2040_target_rpm', 0);
       return {
         capturedAtIso: new Date().toISOString(),
-        targetRpm: readNumericInput('rp2040_target_rpm', 0),
+        targetRpm: targetRpm,
         boardM1: { ...boardPidM1 },
         boardM2: { ...boardPidM2 },
         manualTune: {
@@ -7400,8 +7444,6 @@ function updateWriteButtonText() {
     function processTelemetryStep(point) {
       const autocapEl = document.getElementById('serial_autocapture');
       isAutocaptureEnabled = autocapEl ? autocapEl.checked : false;
-      const target_rpm = parseFloat(document.getElementById('rp2040_target_rpm')?.value) || 30000;
-      const target_95 = 0.95 * target_rpm;
 
       if (captureState === 'WAITING_IDLE') {
         // Wait until blaster returns to resting stop or low idle before re-arming auto-capture
@@ -7442,7 +7484,12 @@ function updateWriteButtonText() {
           targetReachedTime = 0;
           capturedDataM1 = [];
           capturedDataM2 = [];
-          capturePidSnapshot = buildCapturePidSnapshot();
+          captureTargetRpm = 0;
+          for (let i = 0; i < rollingBuffer.length; i++) {
+            refreshCaptureTargetRpm(rollingBuffer[i]);
+          }
+          refreshCaptureTargetRpm(point);
+          capturePidSnapshot = buildCapturePidSnapshot(captureTargetRpm);
           updateSerialStatus('streaming');
           logToConsole("Launch Trigger Detected! Capturing telemetry...");
           
@@ -7453,17 +7500,19 @@ function updateWriteButtonText() {
             const rawHistMs = (histPoint.boardMs !== null && histPoint.boardMs !== undefined) ? histPoint.boardMs : histPoint.timestamp;
             const histMs = Number.isFinite(rawHistMs) ? rawHistMs : triggerTimestamp;
             const relTime = 10.0 + (histMs - triggerTimestamp);
-            capturedDataM1.push({ x: relTime, y: histPoint.rpm1 || 0, throttle: histPoint.throttle1 || 0, targetCurrent: histPoint.targetCurrent1, estimatedCurrent: histPoint.estimatedCurrent1, sol: histPoint.sol || 0, dd: histPoint.dd || 0 });
-            capturedDataM2.push({ x: relTime, y: histPoint.rpm2 || 0, throttle: histPoint.throttle2 || 0, targetCurrent: histPoint.targetCurrent2, estimatedCurrent: histPoint.estimatedCurrent2, sol: histPoint.sol || 0, dd: histPoint.dd || 0 });
+            capturedDataM1.push(captureTelemetryPoint(histPoint, relTime, 1));
+            capturedDataM2.push(captureTelemetryPoint(histPoint, relTime, 2));
           }
         }
       } else if (captureState === 'RECORDING') {
         const rawCurrentMs = (point.boardMs !== null && point.boardMs !== undefined) ? point.boardMs : point.timestamp;
         const currentMs = Number.isFinite(rawCurrentMs) ? rawCurrentMs : Date.now();
         const relTime = 10.0 + (currentMs - triggerTimestamp);
+        const targetRpm = refreshCaptureTargetRpm(point) || readNumericInput('rp2040_target_rpm', 30000);
+        const target_95 = 0.95 * targetRpm;
         
-        capturedDataM1.push({ x: relTime, y: point.rpm1 || 0, throttle: point.throttle1 || 0, targetCurrent: point.targetCurrent1, estimatedCurrent: point.estimatedCurrent1, sol: point.sol || 0, dd: point.dd || 0 });
-        capturedDataM2.push({ x: relTime, y: point.rpm2 || 0, throttle: point.throttle2 || 0, targetCurrent: point.targetCurrent2, estimatedCurrent: point.estimatedCurrent2, sol: point.sol || 0, dd: point.dd || 0 });
+        capturedDataM1.push(captureTelemetryPoint(point, relTime, 1));
+        capturedDataM2.push(captureTelemetryPoint(point, relTime, 2));
         
         // Check if target reached
         if (!reachedTarget && (point.rpm1 >= target_95 && point.rpm2 >= target_95)) {
@@ -7503,7 +7552,7 @@ function updateWriteButtonText() {
 
     function plotRealTelemetry() {
       if (!dynamicsChart || capturedDataM1.length === 0) return;
-      const target_rpm = parseFloat(document.getElementById('rp2040_target_rpm')?.value) || 30000;
+      const target_rpm = getCaptureTargetRpm(30000);
       // Find peak RPM of captured data safely
       const peakM1 = capturedDataM1.length > 0 ? Math.max(...capturedDataM1.map(d => d.y)) : 0;
       const peakM2 = capturedDataM2.length > 0 ? Math.max(...capturedDataM2.map(d => d.y)) : 0;
@@ -7666,6 +7715,7 @@ function updateWriteButtonText() {
       capturedDataM2 = [];
       rollingBuffer = [];
       capturePidSnapshot = null;
+      captureTargetRpm = 0;
       dynamicsChart.data.datasets[4].data = [];
       dynamicsChart.data.datasets[5].data = [];
       dynamicsChart.data.datasets[6].data = [];
@@ -9606,7 +9656,7 @@ function updateWriteButtonText() {
     function analyzeShotTelemetry() {
       if (capturedDataM1.length === 0) return null;
 
-      const targetRpm = parseFloat(document.getElementById('rp2040_target_rpm').value) || 30000;
+      const targetRpm = getCaptureTargetRpm(30000);
       
       // Analyze Motor 1 and Motor 2 average
       const dataM1 = capturedDataM1;
@@ -9868,7 +9918,6 @@ function updateWriteButtonText() {
       const pidSnapshot = capturePidSnapshot || buildCapturePidSnapshot();
       const fmt = (value, digits = 6) => Number.isFinite(value) ? Number(value).toFixed(digits) : '';
       const pidColumns = [
-        Math.round(pidSnapshot.targetRpm || 0),
         pidSnapshot.capturedAtIso,
         fmt(pidSnapshot.boardM1.kp), fmt(pidSnapshot.boardM1.ki), fmt(pidSnapshot.boardM1.kd), fmt(pidSnapshot.boardM1.ff),
         fmt(pidSnapshot.boardM2.kp), fmt(pidSnapshot.boardM2.ki), fmt(pidSnapshot.boardM2.kd), fmt(pidSnapshot.boardM2.ff),
@@ -9892,7 +9941,8 @@ function updateWriteButtonText() {
           simVal = closest.y;
         }
         
-        csv += `${ptM1.x.toFixed(1)},${ptM1.y},${ptM2.y},${ptM1.throttle ?? ''},${ptM2.throttle ?? ''},${ptM1.targetCurrent ?? ''},${ptM1.estimatedCurrent ?? ''},${ptM2.targetCurrent ?? ''},${ptM2.estimatedCurrent ?? ''},${simVal},${pidColumns}\n`;
+        const rowTarget = validCaptureTarget(ptM1.target) || validCaptureTarget(ptM2.target) || validCaptureTarget(pidSnapshot.targetRpm);
+        csv += `${ptM1.x.toFixed(1)},${ptM1.y},${ptM2.y},${ptM1.throttle ?? ''},${ptM2.throttle ?? ''},${ptM1.targetCurrent ?? ''},${ptM1.estimatedCurrent ?? ''},${ptM2.targetCurrent ?? ''},${ptM2.estimatedCurrent ?? ''},${simVal},${Math.round(rowTarget || 0)},${pidColumns}\n`;
       }
       
       const blob = new Blob([csv], { type: 'text/csv' });
