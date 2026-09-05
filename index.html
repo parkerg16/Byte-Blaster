@@ -758,6 +758,12 @@
           <button class="action-btn" id="btn_download" style="margin-top: 0.25rem; font-size: 0.8rem; padding: 0.5rem; background: linear-gradient(135deg, var(--accent-violet) 0%, var(--accent-pink) 100%); display: none;" onclick="downloadTelemetryCSV()">
             Download Captured CSV
           </button>
+          
+          <!-- Discreet Connected Firmware Version -->
+          <div id="sidebar_connected_version_wrap" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.45rem; padding: 0.25rem 0.45rem; border-radius: 4px; background: rgba(0, 0, 0, 0.22); border: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.68rem; color: var(--text-secondary);">
+            <span>Connected Firmware:</span>
+            <span id="sidebar_connected_version_val" style="font-family: monospace; font-weight: 600; color: var(--text-secondary);">Not connected</span>
+          </div>
         </div>
       </div>
 
@@ -774,6 +780,19 @@
             Flash firmware binary (.bin or .uf2) directly to your RP2040 blaster.
           </span>
           
+          <!-- Firmware Version Status & Update Checker -->
+          <div id="flasher_version_card" style="margin-bottom: 0.5rem; padding: 0.45rem 0.55rem; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.7rem; display: flex; flex-direction: column; gap: 0.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--text-secondary);">Installed:</span>
+              <span id="flasher_installed_version" style="font-family: monospace; font-weight: 600; color: var(--text-secondary);">Not connected</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--text-secondary);">Latest:</span>
+              <span id="flasher_latest_version" style="font-family: monospace; font-weight: 600; color: var(--text-primary);">Checking...</span>
+            </div>
+            <div id="flasher_update_badge" style="display: none; margin-top: 0.2rem; padding: 0.25rem 0.4rem; border-radius: 4px; font-size: 0.68rem; font-weight: 600; text-align: center;"></div>
+          </div>
+
           <button class="preset-btn" id="btn_enter_bootsel" style="width: 100%; padding: 0.5rem; font-size: 0.75rem; border-color: rgba(236, 72, 153, 0.4); color: #ec4899; background: rgba(236, 72, 153, 0.05); margin-bottom: 0.4rem;" onclick="triggerBootselReboot()">
             1. Put Device in Bootloader
           </button>
@@ -5113,6 +5132,11 @@ function updateWriteButtonText() {
     }
 
     function handleIncomingBlasterSetting(key, val) {
+      if (key === 'firmware_version') {
+        connectedBlasterVersion = String(val).trim();
+        updateFirmwareVersionUI();
+        return;
+      }
       if (key === 'menu_mask') {
         menuVisibilityMask = (Math.round(val) >>> 0);
         renderMenuVisibilityControls();
@@ -6288,6 +6312,88 @@ function updateWriteButtonText() {
       estimatedCurrent1: null,
       estimatedCurrent2: null
     };
+
+    let connectedBlasterVersion = null;
+    let latestGitHubReleaseVersion = null;
+
+    function parseSemver(v) {
+      if (!v) return null;
+      const str = String(v).trim().replace(/^v/i, '');
+      const match = str.match(/^(\d+)\.(\d+)\.(\d+)/);
+      if (!match) return null;
+      return [parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10)];
+    }
+
+    function compareSemver(v1, v2) {
+      const p1 = parseSemver(v1);
+      const p2 = parseSemver(v2);
+      if (!p1 || !p2) return 0;
+      for (let i = 0; i < 3; i++) {
+        if (p1[i] > p2[i]) return 1;
+        if (p1[i] < p2[i]) return -1;
+      }
+      return 0;
+    }
+
+    function updateFirmwareVersionUI() {
+      const sidebarVal = document.getElementById('sidebar_connected_version_val');
+      const flasherInstalled = document.getElementById('flasher_installed_version');
+      const flasherLatest = document.getElementById('flasher_latest_version');
+      const flasherBadge = document.getElementById('flasher_update_badge');
+
+      if (connectedBlasterVersion) {
+        const vStr = connectedBlasterVersion.startsWith('v') ? connectedBlasterVersion : `v${connectedBlasterVersion}`;
+        if (sidebarVal) {
+          sidebarVal.textContent = vStr;
+          sidebarVal.style.color = 'var(--accent-blue)';
+        }
+        if (flasherInstalled) {
+          flasherInstalled.textContent = vStr;
+          flasherInstalled.style.color = 'var(--accent-blue)';
+        }
+      } else {
+        if (sidebarVal) {
+          sidebarVal.textContent = 'Not connected';
+          sidebarVal.style.color = 'var(--text-secondary)';
+        }
+        if (flasherInstalled) {
+          flasherInstalled.textContent = 'Not connected';
+          flasherInstalled.style.color = 'var(--text-secondary)';
+        }
+      }
+
+      if (latestGitHubReleaseVersion) {
+        const latStr = latestGitHubReleaseVersion.startsWith('v') ? latestGitHubReleaseVersion : `v${latestGitHubReleaseVersion}`;
+        if (flasherLatest) {
+          flasherLatest.textContent = latStr;
+          flasherLatest.style.color = 'var(--text-primary)';
+        }
+      }
+
+      if (flasherBadge) {
+        if (!connectedBlasterVersion) {
+          flasherBadge.style.display = 'none';
+        } else if (connectedBlasterVersion && latestGitHubReleaseVersion) {
+          const cmp = compareSemver(connectedBlasterVersion, latestGitHubReleaseVersion);
+          if (cmp >= 0) {
+            flasherBadge.style.display = 'block';
+            flasherBadge.style.background = 'rgba(34, 197, 94, 0.15)';
+            flasherBadge.style.border = '1px solid rgba(34, 197, 94, 0.4)';
+            flasherBadge.style.color = '#4ade80';
+            flasherBadge.textContent = 'Firmware is up to date';
+          } else {
+            flasherBadge.style.display = 'block';
+            flasherBadge.style.background = 'rgba(234, 179, 8, 0.15)';
+            flasherBadge.style.border = '1px solid rgba(234, 179, 8, 0.4)';
+            flasherBadge.style.color = '#facc15';
+            const latStr = latestGitHubReleaseVersion.startsWith('v') ? latestGitHubReleaseVersion : `v${latestGitHubReleaseVersion}`;
+            flasherBadge.textContent = `Update available: ${latStr}`;
+          }
+        } else {
+          flasherBadge.style.display = 'none';
+        }
+      }
+    }
     
     // Log to simulated console in page (high-performance, DOM-capped)
     function logToConsole(text, isError = false) {
@@ -6633,6 +6739,9 @@ function updateWriteButtonText() {
       if (liveTargetEl) liveTargetEl.textContent = "-- RPM";
       if (liveRpm1El) liveRpm1El.textContent = "-- RPM";
       if (liveRpm2El) liveRpm2El.textContent = "-- RPM";
+
+      connectedBlasterVersion = null;
+      updateFirmwareVersionUI();
     }
 
     function onSerialDeviceDisconnect(event) {
@@ -6968,6 +7077,14 @@ function updateWriteButtonText() {
         const numVal = parseFloat(valStr);
         const val = (!isNaN(numVal) && !isNaN(Number(valStr))) ? numVal : valStr;
         handleIncomingBlasterSetting(key, val);
+        return;
+      }
+
+      // Match standalone version response: firmware_version:1.0.9 or version:1.0.9
+      const verMatch = line.match(/^(?:firmware_)?version:\s*([^\s]+)/i);
+      if (verMatch) {
+        connectedBlasterVersion = verMatch[1].trim();
+        updateFirmwareVersionUI();
         return;
       }
       if (escProgWaiter && /^escprog:\s+(active|failed)/i.test(line)) {
@@ -10040,6 +10157,11 @@ function updateWriteButtonText() {
           }
         }
         
+        if (validReleases.length > 0) {
+          latestGitHubReleaseVersion = validReleases[0].rel.tag_name || validReleases[0].rel.name;
+          updateFirmwareVersionUI();
+        }
+
         if (foundAssets) {
           infoSpan.style.display = 'none';
           select.style.display = 'block';
@@ -10051,6 +10173,8 @@ function updateWriteButtonText() {
       } catch (err) {
         console.error("Failed to fetch releases:", err);
         infoSpan.textContent = "Failed to load releases from GitHub.";
+        const flasherLatest = document.getElementById('flasher_latest_version');
+        if (flasherLatest) flasherLatest.textContent = "Unavailable";
       }
     }
 
@@ -15024,7 +15148,8 @@ function updateWriteButtonText() {
     syncFfTableThrottlesFromDrive();
     renderFfTable();
     renderLaunchCurveChart();
-    // Initialize releases fetch
+    // Initialize releases fetch and version UI
+    updateFirmwareVersionUI();
     fetchGitHubReleases();
   </script>
 </body>
