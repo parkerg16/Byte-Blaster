@@ -2068,7 +2068,7 @@
                 </div>
                 <div class="settings-row-desc">Speed of the flywheels in idle/revved-down state when always-on mode is active.</div>
                 <div class="settings-row-control">
-                  <input type="range" id="set_always_on_rpm" min="1000" max="15000" step="100" value="1500" oninput="syncBlasterField('always_on_rpm', this.value, 'range')">
+                  <input type="range" id="set_always_on_rpm" min="300" max="15000" step="50" value="1500" oninput="syncBlasterField('always_on_rpm', this.value, 'range')">
                 </div>
               </div>
 
@@ -2127,6 +2127,14 @@
                 <div class="settings-row-control">
                   <input type="range" id="set_spinup_skew_limit" min="0" max="250" step="5" value="80" oninput="syncBlasterField('spinup_skew_limit', this.value, 'range')">
                 </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label" style="flex-direction: row; justify-content: flex-start; gap: 0.5rem; align-items: center; cursor: pointer;">
+                  <input type="checkbox" id="set_boot_spin_test" onchange="syncBlasterField('boot_spin_test', this.checked, 'checkbox')" style="width: 16px; height: 16px; accent-color: var(--accent-violet);">
+                  <span style="font-weight: 600;"><span class="settings-row-num">08c.</span> Boot Motor Spin Pretest</span>
+                </div>
+                <div class="settings-row-desc">Sends a brief DShot 48 pulse on boot to gently spin both flywheels, confirming ESC communication, motor wiring, and initial telemetry.</div>
               </div>
 
               <div class="settings-row">
@@ -4379,6 +4387,10 @@ function updateWriteButtonText() {
         const num = Math.round(Number(val));
         return num === 0 ? 'Disabled (Independent)' : `\u00B1${num} throttle`;
       }
+      if (key === 'boot_spin_test') {
+        const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
+        return enabled ? 'Enabled' : 'Disabled';
+      }
       if (key === 'sol_volt_comp') {
         const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
         return enabled ? 'Active (+1.25 ms/V Sag Boost)' : 'Disabled (Fixed Cell Table)';
@@ -4995,6 +5007,7 @@ function updateWriteButtonText() {
         cells: 4,
         step_up: 45,
         spinup_skew_limit: 80,
+        boot_spin_test: 1,
         dshot_rate: 600,
         frame_period_us: 1000,
         ctrl_algo: 1,
@@ -5103,7 +5116,7 @@ function updateWriteButtonText() {
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
         'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_boost', 'launch_trajectory', 'startup_rpm',
-        'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit',
+        'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
         'glide_rpm_per_s', 'glide_step_down_x10',
         'splash_ms', 'rpm_preset_count', 'menu_mask',
