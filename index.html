@@ -1235,15 +1235,10 @@
 
       <!-- Real-time Plot -->
       <div class="visualizer-card">
-        <div class="section-title" style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 0.5rem;">
-          <div>
-            Live RPM Timeline
-            <div style="font-size: 0.8rem; text-transform: none; font-weight: normal; color: var(--text-secondary)">
-              Real motor telemetry appears here when the blaster is connected and reporting RPM.
-            </div>
-          </div>
-          <div style="font-size: 0.8rem; font-weight: 600; color: #f97316; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 6px; padding: 0.25rem 0.6rem;">
-            Shot Solenoid: <span id="real_sol_on_time" style="color: #fdba74;">-- ms</span>
+        <div class="section-title" style="margin-bottom: 0.5rem;">
+          Live RPM Timeline
+          <div style="font-size: 0.8rem; text-transform: none; font-weight: normal; color: var(--text-secondary)">
+            Real motor telemetry appears here when the blaster is connected and reporting RPM.
           </div>
         </div>
         
@@ -1302,6 +1297,10 @@
           <div style="background: rgba(0,0,0,0.18); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 0.65rem;">
             <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Motor 2 RPM</div>
             <div id="live_rpm_m2" style="font-size: 0.9rem; font-weight: 700; color: #38bdf8;">-- RPM</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.18); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 0.65rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Shot Solenoid</div>
+            <div id="real_sol_on_time" style="font-size: 0.9rem; font-weight: 700; color: #f97316;">-- ms</div>
           </div>
         </div>
         
@@ -2588,7 +2587,21 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">28.</span> LED Status Brightness</span>
+                  <span><span class="settings-row-num">28.</span> LED Status NeoPixel</span>
+                  <span id="val_set_led_enabled">Enabled</span>
+                </div>
+                <div class="settings-row-desc">Enable or completely disable the onboard RGB NeoPixel status LED to prevent any timing impact.</div>
+                <div class="settings-row-control" style="display: flex; justify-content: flex-end;">
+                  <label class="toggle-switch" title="Toggle NeoPixel Status LED" style="margin: 0;">
+                    <input type="checkbox" id="set_led_enabled" checked onchange="syncBlasterField('led_enabled', this.checked ? 1 : 0, 'checkbox')">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <span><span class="settings-row-num">29.</span> LED Status Brightness</span>
                   <span><span id="val_set_brightness">50</span>%</span>
                 </div>
                 <div class="settings-row-desc">Brightness of status buttons / NeoPixels on the blaster.</div>
@@ -2599,7 +2612,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">29.</span> Temperature Unit</span>
+                  <span><span class="settings-row-num">30.</span> Temperature Unit</span>
                   <span><span id="val_set_temp_unit">Fahrenheit</span></span>
                 </div>
                 <div class="settings-row-desc">Display temperature in Fahrenheit (0) or Celsius (1).</div>
@@ -4336,6 +4349,10 @@ function updateWriteButtonText() {
         const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
         return enabled ? 'Active (+1.25 ms/V Sag Boost)' : 'Disabled (Fixed Cell Table)';
       }
+      if (key === 'led_enabled') {
+        const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
+        return enabled ? 'Enabled' : 'Disabled';
+      }
       if (key === 'brightness') {
         return Math.round(Number(val));
       }
@@ -4969,6 +4986,7 @@ function updateWriteButtonText() {
         dart_min_rpm: 6000,
         pid1_kp: 0.051, pid1_ki: 0.002, pid1_ff: 1.0000,
         pid2_kp: 0.051, pid2_ki: 0.002, pid2_ff: 1.0000,
+        led_enabled: 1,
         brightness: 50,
         temp_unit: 0,
         rpm_preset_count: 3,
@@ -5045,7 +5063,7 @@ function updateWriteButtonText() {
       }
       
       const allKeys = [
-        'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'brightness', 'temp_unit', 'cells',
+        'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'led_enabled', 'brightness', 'temp_unit', 'cells',
         'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
@@ -7366,9 +7384,9 @@ function updateWriteButtonText() {
           const baseOn = Number(document.getElementById(`set_sol_on_${cells}s`)?.value || 30);
           const compEnabled = !!document.getElementById('set_sol_volt_comp')?.checked;
           const shotV = (point.voltage !== null && Number.isFinite(point.voltage)) ? point.voltage : (window.lastTelemetryVoltage || (cells * 3.8));
-          let effectiveOn = (point.son !== null && point.son !== undefined) ? point.son : baseOn;
+          let effectiveOn = (point.son !== null && point.son !== undefined && point.son > 0) ? point.son : baseOn;
           let boostMs = 0;
-          if (point.son === null || point.son === undefined) {
+          if (!point.son || point.son <= 0) {
             if (compEnabled && shotV > 5.0) {
               const nominalV = cells * 4.0;
               const deficit = nominalV - shotV;
@@ -7380,6 +7398,8 @@ function updateWriteButtonText() {
           } else if (point.son > baseOn) {
             boostMs = point.son - baseOn;
           }
+          window.lastRecordedShotSolenoidOn = effectiveOn;
+          window.lastRecordedShotSolenoidBoost = boostMs;
           const solDetail = boostMs > 0 ? `Solenoid Fired: ${effectiveOn} ms ON (+${boostMs}ms comp)` : `Solenoid Fired: ${effectiveOn} ms ON`;
           liveGraphSolenoidEvents.push({ x: relTime, y: curRpm, detail: solDetail, solOnMs: effectiveOn });
           const liveSolBadge = document.getElementById('real_sol_on_time');
@@ -7647,8 +7667,13 @@ function updateWriteButtonText() {
         peakEl.textContent = `(Real: ${realPeak.toLocaleString()})`;
       }
       const solBadgeEl = document.getElementById('real_sol_on_time');
-      if (solBadgeEl && solenoidMarker) {
-        solBadgeEl.textContent = `${solenoidMarker.solOnMs} ms${solenoidMarker.boostMs > 0 ? ` (+${solenoidMarker.boostMs}ms)` : ''}`;
+      if (solBadgeEl) {
+        if (solenoidMarker) {
+          solBadgeEl.textContent = `${solenoidMarker.solOnMs} ms${solenoidMarker.boostMs > 0 ? ` (+${solenoidMarker.boostMs}ms)` : ''}`;
+        } else if (window.lastRecordedShotSolenoidOn) {
+          const bMs = window.lastRecordedShotSolenoidBoost || 0;
+          solBadgeEl.textContent = `${window.lastRecordedShotSolenoidOn} ms${bMs > 0 ? ` (+${bMs}ms)` : ''}`;
+        }
       }
 
       // Inject captured telemetry datasets to chart
