@@ -1287,16 +1287,16 @@
             <div id="live_motion_mode" style="font-size: 0.9rem; font-weight: 700; color: var(--accent-cyan);">STOP</div>
           </div>
           <div style="background: rgba(0,0,0,0.18); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 0.65rem;">
-            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">M1 Current</div>
-            <div id="live_current_m1" style="font-size: 0.9rem; font-weight: 700; color: #ec4899;">-- A</div>
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Target RPM</div>
+            <div id="live_target_rpm" style="font-size: 0.9rem; font-weight: 700; color: var(--accent-violet);">-- RPM</div>
           </div>
           <div style="background: rgba(0,0,0,0.18); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 0.65rem;">
-            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">M2 Current</div>
-            <div id="live_current_m2" style="font-size: 0.9rem; font-weight: 700; color: #f472b6;">-- A</div>
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Motor 1 RPM</div>
+            <div id="live_rpm_m1" style="font-size: 0.9rem; font-weight: 700; color: var(--accent-cyan);">-- RPM</div>
           </div>
           <div style="background: rgba(0,0,0,0.18); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.55rem 0.65rem;">
-            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Target Current</div>
-            <div id="live_current_target" style="font-size: 0.9rem; font-weight: 700; color: #f97316;">-- A</div>
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Motor 2 RPM</div>
+            <div id="live_rpm_m2" style="font-size: 0.9rem; font-weight: 700; color: #38bdf8;">-- RPM</div>
           </div>
         </div>
         
@@ -1338,6 +1338,10 @@
           <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
             <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Solenoid Pulse</div>
             <div id="val_stream_solenoid_state" style="font-size: 0.85rem; font-weight: 700; color: #f97316; margin-top: 0.15rem;">IDLE</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Solenoid Timing</div>
+            <div id="val_stream_sol_timing" style="font-size: 0.85rem; font-weight: 700; color: var(--accent-cyan); margin-top: 0.15rem;"><span id="val_stream_sol_on">--</span> ms ON / <span id="val_stream_sol_off">--</span> ms OFF</div>
           </div>
           <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
             <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Darts / Dry Fires</div>
@@ -2464,6 +2468,8 @@
                     <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">Result: <strong id="val_diag_last_result" style="color: var(--text-primary); margin-left: 0.25rem;">--</strong></div>
                     <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">Darts Confirmed: <strong id="val_diag_dart_count" style="color: var(--accent-green); margin-left: 0.25rem;">0</strong></div>
                     <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">Dry Fires Blocked: <strong id="val_diag_dry_count" style="color: var(--accent-pink); margin-left: 0.25rem;">0</strong></div>
+                    <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">Solenoid ON: <strong id="val_diag_sol_on" style="color: var(--accent-cyan); margin-left: 0.25rem;">-- ms</strong></div>
+                    <div style="background: rgba(255,255,255,0.02); padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">Solenoid OFF: <strong id="val_diag_sol_off" style="color: var(--accent-cyan); margin-left: 0.25rem;">-- ms</strong></div>
                   </div>
                 </div>
               </details>
@@ -4444,6 +4450,50 @@ function updateWriteButtonText() {
       updateCalculatedDps();
     }
 
+    function updateSolenoidTimingDisplays() {
+      const cells = Math.min(6, Math.max(3, Math.round(Number(document.getElementById('set_cells')?.value || 4))));
+      const baseOn = Number(document.getElementById(`set_sol_on_${cells}s`)?.value || 30);
+      const baseOff = Number(document.getElementById(`set_sol_off_${cells}s`)?.value || 30);
+      const compEnabled = !!document.getElementById('set_sol_volt_comp')?.checked;
+
+      let effectiveOn = baseOn;
+      let boostMs = 0;
+      if (compEnabled && typeof window.lastTelemetryVoltage === 'number' && window.lastTelemetryVoltage > 5.0) {
+        const nominalV = cells * 4.0;
+        const deficit = nominalV - window.lastTelemetryVoltage;
+        if (deficit > 0) {
+          boostMs = Math.min(8, Math.round(deficit * 1.25));
+          effectiveOn = baseOn + boostMs;
+        }
+      }
+
+      // Update Settings diagnostics card
+      const diagOnEl = document.getElementById('val_diag_sol_on');
+      const diagOffEl = document.getElementById('val_diag_sol_off');
+      if (diagOnEl) {
+        diagOnEl.textContent = boostMs > 0 ? `${effectiveOn} ms (+${boostMs}ms comp)` : `${effectiveOn} ms`;
+      }
+      if (diagOffEl) {
+        diagOffEl.textContent = `${baseOff} ms`;
+      }
+
+      // Update Visualizer live telemetry card
+      const streamTimingEl = document.getElementById('val_stream_sol_timing');
+      const streamOnEl = document.getElementById('val_stream_sol_on');
+      const streamOffEl = document.getElementById('val_stream_sol_off');
+      if (streamTimingEl) {
+        if (boostMs > 0) {
+          streamTimingEl.innerHTML = `<span id="val_stream_sol_on">${effectiveOn}</span> ms ON <span style="font-size: 0.72rem; color: var(--accent-green);">(+${boostMs}ms)</span> / <span id="val_stream_sol_off">${baseOff}</span> ms OFF`;
+        } else {
+          streamTimingEl.innerHTML = `<span id="val_stream_sol_on">${effectiveOn}</span> ms ON / <span id="val_stream_sol_off">${baseOff}</span> ms OFF`;
+        }
+      } else {
+        if (streamOnEl) streamOnEl.textContent = effectiveOn;
+        if (streamOffEl) streamOffEl.textContent = baseOff;
+      }
+    }
+    window.updateSolenoidTimingDisplays = updateSolenoidTimingDisplays;
+
     function updateLegacyActiveSolenoidFields() {
       const cells = Math.min(6, Math.max(3, Math.round(Number(document.getElementById('set_cells')?.value || 4))));
       const onVal = document.getElementById(`set_sol_on_${cells}s`)?.value;
@@ -4452,6 +4502,7 @@ function updateWriteButtonText() {
       const offDisp = document.getElementById('val_set_sol_off');
       if (onDisp && onVal !== undefined) onDisp.textContent = onVal;
       if (offDisp && offVal !== undefined) offDisp.textContent = offVal;
+      updateSolenoidTimingDisplays();
     }
 
     let pidLoopLinked = true;
@@ -6505,6 +6556,14 @@ function updateWriteButtonText() {
       const m2El = document.getElementById('board_pid_m2');
       if (m1El) m1El.textContent = "M1: (Not connected)";
       if (m2El) m2El.textContent = "M2: (Not connected)";
+
+      // Reset live RPM timeline readouts
+      const liveTargetEl = document.getElementById('live_target_rpm');
+      const liveRpm1El = document.getElementById('live_rpm_m1');
+      const liveRpm2El = document.getElementById('live_rpm_m2');
+      if (liveTargetEl) liveTargetEl.textContent = "-- RPM";
+      if (liveRpm1El) liveRpm1El.textContent = "-- RPM";
+      if (liveRpm2El) liveRpm2El.textContent = "-- RPM";
     }
 
     function onSerialDeviceDisconnect(event) {
@@ -7090,6 +7149,24 @@ function updateWriteButtonText() {
         if (modeEl) {
           modeEl.textContent = mode;
           modeEl.style.color = (mode === 'GLIDE') ? 'var(--accent-cyan)' : ((mode === 'COAST') ? '#f59e0b' : 'var(--accent-violet)');
+        }
+
+        const targetRpmEl = document.getElementById('live_target_rpm');
+        if (targetRpmEl) {
+          targetRpmEl.textContent = Number.isFinite(target) ? `${Math.round(target).toLocaleString()} RPM` : '-- RPM';
+        }
+        const rpm1El = document.getElementById('live_rpm_m1');
+        if (rpm1El) {
+          rpm1El.textContent = Number.isFinite(rpm1) ? `${Math.round(rpm1).toLocaleString()} RPM` : '-- RPM';
+        }
+        const rpm2El = document.getElementById('live_rpm_m2');
+        if (rpm2El) {
+          rpm2El.textContent = Number.isFinite(rpm2) ? `${Math.round(rpm2).toLocaleString()} RPM` : '-- RPM';
+        }
+
+        if (voltage !== null && Number.isFinite(voltage)) {
+          window.lastTelemetryVoltage = voltage;
+          updateSolenoidTimingDisplays();
         }
         
         if (fault !== 'NONE' && (!window.lastReportedFault || window.lastReportedFault !== fault)) {
@@ -14810,6 +14887,7 @@ function updateWriteButtonText() {
     updateValues();
     updateDartDetectState(document.getElementById('set_dart_detect')?.checked || false);
     expandActiveSolenoidTune();
+    updateSolenoidTimingDisplays();
     initFfCurveChart();
     syncFfTableThrottlesFromDrive();
     renderFfTable();
