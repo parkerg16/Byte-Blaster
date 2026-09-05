@@ -2120,6 +2120,17 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
+                  <span><span class="settings-row-num">08b.</span> Spinup Motor Sync Limit</span>
+                  <span><span id="val_set_spinup_skew_limit">&plusmn;80 throttle</span></span>
+                </div>
+                <div class="settings-row-desc">Limits throttle difference between motors during acceleration to keep them synchronized. Prevents one motor running away before the other detects BEMF. Set to 0 to disable sync coupling.</div>
+                <div class="settings-row-control">
+                  <input type="range" id="set_spinup_skew_limit" min="0" max="250" step="5" value="80" oninput="syncBlasterField('spinup_skew_limit', this.value, 'range')">
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
                   <span><span class="settings-row-num">09.</span> DShot Signal Speed</span>
                   <span><span id="val_set_dshot_rate">DShot600</span></span>
                 </div>
@@ -4364,6 +4375,10 @@ function updateWriteButtonText() {
     let liveBrightnessDebounceTimer = null;
 
     function formatBlasterSettingValue(key, val) {
+      if (key === 'spinup_skew_limit') {
+        const num = Math.round(Number(val));
+        return num === 0 ? 'Disabled (Independent)' : `\u00B1${num} throttle`;
+      }
       if (key === 'sol_volt_comp') {
         const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
         return enabled ? 'Active (+1.25 ms/V Sag Boost)' : 'Disabled (Fixed Cell Table)';
@@ -4979,6 +4994,7 @@ function updateWriteButtonText() {
         motor_kv: 3200,
         cells: 4,
         step_up: 45,
+        spinup_skew_limit: 80,
         dshot_rate: 600,
         frame_period_us: 1000,
         ctrl_algo: 1,
@@ -5087,7 +5103,7 @@ function updateWriteButtonText() {
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
         'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_boost', 'launch_trajectory', 'startup_rpm',
-        'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up',
+        'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
         'glide_rpm_per_s', 'glide_step_down_x10',
         'splash_ms', 'rpm_preset_count', 'menu_mask',
