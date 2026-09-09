@@ -1770,7 +1770,7 @@
             <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 0.35rem;">
                 <span style="font-size: 0.75rem; color: var(--text-secondary);">Start RPM:</span>
-                <input type="number" id="ff_sweep_start_rpm" value="2500" min="1000" max="35000" step="500" style="width: 80px; background: #1e293b; color: white; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.25rem 0.4rem; font-size: 0.75rem;">
+                <input type="number" id="ff_sweep_start_rpm" value="2000" min="1000" max="35000" step="500" style="width: 80px; background: #1e293b; color: white; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.25rem 0.4rem; font-size: 0.75rem;">
               </div>
               <div style="display: flex; align-items: center; gap: 0.35rem;">
                 <span style="font-size: 0.75rem; color: var(--text-secondary);">End RPM:</span>
@@ -8349,9 +8349,9 @@ function updateWriteButtonText() {
         const pointsToSend = JSON.parse(JSON.stringify(ffTableData));
         const expected = new Map();
         for (let m = 0; m < 2; m++) for (const point of pointsToSend[m]) {
-          if (point.valid && point.throttle >= 49) {
+          if (point.valid && point.throttle >= 48) {
             const drive = Math.round((Number(point.throttle.toFixed(1)) - 48) * Number(vBat.toFixed(2)));
-            if (!Number.isFinite(drive) || drive < 1 || drive > 65535) throw new Error("FF point outside storage range");
+            if (!Number.isFinite(drive) || drive < 0 || drive > 65535) throw new Error("FF point outside storage range");
             expected.set(`${m}:${point.rpm}`, drive);
           }
         }
@@ -8369,7 +8369,7 @@ function updateWriteButtonText() {
           const mStr = (m === 0) ? 'm1' : 'm2';
           for (let i = 0; i < 5; i++) {
             const pt = pointsToSend[m][i];
-            if (pt.valid && pt.throttle >= 49.0) {
+            if (pt.valid && pt.throttle >= 48.0) {
               const throt = pt.throttle.toFixed(1);
               await sendSerialCommand(`ff set ${mStr} ${pt.rpm} ${throt} ${vBat.toFixed(2)}`);
               await new Promise(r => setTimeout(r, 70));
@@ -8427,7 +8427,7 @@ function updateWriteButtonText() {
       const btnApply = document.getElementById('btn_apply_ff_sweep');
       const statusEl = document.getElementById('ff_sweep_status');
 
-      const startRpm = parseInt(document.getElementById('ff_sweep_start_rpm').value) || 2500;
+      const startRpm = parseInt(document.getElementById('ff_sweep_start_rpm').value) || 2000;
       const endRpm = parseInt(document.getElementById('ff_sweep_end_rpm').value) || 25000;
       const steps = parseInt(document.getElementById('ff_sweep_steps').value) || 5;
       const dwellMs = parseInt(document.getElementById('ff_sweep_dwell').value) || 650;
@@ -8642,7 +8642,7 @@ function updateWriteButtonText() {
 
         if (throt1 !== null) {
           ffTableData[0][i].throttle = throt1;
-          ffTableData[0][i].drive = Math.max(1, Math.round((throt1 - 48) * vBat));
+          ffTableData[0][i].drive = Math.max(0, Math.round((throt1 - 48) * vBat));
           ffTableData[0][i].valid = true;
           const inp1 = document.getElementById(`ff_input_throt_m1_${i}`);
           if (inp1) inp1.value = throt1.toFixed(1);
@@ -8652,7 +8652,7 @@ function updateWriteButtonText() {
 
         if (throt2 !== null) {
           ffTableData[1][i].throttle = throt2;
-          ffTableData[1][i].drive = Math.max(1, Math.round((throt2 - 48) * vBat));
+          ffTableData[1][i].drive = Math.max(0, Math.round((throt2 - 48) * vBat));
           ffTableData[1][i].valid = true;
           const inp2 = document.getElementById(`ff_input_throt_m2_${i}`);
           if (inp2) inp2.value = throt2.toFixed(1);
@@ -9057,11 +9057,14 @@ function updateWriteButtonText() {
         const ffMode = guidedElement('guided_ff_mode')?.value || 'auto';
         const sweepFn = typeof runFeedForwardSweep === 'function' ? runFeedForwardSweep : (typeof window !== 'undefined' ? window.runFeedForwardSweep : null);
         const saveFfFn = typeof saveFeedforwardCalibration === 'function' ? saveFeedforwardCalibration : (typeof window !== 'undefined' ? window.saveFeedforwardCalibration : null);
-        if (ffMode === 'sweep' && typeof sweepFn === 'function') {
+        const needsSweep = (ffMode === 'sweep') || (ffMode === 'auto' && previous.ffValidation !== 'verified');
+        if (needsSweep && typeof sweepFn === 'function') {
           guidedMessage('Step 1/2: Characterizing Feedforward curve with 5-point sweep and aerodynamic quadratic fit...');
-          await sweepFn();
+          const sweepRes = await sweepFn();
+          if (sweepRes && sweepRes.status === 'cancelled') throw new Error('Feedforward sweep was cancelled.');
+          if (sweepRes && sweepRes.status === 'failed') throw new Error('Feedforward sweep failed.');
           if (typeof saveFfFn === 'function') {
-            await saveFfFn();
+            await saveFfFn(true);
           }
           guidedMessage('Step 2/2: Feedforward calibrated & saved. Starting PID autotune...');
         }
