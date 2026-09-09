@@ -1809,11 +1809,13 @@
             </div>
             <div class="guided-section" style="margin-top:0.85rem">
               <h4>Loaded Dart Recovery</h4>
-              <p class="guided-help">Optional loaded-dart check fires one normal gated shot and grades recovery after the RPM disturbance.</p>
+              <p class="guided-help">Optional loaded-dart testing fires normal gated shots and grades recovery after the RPM disturbance.</p>
               <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
-                <label><input id="guided_recovery_after" type="checkbox"> Run after guided tuning</label>
+                <label><input id="guided_recovery_after" type="checkbox"> Tune after guided tuning</label>
                 <label>Target RPM <input id="dart_recovery_target" type="number" min="2000" max="35000" step="500" value="32000" style="width:90px"></label>
+                <label>Shots <input id="dart_recovery_shots" type="number" min="1" max="30" step="1" value="10" style="width:64px"></label>
                 <button id="dart_recovery_start" class="preset-btn" onclick="startDartRecoveryTest()">Run Dart Recovery</button>
+                <button id="dart_recovery_tune" class="preset-btn" onclick="startDartRecoveryTune()">Tune Recovery</button>
               </div>
               <p id="dart_recovery_status" role="status" aria-live="polite" class="guided-help">Idle. Load one dart before starting a recovery test.</p>
               <div style="max-height:160px;overflow:auto;margin-top:.5rem"><table style="width:100%;font-size:.8rem"><thead><tr><th>Target</th><th>Dart</th><th>Drop</th><th>Bottom</th><th>FPS</th><th>Recovery</th><th>Result</th></tr></thead><tbody id="dart_recovery_results"></tbody></table></div>
@@ -2564,6 +2566,53 @@
                     <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Minimum wheel speed to engage dart detection, preventing false triggers during spin-down.</div>
                     <div class="settings-row-control">
                       <input type="range" id="set_dart_min_rpm" min="3000" max="15000" step="500" value="6000" oninput="syncBlasterField('dart_min_rpm', this.value, 'range')">
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid rgba(255,255,255,0.08);">
+                    <div class="settings-row-label">
+                      <span>Dart Recovery Assist</span>
+                      <span id="val_set_dart_recovery_assist">Enabled</span>
+                    </div>
+                    <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Adds a capped transient throttle boost only during confirmed dart RPM recovery. Normal PID tuning remains unchanged.</div>
+                    <div class="settings-row-control" style="display: flex; justify-content: flex-end;">
+                      <label class="toggle-switch" title="Toggle transient dart recovery assist" style="margin: 0;">
+                        <input type="checkbox" id="set_dart_recovery_assist" checked onchange="syncBlasterField('dart_recovery_assist', this.checked ? 1 : 0, 'checkbox')">
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 0.9rem;">
+                    <div class="settings-row-label">
+                      <span>Recovery Boost Gain</span>
+                      <span><span id="val_set_dart_recovery_gain_x100">0.08</span> throttle/RPM</span>
+                    </div>
+                    <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Scales boost from dart-induced RPM error. Higher values recover faster but can overshoot.</div>
+                    <div class="settings-row-control">
+                      <input type="range" id="set_dart_recovery_gain_x100" min="0" max="40" step="1" value="8" oninput="syncBlasterField('dart_recovery_gain_x100', this.value, 'range')">
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 0.9rem;">
+                    <div class="settings-row-label">
+                      <span>Recovery Boost Cap</span>
+                      <span><span id="val_set_dart_recovery_boost_max">180</span> throttle</span>
+                    </div>
+                    <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Maximum extra throttle allowed during the recovery pulse.</div>
+                    <div class="settings-row-control">
+                      <input type="range" id="set_dart_recovery_boost_max" min="0" max="500" step="10" value="180" oninput="syncBlasterField('dart_recovery_boost_max', this.value, 'range')">
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 0.9rem;">
+                    <div class="settings-row-label">
+                      <span>Recovery Step-Up Cap</span>
+                      <span><span id="val_set_dart_recovery_step_up">140</span> / tick</span>
+                    </div>
+                    <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Temporary slew allowance while recovering from a dart hit.</div>
+                    <div class="settings-row-control">
+                      <input type="range" id="set_dart_recovery_step_up" min="45" max="500" step="5" value="140" oninput="syncBlasterField('dart_recovery_step_up', this.value, 'range')">
                     </div>
                   </div>
                 </div>
@@ -4546,6 +4595,19 @@ function updateWriteButtonText() {
       if (key === 'dart_min_rpm') {
         return `${Math.round(Number(val))} RPM`;
       }
+      if (key === 'dart_recovery_assist') {
+        const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
+        return enabled ? 'Enabled' : 'Disabled';
+      }
+      if (key === 'dart_recovery_gain_x100') {
+        return (Number(val) / 100).toFixed(2);
+      }
+      if (key === 'dart_recovery_boost_max') {
+        return `${Math.round(Number(val))} throttle`;
+      }
+      if (key === 'dart_recovery_step_up') {
+        return `${Math.round(Number(val))} / tick`;
+      }
       if (key === 'temp_unit') {
         return String(val) === '1' || Math.round(Number(val)) === 1 ? 'Celsius' : 'Fahrenheit';
       }
@@ -4749,7 +4811,7 @@ function updateWriteButtonText() {
       const el = document.getElementById('set_' + key);
       if (!el) return;
       if (el.type === 'checkbox') {
-        el.checked = !!val;
+        el.checked = val === true || val === 'true' || val === '1' || Number(val) !== 0;
       } else {
         el.value = val;
       }
@@ -5170,6 +5232,10 @@ function updateWriteButtonText() {
         dart_drop_rpm: 800,
         dart_window_ms: 50,
         dart_min_rpm: 6000,
+        dart_recovery_assist: 1,
+        dart_recovery_gain_x100: 8,
+        dart_recovery_boost_max: 180,
+        dart_recovery_step_up: 140,
         pid1_kp: 0.051, pid1_ki: 0.002, pid1_ff: 1.0000,
         pid2_kp: 0.051, pid2_ki: 0.002, pid2_ff: 1.0000,
         led_enabled: 1,
@@ -5320,7 +5386,8 @@ function updateWriteButtonText() {
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
         'glide_rpm_per_s', 'glide_step_down_x10',
         'splash_ms', 'rpm_preset_count', 'menu_mask',
-        'dart_detect', 'dart_drop_rpm', 'dart_window_ms', 'dart_min_rpm'
+        'dart_detect', 'dart_drop_rpm', 'dart_window_ms', 'dart_min_rpm',
+        'dart_recovery_assist', 'dart_recovery_gain_x100', 'dart_recovery_boost_max', 'dart_recovery_step_up'
       ];
 
       let keysToWrite = [];
@@ -5375,7 +5442,7 @@ function updateWriteButtonText() {
       const el = document.getElementById('set_' + key);
       if (el) {
         if (el.type === 'checkbox') {
-          el.checked = (val !== 0);
+          el.checked = val === true || val === 'true' || val === '1' || Number(val) !== 0;
         } else if (el.type === 'select-one') {
           el.value = String(Math.round(val));
         } else {
@@ -7481,6 +7548,16 @@ function updateWriteButtonText() {
         updateDartDetectState(dartCmdMatch[1].toLowerCase() === 'enabled');
         return;
       }
+
+      const dartRecoveryMatch = line.match(/^dart_recovery:\s*assist=([01])\s+gain_x100=(\d+)\s+boost_max=(\d+)\s+step_up=(\d+)/i);
+      if (dartRecoveryMatch) {
+        updateBlasterSettingControl('dart_recovery_assist', dartRecoveryMatch[1]);
+        updateBlasterSettingControl('dart_recovery_gain_x100', parseInt(dartRecoveryMatch[2], 10));
+        updateBlasterSettingControl('dart_recovery_boost_max', parseInt(dartRecoveryMatch[3], 10));
+        updateBlasterSettingControl('dart_recovery_step_up', parseInt(dartRecoveryMatch[4], 10));
+        logToConsole("Dart recovery assist settings synchronized from blaster.");
+        return;
+      }
       
 
       
@@ -9327,7 +9404,7 @@ function updateWriteButtonText() {
       lockedControls: new Map(), samples: [], results: [], markers: [], origin: null, lastSeen: 0, lastDraw: 0, disconnected: false, postRecoverySession: null };
     const guidedStages = ['feedforward', 'validate_ff', 'pid', 'validate_pid'];
     const guidedLabels = ['Measure feedforward', 'Validate feedforward', 'Tune PID', 'Validate PID'];
-    const dartRecovery = { active: false, target: 32000, startTs: null, startBoardMs: null, samples: [], event: null, timer: null, heartbeatTimer: null, results: [] };
+    const dartRecovery = { active: false, target: 32000, startTs: null, startBoardMs: null, samples: [], event: null, timer: null, heartbeatTimer: null, results: [], resolver: null };
     const DART_RECOVERY_AVG_RATIO = 0.97;
     const DART_RECOVERY_MOTOR_RATIO = 0.95;
     const DART_RECOVERY_MAX_MS = 50;
@@ -9342,9 +9419,29 @@ function updateWriteButtonText() {
       const raw = input ? Number(input.value) : 32000;
       return Math.max(2000, Math.min(35000, Number.isFinite(raw) ? Math.round(raw) : 32000));
     }
+    function recoveryShotCountFromUi() {
+      const input = guidedElement('dart_recovery_shots');
+      const raw = input ? Number(input.value) : 10;
+      return Math.max(1, Math.min(30, Number.isFinite(raw) ? Math.round(raw) : 10));
+    }
+    function recoverySettingValue(key, fallback) {
+      const el = document.getElementById('set_' + key);
+      if (el) {
+        if (el.type === 'checkbox') return el.checked ? 1 : 0;
+        const fromControl = Number(el.value);
+        if (Number.isFinite(fromControl)) return Math.round(fromControl);
+      }
+      const source = window.blasterSettings && window.blasterSettings[key] !== undefined ? window.blasterSettings[key] : fallback;
+      const numeric = Number(source);
+      return Number.isFinite(numeric) ? Math.round(numeric) : fallback;
+    }
     function confirmDartRecoveryStart(target) {
       if (typeof confirm !== 'function') return true;
       return confirm(`Load one dart, point the blaster safely, then continue to fire one recovery test at ${target.toLocaleString()} RPM.`);
+    }
+    function confirmDartRecoveryTune(target, shots) {
+      if (typeof confirm !== 'function') return true;
+      return confirm(`Load a magazine with up to ${shots} darts, point the blaster safely, then continue to tune loaded-dart recovery at ${target.toLocaleString()} RPM. The tuner fires one shot at a time and adjusts the transient assist between shots.`);
     }
     function renderDartRecoveryResult(result) {
       dartRecovery.results.push(result);
@@ -9368,7 +9465,7 @@ function updateWriteButtonText() {
       body.appendChild(row);
     }
     function finishDartRecovery(reasonOverride = null) {
-      if (!dartRecovery.active) return;
+      if (!dartRecovery.active) return null;
       if (dartRecovery.timer) clearTimeout(dartRecovery.timer);
       if (dartRecovery.heartbeatTimer) clearTimeout(dartRecovery.heartbeatTimer);
       const event = dartRecovery.event || { detected: false, drop: 0, bottom: 0, fps: 0 };
@@ -9419,7 +9516,11 @@ function updateWriteButtonText() {
         ? `Recovery passed: back to ${Math.round(DART_RECOVERY_AVG_RATIO * 100)}% target in ${recoveryMs} ms.`
         : `Recovery failed: ${reason}.`);
       sendSerialCommand('rev 0');
+      const resolver = dartRecovery.resolver;
+      dartRecovery.resolver = null;
+      if (typeof resolver === 'function') resolver(result);
       guidedButtons();
+      return result;
     }
     function captureDartRecoveryTelemetry(point) {
       if (!dartRecovery.active || !Number.isFinite(point.rpm1) || !Number.isFinite(point.rpm2)) return;
@@ -9443,10 +9544,13 @@ function updateWriteButtonText() {
       dartRecovery.timer = setTimeout(() => finishDartRecovery(), 650);
     }
     async function startDartRecoveryTest(targetOverride = null, skipConfirm = false) {
-      if (dartRecovery.active || guidedTuning.busy || guidedTuning.pending) return;
-      if (!port || !port.writable) return dartRecoveryMessage('Connect your blaster first.');
+      if (dartRecovery.active || guidedTuning.busy || guidedTuning.pending) return null;
+      if (!port || !port.writable) {
+        dartRecoveryMessage('Connect your blaster first.');
+        return null;
+      }
       const target = targetOverride || recoveryTargetFromUi();
-      if (!skipConfirm && !confirmDartRecoveryStart(target)) return;
+      if (!skipConfirm && !confirmDartRecoveryStart(target)) return null;
       dartRecovery.active = true;
       dartRecovery.target = target;
       dartRecovery.startTs = Date.now();
@@ -9455,17 +9559,127 @@ function updateWriteButtonText() {
       dartRecovery.event = null;
       dartRecoveryMessage(`Firing one loaded recovery shot at ${target.toLocaleString()} RPM...`);
       guidedButtons();
-      await sendSerialCommand('stream fast');
-      await sendSerialCommand(`shot_test ${target}`);
-      scheduleDartRecoveryRevHeartbeat();
-      dartRecovery.timer = setTimeout(() => finishDartRecovery('No dart event received'), 8000);
+      const resultPromise = new Promise(resolve => { dartRecovery.resolver = resolve; });
+      try {
+        await sendSerialCommand('stream fast');
+        await sendSerialCommand(`shot_test ${target}`);
+        scheduleDartRecoveryRevHeartbeat();
+        dartRecovery.timer = setTimeout(() => finishDartRecovery('No dart event received'), 8000);
+      } catch (err) {
+        if (dartRecovery.timer) clearTimeout(dartRecovery.timer);
+        if (dartRecovery.heartbeatTimer) clearTimeout(dartRecovery.heartbeatTimer);
+        dartRecovery.active = false;
+        dartRecovery.resolver = null;
+        dartRecoveryMessage(`Recovery failed to start: ${err?.message || err}`);
+        guidedButtons();
+        return null;
+      }
+      return resultPromise;
+    }
+    async function applyDartRecoveryAssistSettings(settings) {
+      const next = {
+        assist: settings.assist ? 1 : 0,
+        gain: Math.max(0, Math.min(40, Math.round(settings.gain))),
+        max: Math.max(0, Math.min(500, Math.round(settings.max))),
+        step: Math.max(45, Math.min(500, Math.round(settings.step)))
+      };
+      updateBlasterSettingControl('dart_recovery_assist', next.assist);
+      updateBlasterSettingControl('dart_recovery_gain_x100', next.gain);
+      updateBlasterSettingControl('dart_recovery_boost_max', next.max);
+      updateBlasterSettingControl('dart_recovery_step_up', next.step);
+      await sendSerialCommand(`settings set dart_recovery_assist ${next.assist}`);
+      await sendSerialCommand(`settings set dart_recovery_gain_x100 ${next.gain}`);
+      await sendSerialCommand(`settings set dart_recovery_boost_max ${next.max}`);
+      await sendSerialCommand(`settings set dart_recovery_step_up ${next.step}`);
+      return next;
+    }
+    function nextDartRecoveryCandidate(current, result) {
+      const next = { ...current };
+      if (!result || !result.detected) return next;
+      const miss = result.recoveryMs == null ? DART_RECOVERY_MAX_MS * 2 : Math.max(0, result.recoveryMs - DART_RECOVERY_MAX_MS);
+      if (miss <= 0) return next;
+      const largeMiss = miss > 75;
+      next.gain = Math.min(40, next.gain + (largeMiss ? 5 : 3));
+      next.max = Math.min(500, next.max + (largeMiss ? 70 : 40));
+      next.step = Math.min(500, next.step + (largeMiss ? 70 : 40));
+      return next;
+    }
+    async function waitForDartRecoveryIdle(timeoutMs = 8000) {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const point = rollingBuffer && rollingBuffer.length ? rollingBuffer[rollingBuffer.length - 1] : null;
+        if (point && point.target <= 500 && point.rpm1 < 2500 && point.rpm2 < 2500 && (point.throttle1 || 0) <= 48 && (point.throttle2 || 0) <= 48) {
+          return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, 120));
+      }
+      return false;
+    }
+    async function startDartRecoveryTune(targetOverride = null, shotsOverride = null, skipConfirm = false) {
+      if (dartRecovery.active || guidedTuning.busy || guidedTuning.pending) return;
+      if (!port || !port.writable) return dartRecoveryMessage('Connect your blaster first.');
+      const target = targetOverride || recoveryTargetFromUi();
+      const shots = shotsOverride || recoveryShotCountFromUi();
+      if (!skipConfirm && !confirmDartRecoveryTune(target, shots)) return;
+      let candidate = {
+        assist: 1,
+        gain: recoverySettingValue('dart_recovery_gain_x100', 8),
+        max: recoverySettingValue('dart_recovery_boost_max', 180),
+        step: recoverySettingValue('dart_recovery_step_up', 140)
+      };
+      let passStreak = 0;
+      let detectedShots = 0;
+      dartRecoveryMessage(`Recovery tune armed. Using up to ${shots} loaded shots at ${target.toLocaleString()} RPM...`);
+      await sendSerialCommand('dart_detect 1');
+      updateBlasterSettingControl('dart_detect', 1);
+      for (let shot = 1; shot <= shots; shot++) {
+        candidate = await applyDartRecoveryAssistSettings(candidate);
+        dartRecoveryMessage(`Recovery tune shot ${shot}/${shots}: gain ${(candidate.gain / 100).toFixed(2)}, cap ${candidate.max}, step ${candidate.step}.`);
+        const result = await startDartRecoveryTest(target, true);
+        if (!result) break;
+        if (!result.detected) {
+          dartRecoveryMessage(`Recovery tune stopped: no dart detected on shot ${shot}. Check the magazine and dart detection threshold.`);
+          break;
+        }
+        detectedShots++;
+        if (result.pass) {
+          passStreak++;
+          if (passStreak >= 3) {
+            dartRecoveryMessage(`Recovery tune passed ${passStreak} shots in a row. Saved gain ${(candidate.gain / 100).toFixed(2)}, cap ${candidate.max}, step ${candidate.step}.`);
+            break;
+          }
+        } else {
+          passStreak = 0;
+          const adjusted = nextDartRecoveryCandidate(candidate, result);
+          const changed = adjusted.gain !== candidate.gain || adjusted.max !== candidate.max || adjusted.step !== candidate.step;
+          if (!changed) {
+            dartRecoveryMessage(`Recovery tune reached assist limits after ${detectedShots} detected shot${detectedShots === 1 ? '' : 's'}. Last result: ${result.reason}.`);
+            break;
+          }
+          if (shot >= shots) {
+            dartRecoveryMessage(`Recovery tune used all ${shots} shot${shots === 1 ? '' : 's'}; keeping the last tested assist settings.`);
+            break;
+          }
+          candidate = adjusted;
+        }
+        if (shot < shots) {
+          dartRecoveryMessage('Waiting for flywheels to glide down before the next recovery adjustment...');
+          const idle = await waitForDartRecoveryIdle();
+          if (!idle) {
+            dartRecoveryMessage('Recovery tune stopped: flywheels did not return to idle before the next setting write.');
+            break;
+          }
+        }
+      }
+      logToConsole(`[Dart Recovery Tune] Final assist: enabled=1 gain_x100=${candidate.gain} boost_max=${candidate.max} step_up=${candidate.step}`);
+      guidedButtons();
     }
     function maybeStartPostTuneDartRecovery(event, resultsPending) {
       const optIn = guidedElement('guided_recovery_after');
       if (!optIn || !optIn.checked || resultsPending || dartRecovery.active || event.state !== 'saved') return;
       if (guidedTuning.postRecoverySession === event.session) return;
       guidedTuning.postRecoverySession = event.session;
-      startDartRecoveryTest(recoveryTargetFromUi());
+      startDartRecoveryTune(recoveryTargetFromUi(), recoveryShotCountFromUi());
     }
     function renderGuidedSetup() {
       const status = guidedTuning.status;
@@ -9487,7 +9701,9 @@ function updateWriteButtonText() {
       guidedElement('guided_passes').disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_export').disabled = !guidedTuning.samples.length && !guidedTuning.results.length;
       guidedElement('dart_recovery_start').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || guidedTuning.disconnected;
+      guidedElement('dart_recovery_tune').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || guidedTuning.disconnected;
       guidedElement('dart_recovery_target').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active;
+      guidedElement('dart_recovery_shots').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active;
       guidedElement('guided_recovery_after').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active;
       const locked = guidedTuning.busy || guidedTuning.pending;
       document.querySelectorAll('#pid_autotune_panel input, #pid_autotune_panel select, #pid_autotune_panel button').forEach(el => {
