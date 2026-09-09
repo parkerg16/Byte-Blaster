@@ -9327,7 +9327,7 @@ function updateWriteButtonText() {
       lockedControls: new Map(), samples: [], results: [], markers: [], origin: null, lastSeen: 0, lastDraw: 0, disconnected: false, postRecoverySession: null };
     const guidedStages = ['feedforward', 'validate_ff', 'pid', 'validate_pid'];
     const guidedLabels = ['Measure feedforward', 'Validate feedforward', 'Tune PID', 'Validate PID'];
-    const dartRecovery = { active: false, target: 32000, startTs: null, samples: [], event: null, timer: null, results: [] };
+    const dartRecovery = { active: false, target: 32000, startTs: null, startBoardMs: null, samples: [], event: null, timer: null, heartbeatTimer: null, results: [] };
     const DART_RECOVERY_AVG_RATIO = 0.97;
     const DART_RECOVERY_MOTOR_RATIO = 0.95;
     const DART_RECOVERY_MAX_MS = 50;
@@ -9370,13 +9370,15 @@ function updateWriteButtonText() {
     function finishDartRecovery(reasonOverride = null) {
       if (!dartRecovery.active) return;
       if (dartRecovery.timer) clearTimeout(dartRecovery.timer);
+      if (dartRecovery.heartbeatTimer) clearTimeout(dartRecovery.heartbeatTimer);
       const event = dartRecovery.event || { detected: false, drop: 0, bottom: 0, fps: 0 };
-      const eventTs = Number.isFinite(event.timestamp) ? event.timestamp : null;
+      const eventTs = Number.isFinite(event.start) ? event.start : (Number.isFinite(event.timestamp) ? event.timestamp : null);
+      const sampleFloor = dartRecovery.target * 0.5;
       const recoveryWindowStart = eventTs === null
         ? dartRecovery.startTs
         : eventTs - Math.max(250, (Number(event.window) || 50) + 150);
       const recoveryWindowEnd = eventTs === null ? Date.now() : eventTs + 700;
-      const samples = dartRecovery.samples.filter(p => p.t >= recoveryWindowStart && p.t <= recoveryWindowEnd);
+      const samples = dartRecovery.samples.filter(p => p.t >= recoveryWindowStart && p.t <= recoveryWindowEnd && p.avg >= sampleFloor);
       let bottomSample = null;
       for (const sample of samples) {
         if (!bottomSample || sample.avg < bottomSample.avg) bottomSample = sample;
@@ -9421,9 +9423,17 @@ function updateWriteButtonText() {
     }
     function captureDartRecoveryTelemetry(point) {
       if (!dartRecovery.active || !Number.isFinite(point.rpm1) || !Number.isFinite(point.rpm2)) return;
-      const t = Number.isFinite(point.timestamp) ? point.timestamp : Date.now();
+      const t = Number.isFinite(point.boardMs) ? point.boardMs : (Number.isFinite(point.timestamp) ? point.timestamp : Date.now());
       dartRecovery.samples.push({ t, rpm1: point.rpm1, rpm2: point.rpm2, avg: (point.rpm1 + point.rpm2) * 0.5, target: point.target });
       if (dartRecovery.samples.length > 1200) dartRecovery.samples.shift();
+    }
+    function scheduleDartRecoveryRevHeartbeat() {
+      if (dartRecovery.heartbeatTimer) clearTimeout(dartRecovery.heartbeatTimer);
+      dartRecovery.heartbeatTimer = setTimeout(async () => {
+        if (!dartRecovery.active) return;
+        await sendSerialCommand(`rev on ${dartRecovery.target}`);
+        scheduleDartRecoveryRevHeartbeat();
+      }, 1000);
     }
     function handleDartRecoveryEvent(event) {
       if (!dartRecovery.active) return;
@@ -9440,12 +9450,14 @@ function updateWriteButtonText() {
       dartRecovery.active = true;
       dartRecovery.target = target;
       dartRecovery.startTs = Date.now();
+      dartRecovery.startBoardMs = null;
       dartRecovery.samples = [];
       dartRecovery.event = null;
       dartRecoveryMessage(`Firing one loaded recovery shot at ${target.toLocaleString()} RPM...`);
       guidedButtons();
       await sendSerialCommand('stream fast');
       await sendSerialCommand(`shot_test ${target}`);
+      scheduleDartRecoveryRevHeartbeat();
       dartRecovery.timer = setTimeout(() => finishDartRecovery('No dart event received'), 8000);
     }
     function maybeStartPostTuneDartRecovery(event, resultsPending) {
@@ -9695,9 +9707,9 @@ function updateWriteButtonText() {
       const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download='byte-blaster-tuning-run.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
     setInterval(() => {
-      if (guidedTuning.busy && !guidedTuning.pending && Date.now()-guidedTuning.lastSeen>3000) guidedDisconnected();
+      if (guidedTuning.busy && !guidedTuning.pending && !dartRecovery.active && Date.now()-guidedTuning.lastSeen>3000) guidedDisconnected();
       // Refresh provenance after manual configuration edits on connected supported firmware.
-      if (guidedTuning.status && !guidedTuning.busy && !guidedTuning.pending && !guidedTuning.waiter && !guidedTuning.disconnected && Date.now()-guidedTuning.lastSeen>5000) refreshGuidedTuning();
+      if (guidedTuning.status && !guidedTuning.busy && !guidedTuning.pending && !dartRecovery.active && !guidedTuning.waiter && !guidedTuning.disconnected && Date.now()-guidedTuning.lastSeen>5000) refreshGuidedTuning();
     },1000);
     // END GUIDED TUNING UI
 
