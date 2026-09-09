@@ -9404,7 +9404,7 @@ function updateWriteButtonText() {
       lockedControls: new Map(), samples: [], results: [], markers: [], origin: null, lastSeen: 0, lastDraw: 0, disconnected: false, postRecoverySession: null };
     const guidedStages = ['feedforward', 'validate_ff', 'pid', 'validate_pid'];
     const guidedLabels = ['Measure feedforward', 'Validate feedforward', 'Tune PID', 'Validate PID'];
-    const dartRecovery = { active: false, target: 32000, startTs: null, startBoardMs: null, samples: [], event: null, timer: null, heartbeatTimer: null, results: [], resolver: null };
+    const dartRecovery = { active: false, tuning: false, target: 32000, startTs: null, startBoardMs: null, samples: [], event: null, timer: null, heartbeatTimer: null, results: [], resolver: null };
     const DART_RECOVERY_AVG_RATIO = 0.97;
     const DART_RECOVERY_MOTOR_RATIO = 0.95;
     const DART_RECOVERY_MAX_MS = 50;
@@ -9413,6 +9413,10 @@ function updateWriteButtonText() {
     function dartRecoveryMessage(text) {
       const el = guidedElement('dart_recovery_status');
       if (el) el.textContent = text;
+    }
+    async function glideDownAfterDartRecovery() {
+      dartRecoveryMessage('Recovery sample complete. Gliding flywheels down...');
+      await sendSerialCommand('rev 0');
     }
     function recoveryTargetFromUi() {
       const input = guidedElement('dart_recovery_target');
@@ -9515,7 +9519,7 @@ function updateWriteButtonText() {
       dartRecoveryMessage(pass
         ? `Recovery passed: back to ${Math.round(DART_RECOVERY_AVG_RATIO * 100)}% target in ${recoveryMs} ms.`
         : `Recovery failed: ${reason}.`);
-      sendSerialCommand('rev 0');
+      glideDownAfterDartRecovery();
       const resolver = dartRecovery.resolver;
       dartRecovery.resolver = null;
       if (typeof resolver === 'function') resolver(result);
@@ -9544,7 +9548,7 @@ function updateWriteButtonText() {
       dartRecovery.timer = setTimeout(() => finishDartRecovery(), 650);
     }
     async function startDartRecoveryTest(targetOverride = null, skipConfirm = false) {
-      if (dartRecovery.active || guidedTuning.busy || guidedTuning.pending) return null;
+      if (dartRecovery.active || (!dartRecovery.tuning && (guidedTuning.busy || guidedTuning.pending))) return null;
       if (!port || !port.writable) {
         dartRecoveryMessage('Connect your blaster first.');
         return null;
@@ -9616,7 +9620,7 @@ function updateWriteButtonText() {
       return false;
     }
     async function startDartRecoveryTune(targetOverride = null, shotsOverride = null, skipConfirm = false) {
-      if (dartRecovery.active || guidedTuning.busy || guidedTuning.pending) return;
+      if (dartRecovery.active || dartRecovery.tuning || guidedTuning.busy || guidedTuning.pending) return;
       if (!port || !port.writable) return dartRecoveryMessage('Connect your blaster first.');
       const target = targetOverride || recoveryTargetFromUi();
       const shots = shotsOverride || recoveryShotCountFromUi();
@@ -9629,50 +9633,59 @@ function updateWriteButtonText() {
       };
       let passStreak = 0;
       let detectedShots = 0;
-      dartRecoveryMessage(`Recovery tune armed. Using up to ${shots} loaded shots at ${target.toLocaleString()} RPM...`);
-      await sendSerialCommand('dart_detect 1');
-      updateBlasterSettingControl('dart_detect', 1);
-      for (let shot = 1; shot <= shots; shot++) {
-        candidate = await applyDartRecoveryAssistSettings(candidate);
-        dartRecoveryMessage(`Recovery tune shot ${shot}/${shots}: gain ${(candidate.gain / 100).toFixed(2)}, cap ${candidate.max}, step ${candidate.step}.`);
-        const result = await startDartRecoveryTest(target, true);
-        if (!result) break;
-        if (!result.detected) {
-          dartRecoveryMessage(`Recovery tune stopped: no dart detected on shot ${shot}. Check the magazine and dart detection threshold.`);
-          break;
-        }
-        detectedShots++;
-        if (result.pass) {
-          passStreak++;
-          if (passStreak >= 3) {
-            dartRecoveryMessage(`Recovery tune passed ${passStreak} shots in a row. Saved gain ${(candidate.gain / 100).toFixed(2)}, cap ${candidate.max}, step ${candidate.step}.`);
-            break;
-          }
-        } else {
-          passStreak = 0;
-          const adjusted = nextDartRecoveryCandidate(candidate, result);
-          const changed = adjusted.gain !== candidate.gain || adjusted.max !== candidate.max || adjusted.step !== candidate.step;
-          if (!changed) {
-            dartRecoveryMessage(`Recovery tune reached assist limits after ${detectedShots} detected shot${detectedShots === 1 ? '' : 's'}. Last result: ${result.reason}.`);
-            break;
-          }
-          if (shot >= shots) {
-            dartRecoveryMessage(`Recovery tune used all ${shots} shot${shots === 1 ? '' : 's'}; keeping the last tested assist settings.`);
-            break;
-          }
-          candidate = adjusted;
-        }
-        if (shot < shots) {
-          dartRecoveryMessage('Waiting for flywheels to glide down before the next recovery adjustment...');
-          const idle = await waitForDartRecoveryIdle();
-          if (!idle) {
-            dartRecoveryMessage('Recovery tune stopped: flywheels did not return to idle before the next setting write.');
-            break;
-          }
-        }
-      }
-      logToConsole(`[Dart Recovery Tune] Final assist: enabled=1 gain_x100=${candidate.gain} boost_max=${candidate.max} step_up=${candidate.step}`);
+      dartRecovery.tuning = true;
       guidedButtons();
+      try {
+        dartRecoveryMessage(`Recovery tune armed. Using up to ${shots} loaded shots at ${target.toLocaleString()} RPM...`);
+        await sendSerialCommand('dart_detect 1');
+        updateBlasterSettingControl('dart_detect', 1);
+        for (let shot = 1; shot <= shots; shot++) {
+          candidate = await applyDartRecoveryAssistSettings(candidate);
+          dartRecoveryMessage(`Recovery tune shot ${shot}/${shots}: gain ${(candidate.gain / 100).toFixed(2)}, cap ${candidate.max}, step ${candidate.step}.`);
+          const result = await startDartRecoveryTest(target, true);
+          if (!result) {
+            dartRecoveryMessage(`Recovery tune stopped before shot ${shot}: serial command was not accepted.`);
+            break;
+          }
+          if (!result.detected) {
+            dartRecoveryMessage(`Recovery tune stopped: no dart detected on shot ${shot}. Check the magazine and dart detection threshold.`);
+            break;
+          }
+          detectedShots++;
+          if (result.pass) {
+            passStreak++;
+            if (passStreak >= 3) {
+              dartRecoveryMessage(`Recovery tune passed ${passStreak} shots in a row. Saved gain ${(candidate.gain / 100).toFixed(2)}, cap ${candidate.max}, step ${candidate.step}.`);
+              break;
+            }
+          } else {
+            passStreak = 0;
+            const adjusted = nextDartRecoveryCandidate(candidate, result);
+            const changed = adjusted.gain !== candidate.gain || adjusted.max !== candidate.max || adjusted.step !== candidate.step;
+            if (!changed) {
+              dartRecoveryMessage(`Recovery tune reached assist limits after ${detectedShots} detected shot${detectedShots === 1 ? '' : 's'}. Last result: ${result.reason}.`);
+              break;
+            }
+            if (shot >= shots) {
+              dartRecoveryMessage(`Recovery tune used all ${shots} shot${shots === 1 ? '' : 's'}; keeping the last tested assist settings.`);
+              break;
+            }
+            candidate = adjusted;
+          }
+          if (shot < shots) {
+            dartRecoveryMessage('Waiting for flywheels to glide down before the next recovery adjustment...');
+            const idle = await waitForDartRecoveryIdle();
+            if (!idle) {
+              dartRecoveryMessage('Recovery tune stopped: flywheels did not return to idle before the next setting write.');
+              break;
+            }
+          }
+        }
+        logToConsole(`[Dart Recovery Tune] Final assist: enabled=1 gain_x100=${candidate.gain} boost_max=${candidate.max} step_up=${candidate.step}`);
+      } finally {
+        dartRecovery.tuning = false;
+        guidedButtons();
+      }
     }
     function maybeStartPostTuneDartRecovery(event, resultsPending) {
       const optIn = guidedElement('guided_recovery_after');
@@ -9700,11 +9713,11 @@ function updateWriteButtonText() {
       guidedElement('guided_baseline').disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_passes').disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_export').disabled = !guidedTuning.samples.length && !guidedTuning.results.length;
-      guidedElement('dart_recovery_start').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || guidedTuning.disconnected;
-      guidedElement('dart_recovery_tune').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || guidedTuning.disconnected;
-      guidedElement('dart_recovery_target').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active;
-      guidedElement('dart_recovery_shots').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active;
-      guidedElement('guided_recovery_after').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active;
+      guidedElement('dart_recovery_start').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || dartRecovery.tuning || guidedTuning.disconnected;
+      guidedElement('dart_recovery_tune').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || dartRecovery.tuning || guidedTuning.disconnected;
+      guidedElement('dart_recovery_target').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || dartRecovery.tuning;
+      guidedElement('dart_recovery_shots').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || dartRecovery.tuning;
+      guidedElement('guided_recovery_after').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || dartRecovery.tuning;
       const locked = guidedTuning.busy || guidedTuning.pending;
       document.querySelectorAll('#pid_autotune_panel input, #pid_autotune_panel select, #pid_autotune_panel button').forEach(el => {
         if (locked) {
@@ -9923,9 +9936,9 @@ function updateWriteButtonText() {
       const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download='byte-blaster-tuning-run.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
     setInterval(() => {
-      if (guidedTuning.busy && !guidedTuning.pending && !dartRecovery.active && Date.now()-guidedTuning.lastSeen>3000) guidedDisconnected();
+      if (guidedTuning.busy && !guidedTuning.pending && !dartRecovery.active && !dartRecovery.tuning && Date.now()-guidedTuning.lastSeen>3000) guidedDisconnected();
       // Refresh provenance after manual configuration edits on connected supported firmware.
-      if (guidedTuning.status && !guidedTuning.busy && !guidedTuning.pending && !dartRecovery.active && !guidedTuning.waiter && !guidedTuning.disconnected && Date.now()-guidedTuning.lastSeen>5000) refreshGuidedTuning();
+      if (guidedTuning.status && !guidedTuning.busy && !guidedTuning.pending && !dartRecovery.active && !dartRecovery.tuning && !guidedTuning.waiter && !guidedTuning.disconnected && Date.now()-guidedTuning.lastSeen>5000) refreshGuidedTuning();
     },1000);
     // END GUIDED TUNING UI
 
