@@ -8519,7 +8519,9 @@ function updateWriteButtonText() {
         }
 
         statusEl.textContent = "Sweep finished. Ramping down with decel glide...";
+        let rev0Sent = false;
         await sendSerialCommand("rev 0");
+        rev0Sent = true;
         await new Promise(r => setTimeout(r, 1600));
         await sendSerialCommand("stream off");
 
@@ -8528,7 +8530,6 @@ function updateWriteButtonText() {
           statusEl.textContent = "Sweep Complete & Auto-Applied! Click 'Save 5 Points to Blaster' to commit.";
           btnApply.style.display = 'inline-block';
           return { status: 'complete' };
-          logToConsole("[FF Sweep] Characterization complete. Quadratic aerodynamic curve auto-applied to table.");
         } else {
           statusEl.textContent = "Sweep stopped.";
           return { status: 'cancelled' };
@@ -8538,7 +8539,9 @@ function updateWriteButtonText() {
         statusEl.textContent = "Sweep Error.";
         return { status: 'failed' };
       } finally {
-        await sendSerialCommand("rev 0");
+        if (!rev0Sent) {
+          await sendSerialCommand("rev 0");
+        }
         isFfSweepActive = false;
         btnRun.disabled = false;
         btnCancel.style.display = 'none';
@@ -8625,7 +8628,9 @@ function updateWriteButtonText() {
         snapshotPreviousFfTable();
       }
 
-      // 1. Attempt quadratic physics regression for aerodynamic fidelity
+      // Prioritize direct piecewise linear interpolation from actual measured sweep points
+      // so measured calibration knots (especially low RPM ~2000) are accurate to hardware.
+      // Fallback to aerodynamic quadratic fit if interpolation is unavailable.
       const fitM1 = fitQuadraticPhysicsDrive(measuredSweepM1, vBat);
       const fitM2 = fitQuadraticPhysicsDrive(measuredSweepM2, vBat);
       window.lastFitM1 = fitM1;
@@ -8633,12 +8638,11 @@ function updateWriteButtonText() {
 
       for (let i = 0; i < 5; i++) {
         const rpm = FF_CAL_POINTS[i];
-        let throt1 = evalQuadraticPhysicsThrottle(fitM1, rpm, vBat);
-        let throt2 = evalQuadraticPhysicsThrottle(fitM2, rpm, vBat);
+        let throt1 = interpolateSweepPoint(measuredSweepM1, rpm);
+        let throt2 = interpolateSweepPoint(measuredSweepM2, rpm);
 
-        // Fallback to piecewise interpolation if fit unavailable
-        if (throt1 === null) throt1 = interpolateSweepPoint(measuredSweepM1, rpm);
-        if (throt2 === null) throt2 = interpolateSweepPoint(measuredSweepM2, rpm);
+        if (throt1 === null) throt1 = evalQuadraticPhysicsThrottle(fitM1, rpm, vBat);
+        if (throt2 === null) throt2 = evalQuadraticPhysicsThrottle(fitM2, rpm, vBat);
 
         if (throt1 !== null) {
           ffTableData[0][i].throttle = throt1;
@@ -9046,7 +9050,16 @@ function updateWriteButtonText() {
       guidedTuning.pending=true; guidedButtons(); let issued=false;
       try {
         const previous=await requestGuidedStatus();
-        if (['running','gliding'].includes(previous.state)) { await sendSerialCommand('stream fast'); return; }
+        if (['running'].includes(previous.state)) { await sendSerialCommand('stream fast'); return; }
+        if (previous.state === 'gliding') {
+          guidedMessage('Flywheels are settling. Waiting for idle before tuning...');
+          const settleStart = Date.now();
+          while (Date.now() - settleStart < 8000) {
+            const st = await requestGuidedStatus().catch(() => null);
+            if (st && st.state === 'idle') break;
+            await new Promise(r => setTimeout(r, 350));
+          }
+        }
         if (previous.algo !== 1) throw new Error('Select RPM PID (controller algorithm 1) in settings before tuning.');
         if (typeof dirtySettings !== 'undefined' && [...dirtySettings].some(key =>
           ['step_up','launch_trajectory','ctrl_algo','startup_rpm','spinup_skew_limit','cells','motor_kv','always_on_rpm','glide_rpm_per_s','glide_step_down_x10'].includes(key) || /^pid[12]_/.test(key))) {
@@ -9059,14 +9072,20 @@ function updateWriteButtonText() {
         const saveFfFn = typeof saveFeedforwardCalibration === 'function' ? saveFeedforwardCalibration : (typeof window !== 'undefined' ? window.saveFeedforwardCalibration : null);
         const needsSweep = (ffMode === 'sweep') || (ffMode === 'auto' && previous.ffValidation !== 'verified');
         if (needsSweep && typeof sweepFn === 'function') {
-          guidedMessage('Step 1/2: Characterizing Feedforward curve with 5-point sweep and aerodynamic quadratic fit...');
+          guidedMessage('Step 1/2: Characterizing Feedforward curve with 5-point sweep...');
           const sweepRes = await sweepFn();
           if (sweepRes && sweepRes.status === 'cancelled') throw new Error('Feedforward sweep was cancelled.');
           if (sweepRes && sweepRes.status === 'failed') throw new Error('Feedforward sweep failed.');
           if (typeof saveFfFn === 'function') {
             await saveFfFn(true);
           }
-          guidedMessage('Step 2/2: Feedforward calibrated & saved. Starting PID autotune...');
+          guidedMessage('Step 2/2: Feedforward calibrated & saved. Waiting for flywheels to settle before autotune...');
+          const settleStart = Date.now();
+          while (Date.now() - settleStart < 8000) {
+            const st = await requestGuidedStatus().catch(() => null);
+            if (st && st.state === 'idle') break;
+            await new Promise(r => setTimeout(r, 350));
+          }
         }
         await sendSerialCommand('stream fast');
         issued=true;
