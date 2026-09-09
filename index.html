@@ -1807,6 +1807,17 @@
             <div id="guided_stages" style="display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0">
               <span data-tuning-stage="feedforward">1 · Measure FF</span><span data-tuning-stage="validate_ff">2 · Validate FF</span><span data-tuning-stage="pid">3 · Tune PID</span><span data-tuning-stage="validate_pid">4 · Validate PID</span>
             </div>
+            <div class="guided-section" style="margin-top:0.85rem">
+              <h4>Loaded Dart Recovery</h4>
+              <p class="guided-help">Optional loaded-dart check fires one normal gated shot and grades recovery after the RPM disturbance.</p>
+              <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+                <label><input id="guided_recovery_after" type="checkbox"> Run after guided tuning</label>
+                <label>Target RPM <input id="dart_recovery_target" type="number" min="2000" max="35000" step="500" value="32000" style="width:90px"></label>
+                <button id="dart_recovery_start" class="preset-btn" onclick="startDartRecoveryTest()">Run Dart Recovery</button>
+              </div>
+              <p id="dart_recovery_status" role="status" aria-live="polite" class="guided-help">Idle. Load one dart before starting a recovery test.</p>
+              <div style="max-height:160px;overflow:auto;margin-top:.5rem"><table style="width:100%;font-size:.8rem"><thead><tr><th>Target</th><th>Dart</th><th>Drop</th><th>Bottom</th><th>FPS</th><th>Recovery</th><th>Result</th></tr></thead><tbody id="dart_recovery_results"></tbody></table></div>
+            </div>
             <progress id="guided_progress" max="1" value="0" style="width:100%"></progress>
             <p id="guided_status" role="status" aria-live="polite">Connect your blaster, then choose Tune Blaster. Updated firmware is required.</p>
             <label><input id="guided_throttle" type="checkbox" onchange="toggleGuidedThrottle()"> Show DShot output</label>
@@ -4098,6 +4109,15 @@ function updateWriteButtonText() {
       if (dartEvent.ammo !== null && dartEvent.ammo !== undefined) {
         const ammoEl = document.getElementById('display_ammo_count');
         if (ammoEl) ammoEl.textContent = dartEvent.ammo;
+      }
+
+      if (dartEvent.fps !== null && dartEvent.fps !== undefined) {
+        const fps = Math.round(Number(dartEvent.fps)) || 0;
+        const lastFpsEl = document.getElementById('fps_val_last');
+        if (lastFpsEl) lastFpsEl.textContent = `${fps} FPS`;
+        if (detected && fps > 0) {
+          recordFpsShot(fps);
+        }
       }
 
       // If live graph is currently active and running, plot dip marker on chart
@@ -7347,8 +7367,8 @@ function updateWriteButtonText() {
       }
 
       // Match incoming closed-loop dart impact telemetry event:
-      // DART_EVENT: drop=1250,window=45,peak=30200,bottom=28950,detected=1,ammo=15
-      const dartEventMatch = line.match(/^DART_EVENT:\s*(?:start=(\d+),)?drop=(\d+),window=(\d+),peak=(\d+)(?:,bottom=(\d+))?,detected=([01])(?:,ammo=(\d+))?/i);
+      // DART_EVENT: drop=1250,window=45,peak=30200,bottom=28950,detected=1,ammo=15,fps=164
+      const dartEventMatch = line.match(/^DART_EVENT:\s*(?:start=(\d+),)?drop=(\d+),window=(\d+),peak=(\d+)(?:,bottom=(\d+))?,detected=([01])(?:,ammo=(\d+))?(?:,fps=(\d+))?/i);
       if (dartEventMatch) {
         const drop = parseInt(dartEventMatch[2]);
         const windowMs = parseInt(dartEventMatch[3]);
@@ -7356,7 +7376,8 @@ function updateWriteButtonText() {
         const bottom = dartEventMatch[5] ? parseInt(dartEventMatch[5]) : Math.max(0, peak - drop);
         const detected = dartEventMatch[6] === '1';
         const ammo = dartEventMatch[7] ? parseInt(dartEventMatch[7]) : null;
-        handleDartEvent({
+        const fps = dartEventMatch[8] ? parseInt(dartEventMatch[8]) : null;
+        const dartEvent = {
           start: dartEventMatch[1] ? parseInt(dartEventMatch[1]) : null,
           drop: drop,
           window: windowMs,
@@ -7364,8 +7385,11 @@ function updateWriteButtonText() {
           bottom: bottom,
           detected: detected,
           ammo: ammo,
+          fps: fps,
           timestamp: Date.now()
-        });
+        };
+        handleDartEvent(dartEvent);
+        handleDartRecoveryEvent(dartEvent);
         return;
       }
 
@@ -7636,6 +7660,7 @@ function updateWriteButtonText() {
         }
         
         captureGuidedTelemetry(telemetryPoint);
+        captureDartRecoveryTelemetry(telemetryPoint);
         updateLiveTelemetryChart(telemetryPoint);
         processTelemetryStep(telemetryPoint);
 
@@ -9299,11 +9324,137 @@ function updateWriteButtonText() {
     }
 
     const guidedTuning = { status: null, busy: false, pending: false, waiter: null, chart: null,
-      lockedControls: new Map(), samples: [], results: [], markers: [], origin: null, lastSeen: 0, lastDraw: 0, disconnected: false };
+      lockedControls: new Map(), samples: [], results: [], markers: [], origin: null, lastSeen: 0, lastDraw: 0, disconnected: false, postRecoverySession: null };
     const guidedStages = ['feedforward', 'validate_ff', 'pid', 'validate_pid'];
     const guidedLabels = ['Measure feedforward', 'Validate feedforward', 'Tune PID', 'Validate PID'];
+    const dartRecovery = { active: false, target: 32000, startTs: null, samples: [], event: null, timer: null, results: [] };
+    const DART_RECOVERY_AVG_RATIO = 0.97;
+    const DART_RECOVERY_MOTOR_RATIO = 0.95;
+    const DART_RECOVERY_MAX_MS = 50;
     function guidedElement(id) { return document.getElementById(id); }
     function guidedMessage(text) { const el = guidedElement('guided_status'); if (el) el.textContent = text; }
+    function dartRecoveryMessage(text) {
+      const el = guidedElement('dart_recovery_status');
+      if (el) el.textContent = text;
+    }
+    function recoveryTargetFromUi() {
+      const input = guidedElement('dart_recovery_target');
+      const raw = input ? Number(input.value) : 32000;
+      return Math.max(2000, Math.min(35000, Number.isFinite(raw) ? Math.round(raw) : 32000));
+    }
+    function confirmDartRecoveryStart(target) {
+      if (typeof confirm !== 'function') return true;
+      return confirm(`Load one dart, point the blaster safely, then continue to fire one recovery test at ${target.toLocaleString()} RPM.`);
+    }
+    function renderDartRecoveryResult(result) {
+      dartRecovery.results.push(result);
+      const body = guidedElement('dart_recovery_results');
+      if (!body || typeof document === 'undefined' || !document.createElement) return;
+      const row = document.createElement('tr');
+      const cells = [
+        `${result.target.toLocaleString()} RPM`,
+        result.detected ? 'Detected' : 'None',
+        `${result.drop.toLocaleString()} RPM`,
+        `${result.bottom.toLocaleString()} RPM`,
+        result.fps ? `${result.fps} FPS` : '0 FPS',
+        result.recoveryMs == null ? 'No recovery' : `${result.recoveryMs} ms`,
+        result.pass ? 'PASS' : result.reason
+      ];
+      for (const value of cells) {
+        const td = document.createElement('td');
+        td.textContent = String(value);
+        row.appendChild(td);
+      }
+      body.appendChild(row);
+    }
+    function finishDartRecovery(reasonOverride = null) {
+      if (!dartRecovery.active) return;
+      if (dartRecovery.timer) clearTimeout(dartRecovery.timer);
+      const event = dartRecovery.event || { detected: false, drop: 0, bottom: 0, fps: 0 };
+      const eventTs = Number.isFinite(event.timestamp) ? event.timestamp : null;
+      const recoveryWindowStart = eventTs === null
+        ? dartRecovery.startTs
+        : eventTs - Math.max(250, (Number(event.window) || 50) + 150);
+      const recoveryWindowEnd = eventTs === null ? Date.now() : eventTs + 700;
+      const samples = dartRecovery.samples.filter(p => p.t >= recoveryWindowStart && p.t <= recoveryWindowEnd);
+      let bottomSample = null;
+      for (const sample of samples) {
+        if (!bottomSample || sample.avg < bottomSample.avg) bottomSample = sample;
+      }
+      let recovered = null;
+      if (bottomSample) {
+        const avgThreshold = dartRecovery.target * DART_RECOVERY_AVG_RATIO;
+        const motorThreshold = dartRecovery.target * DART_RECOVERY_MOTOR_RATIO;
+        recovered = samples.find(sample => sample.t >= bottomSample.t &&
+          sample.avg >= avgThreshold && sample.rpm1 >= motorThreshold && sample.rpm2 >= motorThreshold) || null;
+      }
+      const recoveryMs = bottomSample && recovered ? Math.max(0, Math.round(recovered.t - bottomSample.t)) : null;
+      let reason = reasonOverride || 'No detected dart';
+      let pass = false;
+      if (event.detected && recoveryMs !== null && recoveryMs <= DART_RECOVERY_MAX_MS) {
+        pass = true;
+        reason = 'PASS';
+      } else if (event.detected && recoveryMs !== null) {
+        reason = `Recovery > ${DART_RECOVERY_MAX_MS} ms`;
+      } else if (event.detected) {
+        reason = 'Target not recovered';
+      }
+      const result = {
+        target: dartRecovery.target,
+        detected: !!event.detected,
+        drop: Math.round(Number(event.drop) || 0),
+        bottom: Math.round(bottomSample ? bottomSample.avg : Number(event.bottom) || 0),
+        fps: Math.round(Number(event.fps) || 0),
+        recoveryMs,
+        pass,
+        reason
+      };
+      dartRecovery.active = false;
+      dartRecovery.event = null;
+      dartRecovery.samples = [];
+      renderDartRecoveryResult(result);
+      dartRecoveryMessage(pass
+        ? `Recovery passed: back to ${Math.round(DART_RECOVERY_AVG_RATIO * 100)}% target in ${recoveryMs} ms.`
+        : `Recovery failed: ${reason}.`);
+      sendSerialCommand('rev 0');
+      guidedButtons();
+    }
+    function captureDartRecoveryTelemetry(point) {
+      if (!dartRecovery.active || !Number.isFinite(point.rpm1) || !Number.isFinite(point.rpm2)) return;
+      const t = Number.isFinite(point.timestamp) ? point.timestamp : Date.now();
+      dartRecovery.samples.push({ t, rpm1: point.rpm1, rpm2: point.rpm2, avg: (point.rpm1 + point.rpm2) * 0.5, target: point.target });
+      if (dartRecovery.samples.length > 1200) dartRecovery.samples.shift();
+    }
+    function handleDartRecoveryEvent(event) {
+      if (!dartRecovery.active) return;
+      dartRecovery.event = event;
+      dartRecoveryMessage(event.detected ? 'Dart detected. Measuring RPM recovery...' : 'Shot fired but no dart was detected.');
+      if (dartRecovery.timer) clearTimeout(dartRecovery.timer);
+      dartRecovery.timer = setTimeout(() => finishDartRecovery(), 650);
+    }
+    async function startDartRecoveryTest(targetOverride = null, skipConfirm = false) {
+      if (dartRecovery.active || guidedTuning.busy || guidedTuning.pending) return;
+      if (!port || !port.writable) return dartRecoveryMessage('Connect your blaster first.');
+      const target = targetOverride || recoveryTargetFromUi();
+      if (!skipConfirm && !confirmDartRecoveryStart(target)) return;
+      dartRecovery.active = true;
+      dartRecovery.target = target;
+      dartRecovery.startTs = Date.now();
+      dartRecovery.samples = [];
+      dartRecovery.event = null;
+      dartRecoveryMessage(`Firing one loaded recovery shot at ${target.toLocaleString()} RPM...`);
+      guidedButtons();
+      await sendSerialCommand('stream fast');
+      await sendSerialCommand(`shot_test ${target}`);
+      dartRecovery.timer = setTimeout(() => finishDartRecovery('No dart event received'), 8000);
+    }
+    function maybeStartPostTuneDartRecovery(event, resultsPending) {
+      const optIn = guidedElement('guided_recovery_after');
+      if (!optIn || !optIn.checked || resultsPending || dartRecovery.active || event.state !== 'saved') return;
+      if (guidedTuning.postRecoverySession === event.session) return;
+      guidedTuning.postRecoverySession = event.session;
+      startDartRecoveryTest(recoveryTargetFromUi());
+    }
     function renderGuidedSetup() {
       const status = guidedTuning.status;
       const pending = typeof dirtySettings === 'undefined' ? 0 : dirtySettings.size;
@@ -9323,6 +9474,9 @@ function updateWriteButtonText() {
       guidedElement('guided_baseline').disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_passes').disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_export').disabled = !guidedTuning.samples.length && !guidedTuning.results.length;
+      guidedElement('dart_recovery_start').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || guidedTuning.disconnected;
+      guidedElement('dart_recovery_target').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active;
+      guidedElement('guided_recovery_after').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active;
       const locked = guidedTuning.busy || guidedTuning.pending;
       document.querySelectorAll('#pid_autotune_panel input, #pid_autotune_panel select, #pid_autotune_panel button').forEach(el => {
         if (locked) {
@@ -9482,6 +9636,7 @@ function updateWriteButtonText() {
         else if (guidedTuning.busy) outcome.textContent = 'Run in progress · Final validation and save are pending.';
       }
       guidedButtons(); if (!guidedTuning.busy) drawGuidedChart();
+      if (!guidedTuning.busy) maybeStartPostTuneDartRecovery(event, resultsPending);
       return true;
     }
     function requestGuidedStatus(filterFn) {
