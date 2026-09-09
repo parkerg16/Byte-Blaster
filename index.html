@@ -9003,6 +9003,7 @@ function updateWriteButtonText() {
       });
       const progress=guidedElement('guided_progress'); progress.max=event.total || 1; progress.value=event.done || 0;
       const reasons = { measurement_failed:'The measurement did not pass validation.', telemetry_timeout:'Motor telemetry was lost.',
+        telemetry_timeout_m1:'Motor 1 telemetry was lost.', telemetry_timeout_m2:'Motor 2 telemetry was lost.', telemetry_timeout_both:'Both motor telemetries were lost.',
         motor_stalled:'A motor did not spin as expected.', low_voltage:'Battery voltage was too low.', fault_or_timeout:'A fault, transition timeout, or configuration change stopped the run.' };
       if (event.state === 'running') guidedMessage(`${guidedLabels[index] || 'PID measurement'} · ${event.target.toLocaleString()} RPM · ${event.phase === 'PREP' ? 'Gliding to launch baseline' : event.phase === 'HOLD' ? 'Measuring steady speed' : 'Production launch / settling'} · Pass ${event.pass || 1} · ${event.done}/${event.total} paired measurements`);
       else if (event.state === 'gliding') guidedMessage(`${reasons[event.reason] || (event.reason === 'cancelled' ? 'Cancellation requested.' : 'Measurements complete.')} Gliding down; waiting for both motors to stop.`);
