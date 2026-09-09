@@ -8293,6 +8293,7 @@ function updateWriteButtonText() {
         }};
       });
     }
+    const FF_CAL_POINTS = [2000, 5000, 15000, 20000, 32000];
     let isSavingFfCalibration = false;
     let ffRenderDebounceTimer = null;
     function handleIncomingFfPoint(motorIdx, rpm, drive, throttle, valid) {
