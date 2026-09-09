@@ -704,34 +704,74 @@
     }
 
     .guided-tuning {
-      border: 1px solid var(--border-color); border-radius: 12px;
-      padding: 1rem; margin-bottom: 1.5rem; background: var(--bg-card);
-      color: var(--text-primary); font-size: .85rem; line-height: 1.5;
+      border: 1px solid rgba(56,189,248,0.3);
+      border-radius: 14px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 27, 75, 0.5) 100%);
+      box-shadow: 0 12px 32px -10px rgba(56,189,248,0.15);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      line-height: 1.5;
     }
     .guided-tuning select {
-      background: var(--bg-secondary); color: var(--text-primary);
-      border: 1px solid var(--border-color); border-radius: 6px;
-      padding: .4rem; max-width: 100%; font: inherit;
+      background: #0f172a;
+      color: var(--text-primary);
+      border: 1px solid rgba(56,189,248,0.35);
+      border-radius: 6px;
+      padding: .4rem .6rem;
+      max-width: 100%;
+      font: inherit;
+      font-weight: 600;
     }
     .guided-tuning button { font: inherit; }
     .guided-tuning button:disabled, .settings-row input:disabled {
-      opacity: .45; cursor: not-allowed;
+      opacity: .4; cursor: not-allowed;
     }
-    .guided-tuning progress { accent-color: var(--accent-blue); height: 8px; }
+    .guided-tuning progress {
+      accent-color: #38bdf8;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.08);
+    }
     .guided-tuning [data-tuning-stage] {
-      padding: .25rem .5rem; border: 1px solid var(--border-color); border-radius: 6px;
+      padding: .3rem .65rem;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #94a3b8;
+      background: rgba(0, 0, 0, 0.25);
+      transition: all 0.25s ease;
+    }
+    .guided-tuning [data-tuning-stage].active, .guided-tuning [data-tuning-stage][data-stage-active="true"] {
+      border-color: #38bdf8;
+      background: rgba(56,189,248,0.2);
+      color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56,189,248,0.35);
+    }
+    .guided-tuning th {
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--accent-cyan);
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
     .guided-tuning th, .guided-tuning td {
-      text-align: left; padding: .45rem; border-bottom: 1px solid var(--border-color);
+      text-align: left; padding: .55rem .65rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       white-space: nowrap;
     }
-    .guided-tuning summary { cursor: pointer; color: var(--accent-blue); }
-    .guided-tuning :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
-    .guided-section { padding: .85rem 0; border-top: 1px solid var(--border-color); margin-top: .6rem; }
-    .guided-tuning h4 { color: var(--accent-blue); margin: .5rem 0; }
-    .guided-profile { display: flex; flex-wrap: wrap; gap: .5rem; margin: .6rem 0; }
-    .guided-profile span { background: var(--bg-secondary); padding: .35rem .6rem; border-radius: 6px; border: 1px solid var(--border-color); }
-    .guided-help { font-size: .75rem; color: var(--text-secondary); }
+    .guided-tuning tr:hover td {
+      background: rgba(56,189,248,0.05);
+    }
+    .guided-tuning summary { cursor: pointer; color: #38bdf8; font-weight: 700; }
+    .guided-tuning :focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; }
+    .guided-section { padding: 1rem 0; border-top: 1px solid rgba(255, 255, 255, 0.08); margin-top: .75rem; }
+    .guided-tuning h4 { color: #38bdf8; margin: .5rem 0; font-size: 0.95rem; font-weight: 700; }
+    .guided-profile { display: flex; flex-wrap: wrap; gap: .6rem; margin: .6rem 0; }
+    .guided-profile span { background: rgba(0,0,0,0.3); padding: .4rem .75rem; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.3); font-weight: 600; font-size: 0.8rem; }
+    .guided-help { font-size: .75rem; color: var(--text-secondary); line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -1527,6 +1567,9 @@
             <button class="preset-btn" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; border-color: rgba(139, 92, 246, 0.4); color: var(--accent-violet); background: rgba(139, 92, 246, 0.1);" onclick="exportFaultLog()">
               Export JSON
             </button>
+            <button class="preset-btn" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; border-color: rgba(34, 197, 94, 0.4); color: #4ade80; background: rgba(34, 197, 94, 0.1);" onclick="exportFaultLogCsv()">
+              Export CSV
+            </button>
           </div>
         </div>
 
@@ -1551,6 +1594,16 @@
               <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Lowest Logged Vbat</div>
               <div id="diag_stat_min_v" style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-top: 0.2rem;">-- V</div>
               <div id="diag_stat_min_v_sub" style="font-size: 0.65rem; color: var(--text-secondary);">At trigger time</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">DShot Signal Health</div>
+              <div id="diag_stat_dshot_health" style="font-size: 1.1rem; font-weight: 700; color: #34d399; margin-top: 0.2rem;">100.0% Healthy</div>
+              <div style="font-size: 0.65rem; color: var(--text-secondary);">DShot Telemetry CRC</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Lifetime Odometer</div>
+              <div id="diag_stat_lifetime_shots" style="font-size: 1.15rem; font-weight: 700; color: var(--accent-violet); margin-top: 0.2rem;">0</div>
+              <div id="diag_stat_lifetime_sub" style="font-size: 0.65rem; color: var(--text-secondary);">Total Darts Fired</div>
             </div>
             <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem;">
               <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Rate Limiter</div>
@@ -1707,7 +1760,7 @@
       <div class="visualizer-card" id="ff_curve_card" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(17, 24, 39, 0.45); margin-top: 1.5rem;">
         <div class="section-title" style="color: #06b6d4; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <span>Feedforward 5-Point Calibration & Automated Curve Sweep</span>
+            <span>Feedforward 5-Point Calibration · Advanced Diagnostics</span>
             <span class="badge" style="background: rgba(6, 182, 212, 0.2); color: #06b6d4; font-size: 0.65rem; border: 1px solid rgba(6, 182, 212, 0.35);">Nonlinear Physics LUT</span>
             <span id="ff_sync_status" class="badge" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; font-size: 0.65rem; border: 1px solid rgba(100, 116, 139, 0.35);">Firmware Sync: Idle</span>
           </div>
@@ -1724,7 +1777,16 @@
           </div>
 
           <section id="guided_tuning" class="guided-tuning">
-            <h3 style="margin:0 0 .4rem">Tune your blaster</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem;">
+              <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                <h3 style="margin: 0; font-size: 1.15rem; background: linear-gradient(90deg, #38bdf8 0%, #a78bfa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800;">
+                  Closed-Loop PID Dynamics &amp; Guided Auto-Tuner
+                </h3>
+                <span class="badge" style="background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); font-weight: 700; font-size: 0.68rem;">2-DOF Dual Motor Control</span>
+                <span class="badge" style="background: rgba(167, 139, 250, 0.15); color: #a78bfa; border: 1px solid rgba(167, 139, 250, 0.35); font-weight: 700; font-size: 0.68rem;">1000 Hz DShot Telemetry</span>
+              </div>
+            </div>
+
             <div class="guided-section">
               <h4>1 · Setup</h4>
               <p id="guided_setup" role="status">Connect your blaster to read its controller and launch settings.</p>
@@ -1733,11 +1795,10 @@
               <p class="guided-help">Validation applies to the saved configuration. Older profiles have no validation record; their origin cannot be inferred.</p>
             </div>
             <h4>2 · Tune</h4>
-            <p style="margin:.3rem 0 1rem">Both motors run together through feedforward measurement, validation, PID tuning, and final validation. Write your launch settings before starting and keep them fixed during the run. Remove the magazine and darts.</p>
+            <p style="margin:.3rem 0 1rem">Both motors run together through feedforward measurement, validation, PID tuning, and final validation. Write your launch settings before starting and keep them fixed during the run. One PID pass measures existing gains; multiple passes compare candidate gains. Remove the magazine and darts.</p>
             <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
               <label>PID launch baseline <select id="guided_baseline"><option value="cold">Stopped — glide between launches</option><option value="idle">Spinning idle</option></select></label>
               <label>PID passes <select id="guided_passes"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
-              <label>Feedforward <select id="guided_ff_mode"><option value="auto" selected>Auto (Use saved FF / sweep if needed)</option><option value="saved">Use saved FF profile</option><option value="sweep">Run 5-point curve sweep first</option></select></label>
               <button id="guided_start" disabled class="action-btn" style="width:auto;margin:0" onclick="startGuidedTuning()">Tune Blaster</button>
               <button id="guided_cancel" class="preset-btn" disabled onclick="cancelGuidedTuning()">Cancel &amp; glide down</button>
               <button class="preset-btn" onclick="refreshGuidedTuning()">Refresh status</button>
@@ -1749,10 +1810,12 @@
             <progress id="guided_progress" max="1" value="0" style="width:100%"></progress>
             <p id="guided_status" role="status" aria-live="polite">Connect your blaster, then choose Tune Blaster. Updated firmware is required.</p>
             <label><input id="guided_throttle" type="checkbox" onchange="toggleGuidedThrottle()"> Show DShot output</label>
-            <div style="height:330px;margin-top:.5rem"><canvas id="guided_chart" aria-label="Target and both motor RPMs throughout tuning"></canvas></div>
-            <p style="font-size:.75rem;color:var(--text-secondary)">The graph keeps the full session across stages. Cold PID tests finish a controlled stop; idle tests keep spinning. Cancelling restores the prior tune after glide-down. Firmware continues if USB disconnects; reconnect to recover status.</p>
+            <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(56,189,248,0.25); border-radius: 10px; padding: 0.75rem; margin-top: 0.75rem; box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);">
+              <div style="height:330px;"><canvas id="guided_chart" aria-label="Target and both motor RPMs throughout tuning"></canvas></div>
+            </div>
+            <p style="font-size:.75rem;color:var(--text-secondary);margin-top:0.5rem">The graph keeps the full session across stages. FF is measured, applied, and validated before PID uses that fixed curve. Normal glide only permits DShot 0 below 2,500 RPM on both motors; cold PID tests then wait for both to stop. Fault shutdowns can stop drive immediately. Cancelling restores the prior tune after glide-down. Firmware continues if USB disconnects; reconnect to recover status.</p>
             <div class="guided-section"><h4>3 · Results</h4><p id="guided_outcome" role="status">No run completed in this session.</p></div>
-            <details id="guided_measurements"><summary>Per-motor measurements</summary><div style="max-height:240px;overflow:auto"><table style="width:100%;font-size:.8rem"><thead><tr><th>Stage</th><th>Motor</th><th>Target</th><th>Pass</th><th>Steady RPM</th><th>Error</th><th>Overshoot</th><th>Result</th></tr></thead><tbody id="guided_results"></tbody></table></div></details>
+            <details id="guided_measurements"><summary>Per-motor measurements</summary><div style="max-height:240px;overflow:auto"><table style="width:100%;font-size:.8rem"><thead><tr><th>Stage</th><th>Motor</th><th>Target</th><th>Pass</th><th>Steady RPM</th><th>Error</th><th>Overshoot</th><th>Rise (ms)</th><th>Settle (ms)</th><th>Ramp limited</th><th>Result</th></tr></thead><tbody id="guided_results"></tbody></table></div></details>
           </section>
 
           <!-- Interactive Feedforward Curve Canvas -->
@@ -1789,7 +1852,7 @@
                 <span>Active Target Trim</span>
               </label>
 
-              <button id="btn_run_ff_sweep" class="preset-btn" style="padding: 0.4rem 0.85rem; font-size: 0.75rem;" onclick="runFeedForwardSweep()">Run Sweep Only</button>
+              <button id="btn_run_ff_sweep" class="preset-btn" style="padding: 0.4rem 0.85rem; font-size: 0.75rem;" onclick="runFeedForwardSweep()">Run Legacy Diagnostic Sweep</button>
               <button id="btn_cancel_ff_sweep" class="preset-btn" style="display: none; padding: 0.4rem 0.8rem; font-size: 0.75rem; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4);" onclick="cancelFeedForwardSweep()">Cancel Tuning</button>
               <button id="btn_apply_ff_sweep" class="action-btn" style="display: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-size: 0.75rem; padding: 0.4rem 0.9rem; width: auto; margin: 0; border-color: rgba(16, 185, 129, 0.4);" onclick="applySweepToFfTable()">Apply Measured Curve to Table</button>
               <button id="btn_verify_rpm_tolerance" class="action-btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); font-size: 0.75rem; padding: 0.4rem 0.9rem; width: auto; margin: 0; border-color: rgba(139, 92, 246, 0.4);" onclick="runRpmToleranceVerification()">Verify 1% RPM Tracking</button>
@@ -1858,6 +1921,75 @@
           </p>
         </div>
       </div>
+
+      <!-- FPS Estimator & Muzzle Velocity Diagnostics Card -->
+      <div class="visualizer-card" id="fps_estimator_card" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(17, 24, 39, 0.45); margin-top: 1.5rem;">
+        <div class="section-title" style="color: #10b981; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span>FPS Estimator · Muzzle Velocity &amp; Ballistics</span>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; font-size: 0.65rem; border: 1px solid rgba(16, 185, 129, 0.35);">5-Point Piecewise LUT</span>
+            <span class="badge" style="background: rgba(56,189,248,0.15); color: #38bdf8; font-size: 0.65rem; border: 1px solid rgba(56,189,248,0.35);">1000 Hz Telemetry Drop</span>
+          </div>
+          <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+            <button class="preset-btn" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" onclick="fetchFpsEstimatorLut()">Fetch from Blaster</button>
+            <button class="action-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-size: 0.75rem; padding: 0.3rem 0.85rem; width: auto; margin: 0; border-color: rgba(16, 185, 129, 0.4);" onclick="saveFpsEstimatorLut()">Save 5 Points to Blaster</button>
+            <button class="preset-btn" style="padding: 0.3rem 0.65rem; font-size: 0.75rem; border-color: rgba(239, 68, 68, 0.3);" onclick="resetFpsEstimatorDefaults()">Defaults</button>
+          </div>
+        </div>
+
+        <div style="padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
+          <div style="margin-bottom: 1rem; line-height: 1.45;">
+            Estimates muzzle velocity (FPS) in real time from 1000 Hz DShot flywheel telemetry (&Delta;RPM energy drop &amp; peak RPM) using a 5-point piecewise lookup table stored in EEPROM.
+          </div>
+
+          <!-- Live Shot Telemetry Stat Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; text-align: center;">
+              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase;">Last Shot FPS</div>
+              <div id="fps_val_last" style="font-size: 1.6rem; font-weight: 800; color: #10b981; font-family: monospace;">--</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; text-align: center;">
+              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase;">Session Avg FPS</div>
+              <div id="fps_val_avg" style="font-size: 1.4rem; font-weight: 700; color: #38bdf8; font-family: monospace;">--</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; text-align: center;">
+              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase;">Std Dev (&sigma;)</div>
+              <div id="fps_val_stddev" style="font-size: 1.4rem; font-weight: 700; color: #a78bfa; font-family: monospace;">--</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; text-align: center;">
+              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase;">Min / Max FPS</div>
+              <div id="fps_val_minmax" style="font-size: 1.1rem; font-weight: 700; color: #f59e0b; font-family: monospace; margin-top: 0.25rem;">-- / --</div>
+            </div>
+          </div>
+
+          <!-- 5-Point Calibration Table & Wizard Launch -->
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+              <span style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">5-Point FPS Calibration Curve</span>
+              <button class="action-btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); font-size: 0.75rem; padding: 0.3rem 0.85rem; width: auto; margin: 0; border-color: rgba(139, 92, 246, 0.4);" onclick="startFpsCalibrationWizard()">Launch 5-Point Calibration Wizard</button>
+            </div>
+
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.05em;">
+                    <th style="padding: 0.4rem 0.5rem;">Point</th>
+                    <th style="padding: 0.4rem 0.5rem;">Target RPM</th>
+                    <th style="padding: 0.4rem 0.5rem;">Calibrated FPS</th>
+                  </tr>
+                </thead>
+                <tbody id="fps_lut_table_body">
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.35rem 0.5rem; font-weight: 700; color: #10b981;">Pt 0</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt0_rpm" value="10000" style="width: 90px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> RPM</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt0_fps" value="65" style="width: 80px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> FPS</td></tr>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.35rem 0.5rem; font-weight: 700; color: #10b981;">Pt 1</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt1_rpm" value="16000" style="width: 90px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> RPM</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt1_fps" value="105" style="width: 80px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> FPS</td></tr>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.35rem 0.5rem; font-weight: 700; color: #10b981;">Pt 2</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt2_rpm" value="22000" style="width: 90px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> RPM</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt2_fps" value="138" style="width: 80px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> FPS</td></tr>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.35rem 0.5rem; font-weight: 700; color: #10b981;">Pt 3</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt3_rpm" value="28000" style="width: 90px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> RPM</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt3_fps" value="162" style="width: 80px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> FPS</td></tr>
+                  <tr><td style="padding: 0.35rem 0.5rem; font-weight: 700; color: #10b981;">Pt 4</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt4_rpm" value="32000" style="width: 90px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> RPM</td><td style="padding: 0.35rem 0.5rem;"><input type="number" id="fps_pt4_fps" value="175" style="width: 80px; padding: 0.25rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px;"> FPS</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
       
       </div> <!-- End tab_content_dashboard -->
 
@@ -1886,6 +2018,13 @@
             <button class="preset-btn" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" onclick="restoreFactoryDefaults()">
               Restore Defaults
             </button>
+            <button class="preset-btn" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);" onclick="exportFullBlasterProfile()">
+              Export Profile JSON
+            </button>
+            <button class="preset-btn" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" onclick="document.getElementById('profile_import_file_input').click()">
+              Import Profile JSON
+            </button>
+            <input type="file" id="profile_import_file_input" accept=".json" style="display: none;" onchange="importFullBlasterProfile(event)">
             <button class="preset-btn" style="background: rgba(139, 92, 246, 0.15); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.3);" onclick="readBlasterSettings()">
               Read from Blaster
             </button>
@@ -2019,6 +2158,14 @@
                   <span style="font-weight: 600;"><span class="settings-row-num">08c.</span> Boot Motor Spin Pretest</span>
                 </div>
                 <div class="settings-row-desc">Sends a brief DShot 48 pulse on boot to gently spin both flywheels, confirming ESC communication, motor wiring, and initial telemetry.</div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label" style="flex-direction: row; justify-content: flex-start; gap: 0.5rem; align-items: center; cursor: pointer;">
+                  <input type="checkbox" id="set_lifetime_counter" onchange="syncBlasterField('lifetime_counter', this.checked, 'checkbox')" style="width: 16px; height: 16px; accent-color: var(--accent-violet);">
+                  <span style="font-weight: 600;"><span class="settings-row-num">08d.</span> Wear-Levelled Lifetime Odometer</span>
+                </div>
+                <div class="settings-row-desc">Tracks cumulative lifetime darts fired across reboots. Uses a 5-second idle lazy-commit buffer to eliminate Flash wear. Disabling pauses counting while preserving your stored lifetime total.</div>
               </div>
 
               <div class="settings-row">
@@ -2237,6 +2384,31 @@
                     <option value="0" selected>Count Down (Remaining Ammo)</option>
                     <option value="1">Count Up (Shots Fired)</option>
                   </select>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <span><span class="settings-row-num">17c.</span> Double-Click Ammo Reset</span>
+                  <span id="val_set_double_click_reload">Enabled</span>
+                </div>
+                <div class="settings-row-desc">Double-click the Mode button to instantly reset the ammo counter to full magazine capacity (or 0 in count-up mode). When disabled, the mode button switches fire/RPM modes immediately with zero delay.</div>
+                <div class="settings-row-control">
+                  <select id="set_double_click_reload" onchange="syncBlasterField('double_click_reload', this.value, 'select')" style="width: 100%; padding: 0.45rem 0.5rem; background: #121214; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 0.85rem;">
+                    <option value="1" selected>Enabled</option>
+                    <option value="0">Disabled (Instant Mode Switch)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-row" id="row_double_click_reload_ms">
+                <div class="settings-row-label">
+                  <span><span class="settings-row-num">17d.</span> Double-Click Window</span>
+                  <span><span id="val_set_double_click_reload_ms">300</span> ms</span>
+                </div>
+                <div class="settings-row-desc">Maximum time allowed between the first release and second press to recognize a double-click reload gesture (150-1000 ms).</div>
+                <div class="settings-row-control">
+                  <input type="range" id="set_double_click_reload_ms" min="150" max="1000" step="25" value="300" oninput="syncBlasterField('double_click_reload_ms', this.value, 'range')">
                 </div>
               </div>
 
@@ -3016,6 +3188,20 @@
                   </div>
                 </div>
 
+                <!-- Simulated Muzzle Velocity (FPS) Section -->
+                <div style="background: rgba(0,0,0,0.25); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 0.35rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.35rem;">
+                    <label style="color: var(--text-secondary); font-size: 0.75rem;">Simulated Muzzle Velocity: <strong id="hud_sim_fps_val" style="color: #10b981;">165</strong> <span style="font-size: 0.7rem; color: var(--text-secondary);">FPS</span></label>
+                    <div style="display: flex; gap: 0.25rem; align-items: center;">
+                      <button type="button" class="preset-btn" style="padding: 0.1rem 0.35rem; font-size: 0.65rem;" onclick="setHudSimFps(90)">90 (Stock)</button>
+                      <button type="button" class="preset-btn" style="padding: 0.1rem 0.35rem; font-size: 0.65rem;" onclick="setHudSimFps(130)">130 (HVZ)</button>
+                      <button type="button" class="preset-btn" style="padding: 0.1rem 0.35rem; font-size: 0.65rem;" onclick="setHudSimFps(165)">165 (Superstock)</button>
+                      <button type="button" class="preset-btn" style="padding: 0.1rem 0.35rem; font-size: 0.65rem;" onclick="setHudSimFps(200)">200 (Comp)</button>
+                    </div>
+                  </div>
+                  <input type="range" id="hud_sim_fps" min="0" max="300" step="1" value="165" oninput="onHudSimFpsChange(this.value)" style="width: 100%;">
+                </div>
+
                 <!-- Simulated Firing Mode & Status Warnings Sections -->
                 <div style="display: grid; grid-template-columns: 1.1fr 1.2fr; gap: 0.75rem;">
                   <!-- Firing Mode Section -->
@@ -3088,6 +3274,7 @@
                     <option value="4">Status / Warning Badges</option>
                     <option value="5">Custom Sprite / Logo</option>
                     <option value="6">Divider / Line / Frame</option>
+                    <option value="8">Estimated FPS / Muzzle Velocity</option>
                   </select>
                 </div>
 
@@ -3629,7 +3816,7 @@
         cardsMount.appendChild(launchCurveCard);
       }
 
-      ['analyzer_card', 'ff_curve_card'].forEach((cardId) => {
+      ['analyzer_card', 'ff_curve_card', 'fps_estimator_card'].forEach((cardId) => {
         const card = document.getElementById(cardId);
         if (cardsMount && card && card.parentElement !== cardsMount) {
           card.style.marginTop = '0';
@@ -4148,6 +4335,29 @@ function updateWriteButtonText() {
     }
     window.exportFaultLog = exportFaultLog;
 
+    function exportFaultLogCsv() {
+      const logs = window.blasterFaultLog || [];
+      if (logs.length === 0) {
+        alert("No fault logs available to export.");
+        return;
+      }
+      let csv = "Index,WallClockDate,UptimeSec,ErrorCodeHex,FaultName,VoltageV,Motor1Rpm,Motor2Rpm,Throttle1,Throttle2,TargetRpm,FlagsHex\n";
+      logs.forEach(l => {
+        const dateStr = l.epoch ? new Date(l.epoch * 1000).toISOString() : `Uptime ${l.uptime}s`;
+        const codeHex = l.codeHex || ('0x' + l.code.toString(16));
+        const flagsHex = '0x' + (l.flags || 0).toString(16).padStart(2, '0');
+        csv += `${l.idx + 1},"${dateStr}",${l.uptime},${codeHex},"${l.name || 'UNKNOWN'}",${l.vbat},${l.rpm1},${l.rpm2},${l.thr1},${l.thr2},${l.target},${flagsHex}\n`;
+      });
+      const dataStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", `blaster_fault_log_${new Date().toISOString().slice(0,19).replace(/[:T]/g, "_")}.csv`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+    }
+    window.exportFaultLogCsv = exportFaultLogCsv;
+
     function setFaultFilter(filter) {
       window.activeFaultFilter = filter;
       ['all', 'batt', 'telem', 'stall', 'stop'].forEach(f => {
@@ -4246,12 +4456,14 @@ function updateWriteButtonText() {
         tr.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)';
 
         const vbatColor = (entry.vbat > 0 && entry.vbat < 12.0) ? '#ef4444' : 'var(--text-primary)';
+        const dateStr = entry.epoch ? new Date(entry.epoch * 1000).toLocaleString() : formatUptime(entry.uptime);
+        const subtext = entry.epoch ? `Uptime: ${formatUptime(entry.uptime)} (${entry.uptime}s)` : `${entry.uptime}s uptime`;
 
         tr.innerHTML = `
           <td style="padding: 0.65rem 0.75rem; font-weight: 600; color: var(--text-muted);">${entry.idx + 1}</td>
           <td style="padding: 0.65rem 0.75rem; white-space: nowrap;">
-            <div style="font-weight: 600; color: var(--text-primary);">${formatUptime(entry.uptime)}</div>
-            <div style="font-size: 0.65rem; color: var(--text-muted);">${entry.uptime}s</div>
+            <div style="font-weight: 600; color: var(--text-primary);">${dateStr}</div>
+            <div style="font-size: 0.65rem; color: var(--text-muted);">${subtext}</div>
           </td>
           <td style="padding: 0.65rem 0.75rem;">
             <span class="badge ${def.badgeClass}" style="margin-bottom: 0.2rem;">${entry.codeHex || ('0x' + entry.code.toString(16))}</span>
@@ -4336,6 +4548,13 @@ function updateWriteButtonText() {
       if (key === 'count_up') {
         const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
         return enabled ? 'Count Up (Shots Fired)' : 'Count Down (Remaining Ammo)';
+      }
+      if (key === 'double_click_reload') {
+        const enabled = val === true || val === 'true' || val === '1' || Number(val) !== 0;
+        return enabled ? 'Enabled' : 'Disabled (Instant Mode Switch)';
+      }
+      if (key === 'double_click_reload_ms') {
+        return `${Math.round(Number(val))} ms`;
       }
       if (key === 'burst_count' || key === 'mag_capacity') {
         return Math.round(Number(val));
@@ -4920,6 +5139,8 @@ function updateWriteButtonText() {
         burst_count: 3,
         mag_capacity: 17,
         count_up: 0,
+        double_click_reload: 1,
+        double_click_reload_ms: 300,
         sol_on_3s: 35, sol_off_3s: 35,
         sol_on_4s: 30, sol_off_4s: 30,
         sol_on_5s: 25, sol_off_5s: 25,
@@ -4982,6 +5203,68 @@ function updateWriteButtonText() {
       alert("Factory defaults restored successfully!");
     }
 
+    function exportFullBlasterProfile() {
+      const settings = window.blasterSettings || {};
+      const profile = {
+        format: "ByteBlasterProfile_v1",
+        timestamp: new Date().toISOString(),
+        firmware_version: settings.firmware_version || "1.0",
+        pcb_version: settings.pcb_version || "1.0",
+        settings: { ...settings },
+        pid: window.blasterPid || null,
+        ff: window.blasterFf || null,
+        hud_layout: window.blasterHudWidgets || null
+      };
+      const jsonStr = JSON.stringify(profile, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `byte_blaster_profile_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "_")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      if (typeof logToConsole === 'function') logToConsole("Full Blaster Profile exported to JSON successfully.");
+    }
+    window.exportFullBlasterProfile = exportFullBlasterProfile;
+
+    async function importFullBlasterProfile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (!data.format || !data.format.startsWith("ByteBlasterProfile")) {
+          alert("Invalid profile file format. Must be a valid Byte Blaster Profile JSON.");
+          return;
+        }
+        if (data.settings) {
+          if (typeof logToConsole === 'function') logToConsole("Importing settings from profile JSON...");
+          const s = data.settings;
+          for (const [k, v] of Object.entries(s)) {
+            if (['firmware_version', 'pcb_version'].includes(k)) continue;
+            if (typeof updateBlasterSettingControl === 'function') updateBlasterSettingControl(k, v);
+            if (port && port.writable) {
+              await sendSerialCommand(`settings set ${k} ${v}`);
+              await new Promise(r => setTimeout(r, 40));
+            }
+          }
+          if (port && port.writable) {
+            await sendSerialCommand("settings show");
+            await new Promise(r => setTimeout(r, 100));
+          }
+        }
+        if (typeof logToConsole === 'function') logToConsole("Profile JSON imported successfully!");
+        alert("Profile imported successfully!");
+      } catch (err) {
+        alert(`Failed to import profile: ${err.message}`);
+      } finally {
+        e.target.value = '';
+      }
+    }
+    window.importFullBlasterProfile = importFullBlasterProfile;
+
     async function readBlasterSettings() {
       if (!port || !port.writable) {
         logToConsole("Cannot read: serial disconnected. Connect your blaster first.", true);
@@ -5009,7 +5292,7 @@ function updateWriteButtonText() {
       
       const allKeys = [
         'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'led_enabled', 'brightness', 'temp_unit', 'cells',
-        'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up',
+        'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
         'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'startup_rpm',
@@ -5085,6 +5368,15 @@ function updateWriteButtonText() {
         }
         if (key === 'dart_detect') {
           updateDartDetectState(val);
+        }
+        if (key === 'lifetime_shots') {
+          window.blasterLifetimeShots = val;
+          const odoEl = document.getElementById('diag_stat_lifetime_shots');
+          if (odoEl) odoEl.textContent = Number(val).toLocaleString();
+        }
+        if (key === 'lifetime_counter') {
+          const subEl = document.getElementById('diag_stat_lifetime_sub');
+          if (subEl) subEl.textContent = (val !== 0) ? 'Total Darts Fired' : 'Total Darts Fired (Paused)';
         }
 
         // Clean up dirty state for this key since it was synced from board
@@ -6569,15 +6861,20 @@ function updateWriteButtonText() {
       }
     }
 
-    async function connectSerial() {
+    async function connectSerial(existingPort = null) {
       if (!("serial" in navigator)) {
         logToConsole("Web Serial API not supported in this browser.", true);
         return;
       }
       
       try {
-        logToConsole("Requesting Serial Port...");
-        port = await navigator.serial.requestPort();
+        if (existingPort) {
+          logToConsole("Auto-connecting to previously paired blaster...");
+          port = existingPort;
+        } else {
+          logToConsole("Requesting Serial Port...");
+          port = await navigator.serial.requestPort();
+        }
         logToConsole("Opening port at 115200 baud...");
         await port.open({ baudRate: 115200 });
         
@@ -6590,6 +6887,9 @@ function updateWriteButtonText() {
         // Query static state on connect. Streaming is opt-in because live USB
         // writes can disturb launch timing on the RP2040.
         setTimeout(async () => {
+          const epochSec = Math.floor(Date.now() / 1000);
+          await sendSerialCommand(`time set ${epochSec}`);
+          await new Promise(r => setTimeout(r, 80));
           await sendSerialCommand("settings show");
           await new Promise(r => setTimeout(r, 80));
           await sendSerialCommand("pid show");
@@ -6610,6 +6910,25 @@ function updateWriteButtonText() {
         port = null;
         updateSerialStatus('disconnected');
       }
+    }
+
+    // WebSerial Auto-reconnect setup for previously paired devices
+    if (typeof navigator !== 'undefined' && 'serial' in navigator) {
+      navigator.serial.addEventListener('connect', async (event) => {
+        if (!port && event.target) {
+          logToConsole("Authorized USB device detected. Auto-connecting...");
+          await connectSerial(event.target);
+        }
+      });
+      window.addEventListener('DOMContentLoaded', async () => {
+        try {
+          const ports = await navigator.serial.getPorts();
+          if (ports.length > 0 && !port) {
+            logToConsole("Found previously paired blaster. Auto-connecting...");
+            await connectSerial(ports[0]);
+          }
+        } catch (err) { /* silent ignore */ }
+      });
     }
 
     async function disconnectSerial() {
@@ -6877,23 +7196,25 @@ function updateWriteButtonText() {
       }
 
       // Match incoming fault log entry:
-      // fault:idx=0,uptime=42,code=0x01,name=ERR_BATT_SAG_EMERGENCY,vbat=10.45,rpm1=18240,rpm2=17950,thr1=1500,thr2=1500,target=30000,flags=0x00
-      const faultEntryMatch = line.match(/^fault:(?:idx=)?(\d+),uptime=(\d+),code=0x([0-9a-fA-F]+),name=([A-Za-z0-9_]+),(?:vbat|v)=([\d\.\-]+),rpm1=(\d+),rpm2=(\d+),(?:thr1|throt1)=(\d+),(?:thr2|throt2)=(\d+),target=(\d+),flags=0x([0-9a-fA-F]+)/i);
+      // fault:idx=0,uptime=42,epoch=1741583960,code=0x01,name=ERR_BATT_SAG_EMERGENCY,vbat=10.45,rpm1=18240,rpm2=17950,thr1=1500,thr2=1500,target=30000,flags=0x00
+      const faultEntryMatch = line.match(/^fault:(?:idx=)?(\d+),uptime=(\d+),(?:epoch=(\d+),)?code=0x([0-9a-fA-F]+),name=([A-Za-z0-9_]+),(?:vbat|v)=([\d\.\-]+),rpm1=(\d+),rpm2=(\d+),(?:thr1|throt1)=(\d+),(?:thr2|throt2)=(\d+),target=(\d+),flags=0x([0-9a-fA-F]+)/i);
       if (faultEntryMatch) {
         if (!window.blasterFaultLogPending) window.blasterFaultLogPending = [];
+        const epochVal = faultEntryMatch[3] ? parseInt(faultEntryMatch[3], 10) : null;
         const entry = {
           idx: parseInt(faultEntryMatch[1], 10),
           uptime: parseInt(faultEntryMatch[2], 10),
-          code: parseInt(faultEntryMatch[3], 16),
-          codeHex: '0x' + faultEntryMatch[3].toUpperCase().padStart(2, '0'),
-          name: faultEntryMatch[4],
-          vbat: parseFloat(faultEntryMatch[5]),
-          rpm1: parseInt(faultEntryMatch[6], 10),
-          rpm2: parseInt(faultEntryMatch[7], 10),
-          thr1: parseInt(faultEntryMatch[8], 10),
-          thr2: parseInt(faultEntryMatch[9], 10),
-          target: parseInt(faultEntryMatch[10], 10),
-          flags: parseInt(faultEntryMatch[11], 16)
+          epoch: epochVal,
+          code: parseInt(faultEntryMatch[4], 16),
+          codeHex: '0x' + faultEntryMatch[4].toUpperCase().padStart(2, '0'),
+          name: faultEntryMatch[5],
+          vbat: parseFloat(faultEntryMatch[6]),
+          rpm1: parseInt(faultEntryMatch[7], 10),
+          rpm2: parseInt(faultEntryMatch[8], 10),
+          thr1: parseInt(faultEntryMatch[9], 10),
+          thr2: parseInt(faultEntryMatch[10], 10),
+          target: parseInt(faultEntryMatch[11], 10),
+          flags: parseInt(faultEntryMatch[12], 16)
         };
         window.blasterFaultLogPending.push(entry);
         return;
@@ -8327,6 +8648,100 @@ function updateWriteButtonText() {
       }
     }
 
+    // FPS ESTIMATOR FRONTEND LOGIC
+    let fpsSessionData = {
+      shots: [],
+      sum: 0,
+      min: null,
+      max: null,
+      lastFps: 0
+    };
+
+    function recordFpsShot(fpsVal) {
+      if (!fpsVal || fpsVal <= 0 || fpsVal > 350) return;
+      fpsSessionData.lastFps = fpsVal;
+      fpsSessionData.shots.push(fpsVal);
+      fpsSessionData.sum += fpsVal;
+      if (fpsSessionData.min === null || fpsVal < fpsSessionData.min) fpsSessionData.min = fpsVal;
+      if (fpsSessionData.max === null || fpsVal > fpsSessionData.max) fpsSessionData.max = fpsVal;
+
+      const count = fpsSessionData.shots.length;
+      const avg = fpsSessionData.sum / count;
+      let varSum = 0;
+      for (let i = 0; i < count; i++) {
+        varSum += Math.pow(fpsSessionData.shots[i] - avg, 2);
+      }
+      const stdDev = count > 1 ? Math.sqrt(varSum / (count - 1)) : 0;
+
+      const elLast = document.getElementById('fps_val_last');
+      const elAvg = document.getElementById('fps_val_avg');
+      const elStd = document.getElementById('fps_val_stddev');
+      const elMinMax = document.getElementById('fps_val_minmax');
+
+      if (elLast) elLast.textContent = `${fpsVal} FPS`;
+      if (elAvg) elAvg.textContent = `${avg.toFixed(1)} FPS`;
+      if (elStd) elStd.textContent = `±${stdDev.toFixed(1)}`;
+      if (elMinMax) elMinMax.textContent = `${fpsSessionData.min} / ${fpsSessionData.max}`;
+    }
+
+    async function fetchFpsEstimatorLut() {
+      if (!port || !port.writable) {
+        alert("Please connect to the blaster via Web Serial first.");
+        return;
+      }
+      logToConsole("Fetching 5-Point FPS Calibration Curve (fps show)...");
+      await sendSerialCommand("fps show");
+    }
+
+    async function saveFpsEstimatorLut() {
+      if (!port || !port.writable) {
+        alert("Please connect to the blaster via Web Serial first.");
+        return;
+      }
+      logToConsole("Saving 5-Point FPS Calibration Curve to EEPROM...");
+      for (let i = 0; i < 5; i++) {
+        const rpmInput = document.getElementById(`fps_pt${i}_rpm`);
+        const fpsInput = document.getElementById(`fps_pt${i}_fps`);
+        if (rpmInput && fpsInput) {
+          const rpm = parseInt(rpmInput.value) || 0;
+          const fps = parseInt(fpsInput.value) || 0;
+          await sendSerialCommand(`fps set ${i} ${rpm} ${fps}`);
+          await new Promise(r => setTimeout(r, 60));
+        }
+      }
+      logToConsole("FPS Calibration Table successfully written to blaster!");
+    }
+
+    async function resetFpsEstimatorDefaults() {
+      if (!port || !port.writable) {
+        alert("Please connect to the blaster via Web Serial first.");
+        return;
+      }
+      logToConsole("Resetting FPS Calibration Table to factory defaults...");
+      await sendSerialCommand("fps reset");
+      const defs = [
+        { rpm: 10000, fps: 65 },
+        { rpm: 16000, fps: 105 },
+        { rpm: 22000, fps: 138 },
+        { rpm: 28000, fps: 162 },
+        { rpm: 32000, fps: 175 }
+      ];
+      for (let i = 0; i < 5; i++) {
+        const rEl = document.getElementById(`fps_pt${i}_rpm`);
+        const fEl = document.getElementById(`fps_pt${i}_fps`);
+        if (rEl) rEl.value = defs[i].rpm;
+        if (fEl) fEl.value = defs[i].fps;
+      }
+    }
+
+    async function startFpsCalibrationWizard() {
+      if (!port || !port.writable) {
+        alert("Please connect to the blaster via Web Serial first.");
+        return;
+      }
+      alert("FPS Calibration Wizard:\n\n1. Set your target RPM for each of the 5 points in the table.\n2. Fire a dart through your chronograph at each speed.\n3. Enter the measured chronograph FPS into each table point.\n4. Click 'Save 5 Points to Blaster' to commit your custom ballistics curve to EEPROM.");
+    }
+
     async function fetchFeedforwardCalibration() {
       if (!port || !port.writable) {
         alert("Please connect to the blaster via Web Serial first.");
@@ -8447,6 +8862,7 @@ function updateWriteButtonText() {
       measuredSweepM2 = [];
       updateFfCurveChart();
 
+      let rev0Sent = false;
       try {
         statusEl.textContent = "Starting fast telemetry stream...";
         await sendSerialCommand("stream fast");
@@ -8519,7 +8935,6 @@ function updateWriteButtonText() {
         }
 
         statusEl.textContent = "Sweep finished. Ramping down with decel glide...";
-        let rev0Sent = false;
         await sendSerialCommand("rev 0");
         rev0Sent = true;
         await new Promise(r => setTimeout(r, 1600));
@@ -8539,9 +8954,7 @@ function updateWriteButtonText() {
         statusEl.textContent = "Sweep Error.";
         return { status: 'failed' };
       } finally {
-        if (!rev0Sent) {
-          await sendSerialCommand("rev 0");
-        }
+        if (!rev0Sent) await sendSerialCommand("rev 0");
         isFfSweepActive = false;
         btnRun.disabled = false;
         btnCancel.style.display = 'none';
@@ -8909,8 +9322,6 @@ function updateWriteButtonText() {
       guidedElement('guided_cancel').disabled = !guidedTuning.busy || guidedTuning.disconnected;
       guidedElement('guided_baseline').disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_passes').disabled = guidedTuning.busy || guidedTuning.pending;
-      const ffModeEl = guidedElement('guided_ff_mode');
-      if (ffModeEl) ffModeEl.disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_export').disabled = !guidedTuning.samples.length && !guidedTuning.results.length;
       const locked = guidedTuning.busy || guidedTuning.pending;
       document.querySelectorAll('#pid_autotune_panel input, #pid_autotune_panel select, #pid_autotune_panel button').forEach(el => {
@@ -8964,22 +9375,56 @@ function updateWriteButtonText() {
     }
     function captureGuidedTelemetry(point) {
       if (!guidedTuning.busy || !Number.isFinite(point.rpm1) || !Number.isFinite(point.rpm2)) return;
-      const now = point.timestamp;
-      if (guidedTuning.origin === null) guidedTuning.origin = now;
-      guidedTuning.samples.push({ x:(now-guidedTuning.origin)/1000, target:point.target,
+      const bMs = Number.isFinite(point.boardMs) ? point.boardMs : null;
+      let xVal;
+      if (bMs !== null) {
+        if (guidedTuning.boardOrigin === null || guidedTuning.boardOrigin === undefined) {
+          guidedTuning.boardOrigin = bMs;
+          guidedTuning.lastBoardMs = bMs;
+          guidedTuning.boardMsOffset = 0;
+        }
+        if (bMs < guidedTuning.lastBoardMs && (guidedTuning.lastBoardMs - bMs) > 0x7FFFFFFF) {
+          guidedTuning.boardMsOffset += 0x100000000;
+        }
+        guidedTuning.lastBoardMs = bMs;
+        xVal = (bMs + guidedTuning.boardMsOffset - guidedTuning.boardOrigin) / 1000.0;
+      } else {
+        const now = point.timestamp;
+        if (guidedTuning.origin === null) guidedTuning.origin = now;
+        xVal = (now - guidedTuning.origin) / 1000.0;
+      }
+      guidedTuning.samples.push({ x:xVal, target:point.target,
         rpm1:point.rpm1, rpm2:point.rpm2, throttle1:point.throttle1, throttle2:point.throttle2,
         voltage:point.voltage, boardMs:point.boardMs, stage:guidedTuning.status?.stage });
-      // Bound memory while retaining the whole session, rather than discarding earlier stages.
       if (guidedTuning.samples.length > 20000) guidedTuning.samples = guidedTuning.samples.filter((_,i) => i % 2 === 0);
-      if (now-guidedTuning.lastDraw >= 100) { guidedTuning.lastDraw = now; drawGuidedChart(); }
+      const nowTs = point.timestamp || Date.now();
+      if (nowTs - guidedTuning.lastDraw >= 100) { guidedTuning.lastDraw = nowTs; drawGuidedChart(); }
       guidedButtons();
+    }
+    function formatFailReason(flags) {
+      if (!flags) return 'FAIL';
+      const reasons = [];
+      if (flags & 1) reasons.push('Samples < 20');
+      if (flags & 2) reasons.push('Bad samples');
+      if (flags & 4) reasons.push('Stale telemetry');
+      if (flags & 8) reasons.push('Steady error');
+      if (flags & 16) reasons.push('FF accuracy');
+      if (flags & 32) reasons.push('Rise time > 300ms');
+      if (flags & 64) reasons.push('Settle time > 600ms');
+      if (flags & 128) reasons.push('Overshoot > 5%');
+      if (flags & 256) reasons.push('Score regressed');
+      if (flags & 512) reasons.push('Throttle limit');
+      if (flags & 1024) reasons.push('Voltage range');
+      if (flags & 2048) reasons.push('Actuator saturated');
+      return 'FAIL (' + (reasons.join(', ') || 'Unknown') + ')';
     }
     function renderGuidedResult(result) {
       if (!guidedTuning.status || result.session !== guidedTuning.status.session) return;
       guidedTuning.results.push(result);
+      const startLabel = result.startRpm ? `${result.startRpm.toLocaleString()} RPM` : 'COLD';
       const row = document.createElement('tr');
       const cells = [guidedLabels[guidedStages.indexOf(result.stage)] || result.stage, result.motor, result.target,
-        result.pass, result.rpm, `${result.errorPct}%`, `${result.overshootPct}%`, result.valid ? 'PASS' : 'FAIL'];
+        startLabel, result.pass, result.rpm, `${result.errorPct}%`, `${result.overshootPct}%`, result.riseMs ?? '—', result.settleMs ?? '—', result.limitedPct == null ? '—' : `${result.limitedPct}%`, result.valid ? 'PASS' : formatFailReason(result.failFlags)];
       for (const value of cells) { const td = document.createElement('td'); td.textContent = String(value); row.appendChild(td); }
       guidedElement('guided_results').appendChild(row); guidedButtons();
     }
@@ -8995,11 +9440,18 @@ function updateWriteButtonText() {
       const old = guidedTuning.status;
       if (old && event.session !== old.session) {
         guidedTuning.samples = []; guidedTuning.results = []; guidedTuning.markers = []; guidedTuning.origin = null;
+        guidedTuning.boardOrigin = null; guidedTuning.lastBoardMs = null; guidedTuning.boardMsOffset = 0;
         guidedElement('guided_results').textContent = '';
       }
       guidedTuning.status = event; guidedTuning.lastSeen = Date.now(); guidedTuning.disconnected = false;
-      guidedTuning.busy = ['running','gliding'].includes(event.state);
-      if (guidedTuning.waiter) { const waiter=guidedTuning.waiter; guidedTuning.waiter=null; clearTimeout(waiter.timer); waiter.resolve(event); }
+      const expectedResults = event.totalResults ? (event.totalResults - (event.lostResults || 0)) : 0;
+      const resultsPending = ['saved','complete'].includes(event.state) && expectedResults > 0 && guidedTuning.results.length < expectedResults;
+      guidedTuning.busy = ['running','gliding'].includes(event.state) || resultsPending;
+      if (guidedTuning.waiter) {
+        if (!guidedTuning.waiter.filterFn || guidedTuning.waiter.filterFn(event)) {
+          const waiter=guidedTuning.waiter; guidedTuning.waiter=null; clearTimeout(waiter.timer); waiter.resolve(event);
+        }
+      }
       const index=guidedStages.indexOf(event.stage);
       if (guidedTuning.busy && (!old || old.stage !== event.stage || old.session !== event.session)) {
         guidedTuning.markers.push({ x:guidedTuning.origin === null ? 0 : (Date.now()-guidedTuning.origin)/1000, label:guidedLabels[index] || event.stage });
@@ -9009,19 +9461,21 @@ function updateWriteButtonText() {
         el.style.fontWeight = i === index ? '700' : '400';
       });
       const progress=guidedElement('guided_progress'); progress.max=event.total || 1; progress.value=event.done || 0;
-      const reasons = { measurement_failed:'The measurement did not pass validation.', telemetry_timeout:'Motor telemetry was lost.',
+      const reasons = { measurement_failed:'The measurement did not pass validation.',
+        ff_recalibrating:'Existing FF failed accuracy check. Automatically measuring fresh feedforward curve...',
+        save_failed:'EEPROM commit failed. Prior tune restored.', telemetry_timeout:'Motor telemetry was lost.',
         telemetry_timeout_m1:'Motor 1 telemetry was lost.', telemetry_timeout_m2:'Motor 2 telemetry was lost.', telemetry_timeout_both:'Both motor telemetries were lost.',
         motor_stalled:'A motor did not spin as expected.', low_voltage:'Battery voltage was too low.', fault_or_timeout:'A fault, transition timeout, or configuration change stopped the run.' };
       if (event.state === 'running') guidedMessage(`${guidedLabels[index] || 'PID measurement'} · ${event.target.toLocaleString()} RPM · ${event.phase === 'PREP' ? 'Gliding to launch baseline' : event.phase === 'HOLD' ? 'Measuring steady speed' : 'Production launch / settling'} · Pass ${event.pass || 1} · ${event.done}/${event.total} paired measurements`);
       else if (event.state === 'gliding') guidedMessage(`${reasons[event.reason] || (event.reason === 'cancelled' ? 'Cancellation requested.' : 'Measurements complete.')} Gliding down; waiting for both motors to stop.`);
-      else if (event.state === 'saved') guidedMessage('Both stages passed. The validated feedforward and PID profile is saved on the blaster.');
+      else if (event.state === 'saved') guidedMessage(resultsPending ? `Profile saved; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : 'Both stages passed. The validated feedforward and PID profile is saved on the blaster.');
       else if (event.state === 'cancelled') guidedMessage('Cancelled. Glide-down finished and the prior tune was restored.');
       else if (event.state === 'failed') guidedMessage(`${reasons[event.reason] || 'Tuning failed.'} The prior tune was restored. Review the results and blaster setup before retrying.`);
-      else if (event.state === 'complete') guidedMessage('Measurement complete. Suggestions are available; no automatic save was made.');
+      else if (event.state === 'complete') guidedMessage(resultsPending ? `Measurement complete; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : 'Measurement complete. Suggestions are available; no automatic save was made.');
       else guidedMessage(event.algo === 1 ? 'Ready. Tune Blaster measures and validates FF, then tunes and validates PID.' : 'Select RPM PID (controller algorithm 1) in settings before tuning.');
       const outcome = guidedElement('guided_outcome');
       if (outcome) {
-        if (event.state === 'saved') outcome.textContent = 'FF passed · PID passed · Profile saved on the blaster.';
+        if (event.state === 'saved') outcome.textContent = resultsPending ? 'Profile saved · Receiving remaining results...' : 'FF passed · PID passed · Profile saved on the blaster.';
         else if (event.state === 'failed') outcome.textContent = 'Run failed · Prior profile restored. Inspect the measurements for the failed stage.';
         else if (event.state === 'cancelled') outcome.textContent = 'Run cancelled · Prior profile restored after glide-down.';
         else if (event.state === 'complete') outcome.textContent = 'Diagnostic measurement complete · Suggestions only; no automatic save.';
@@ -9030,11 +9484,11 @@ function updateWriteButtonText() {
       guidedButtons(); if (!guidedTuning.busy) drawGuidedChart();
       return true;
     }
-    function requestGuidedStatus() {
+    function requestGuidedStatus(filterFn) {
       if (guidedTuning.waiter) return Promise.reject(new Error('A status request is already pending.'));
       return new Promise((resolve,reject) => {
         const timer=setTimeout(() => { guidedTuning.waiter=null; reject(new Error('No tuning status received. Flash the updated firmware and reconnect before testing.')); },3000);
-        guidedTuning.waiter={ resolve, timer };
+        guidedTuning.waiter={ resolve, timer, filterFn };
         sendSerialCommand('autotune status');
       });
     }
@@ -9050,16 +9504,7 @@ function updateWriteButtonText() {
       guidedTuning.pending=true; guidedButtons(); let issued=false;
       try {
         const previous=await requestGuidedStatus();
-        if (['running'].includes(previous.state)) { await sendSerialCommand('stream fast'); return; }
-        if (previous.state === 'gliding') {
-          guidedMessage('Flywheels are settling. Waiting for idle before tuning...');
-          const settleStart = Date.now();
-          while (Date.now() - settleStart < 8000) {
-            const st = await requestGuidedStatus().catch(() => null);
-            if (st && st.state === 'idle') break;
-            await new Promise(r => setTimeout(r, 350));
-          }
-        }
+        if (['running','gliding'].includes(previous.state)) { await sendSerialCommand('stream fast'); return; }
         if (previous.algo !== 1) throw new Error('Select RPM PID (controller algorithm 1) in settings before tuning.');
         if (typeof dirtySettings !== 'undefined' && [...dirtySettings].some(key =>
           ['step_up','launch_trajectory','ctrl_algo','startup_rpm','spinup_skew_limit','cells','motor_kv','always_on_rpm','glide_rpm_per_s','glide_step_down_x10'].includes(key) || /^pid[12]_/.test(key))) {
@@ -9067,30 +9512,11 @@ function updateWriteButtonText() {
         }
         const passes=Number(guidedElement('guided_passes').value), baseline=guidedElement('guided_baseline').value;
         if (!Number.isInteger(passes) || passes<1 || passes>6 || !['cold','idle'].includes(baseline)) throw new Error('Choose a valid pass count and launch baseline.');
-        const ffMode = guidedElement('guided_ff_mode')?.value || 'auto';
-        const sweepFn = typeof runFeedForwardSweep === 'function' ? runFeedForwardSweep : (typeof window !== 'undefined' ? window.runFeedForwardSweep : null);
-        const saveFfFn = typeof saveFeedforwardCalibration === 'function' ? saveFeedforwardCalibration : (typeof window !== 'undefined' ? window.saveFeedforwardCalibration : null);
-        const needsSweep = (ffMode === 'sweep') || (ffMode === 'auto' && previous.ffValidation !== 'verified');
-        if (needsSweep && typeof sweepFn === 'function') {
-          guidedMessage('Step 1/2: Characterizing Feedforward curve with 5-point sweep...');
-          const sweepRes = await sweepFn();
-          if (sweepRes && sweepRes.status === 'cancelled') throw new Error('Feedforward sweep was cancelled.');
-          if (sweepRes && sweepRes.status === 'failed') throw new Error('Feedforward sweep failed.');
-          if (typeof saveFfFn === 'function') {
-            await saveFfFn(true);
-          }
-          guidedMessage('Step 2/2: Feedforward calibrated & saved. Waiting for flywheels to settle before autotune...');
-          const settleStart = Date.now();
-          while (Date.now() - settleStart < 8000) {
-            const st = await requestGuidedStatus().catch(() => null);
-            if (st && st.state === 'idle') break;
-            await new Promise(r => setTimeout(r, 350));
-          }
-        }
+        // Firmware owns one FF measurement/validation/PID sequence; do not pre-save a browser sweep.
         await sendSerialCommand('stream fast');
         issued=true;
         await sendSerialCommand(`autotune full ${passes} ${baseline}`);
-        const status=await requestGuidedStatus();
+        const status=await requestGuidedStatus(s => s.session > previous.session || ['running','gliding'].includes(s.state));
         if (status.session === previous.session || !['running','gliding'].includes(status.state)) throw new Error('The blaster did not start tuning. Release triggers, wait for idle, and check the serial log.');
       } catch(error) {
         if (issued && (!guidedTuning.status || Date.now()-guidedTuning.lastSeen>2500)) guidedTuning.busy=true;
@@ -10519,7 +10945,8 @@ function updateWriteButtonText() {
       4: "Status / Warnings",
       5: "Custom Sprite / Logo",
       6: "Divider / Line / Frame",
-      7: "Target RPM"
+      7: "Target RPM",
+      8: "Estimated FPS / Muzzle Velocity"
     };
 
     const HUD_WIDGETS = [
@@ -10595,6 +11022,11 @@ function updateWriteButtonText() {
         { val: 2, label: "Full Digits (30000 RPM)" },
         { val: 3, label: "Preset Name (HVZ / FUN / TOUR)" },
         { val: 4, label: "Preset Name + Speed (HVZ 30K)" }
+      ],
+      8: [
+        { val: 0, label: "Label & Value (FPS: 165)" },
+        { val: 1, label: "Numeric Only (165)" },
+        { val: 2, label: "Value & Unit (165 FPS)" }
       ]
     };
 
@@ -11089,7 +11521,8 @@ function updateWriteButtonText() {
       { type: 7, style: 0, name: "Target RPM", icon: "🎯", tag: "TGT RPM", desc: "Target speed setpoint & RPM preset label" },
       { type: 4, style: 0, name: "Status", icon: "ℹ", tag: "STATUS", desc: "Ready, Low Batt, Decel Glide, and Latency" },
       { type: 5, style: 0, name: "Custom Sprite", icon: "★", tag: "SPRITE", desc: "Custom sprite graphic or badge from atlas" },
-      { type: 6, style: 0, name: "Line / Box", icon: "━", tag: "DIVIDER", desc: "Divider line or frame boundary" }
+      { type: 6, style: 0, name: "Line / Box", icon: "━", tag: "DIVIDER", desc: "Divider line or frame boundary" },
+      { type: 8, style: 2, name: "Est. FPS", icon: "FPS", tag: "FPS", desc: "Real-time estimated muzzle velocity (FPS)" }
     ];
 
     function renderWidgetPalette() {
@@ -11440,6 +11873,14 @@ function updateWriteButtonText() {
             } else {
               drawMiniText(`${tLabel}30K`, 13, 1, false);
             }
+          } else if (widgetType === 8) {
+            if (w.style === 1) {
+              drawMiniText('165');
+            } else if (w.style === 2) {
+              drawMiniText('165 FPS', 13, 1, false);
+            } else {
+              drawMiniText('FPS: 165', 13, 1, false);
+            }
           } else if (widgetType === 4) {
             drawMiniText('RDY');
           } else if (widgetType === 5) {
@@ -11489,6 +11930,7 @@ function updateWriteButtonText() {
           else if (widgetType === 5) nameLabel.textContent = 'Sprite';
           else if (widgetType === 6) nameLabel.textContent = (w.style === 1) ? 'V-Line' : (w.style === 2) ? 'Frame Box' : (w.style === 3) ? 'Dotted Line' : 'H-Line';
           else if (widgetType === 7) nameLabel.textContent = 'Target RPM';
+          else if (widgetType === 8) nameLabel.textContent = 'Est. FPS';
           else nameLabel.textContent = typeName;
         } else {
           nameLabel.textContent = 'Empty Slot';
@@ -12312,6 +12754,21 @@ function updateWriteButtonText() {
       onHudSimVoltageChange(val);
     }
 
+    function onHudSimFpsChange(val) {
+      const fps = parseInt(val) || 0;
+      const readout = document.getElementById('hud_sim_fps_val');
+      if (readout) readout.textContent = fps;
+      renderHudCanvas();
+      if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
+      scheduleHudLiveMirror();
+    }
+
+    function setHudSimFps(val) {
+      const slider = document.getElementById('hud_sim_fps');
+      if (slider) slider.value = val;
+      onHudSimFpsChange(val);
+    }
+
     function setHudSimFireMode(val) {
       const mode = parseInt(val) || 0;
       const el = document.getElementById('hud_sim_firemode');
@@ -12883,6 +13340,19 @@ function updateWriteButtonText() {
               const drawX = getAlignedX(w.x, drawW, alignMode);
               hudCtx.fillRect(drawX, w.y, length, thickness);
             }
+            break;
+          }
+
+          case 8: { // Estimated FPS / Muzzle Velocity
+            const simFps = parseInt(document.getElementById('hud_sim_fps')?.value || 165);
+            let fpsStr = `FPS: ${simFps}`;
+            if (w.style === 1) {
+              fpsStr = `${simFps}`;
+            } else if (w.style === 2) {
+              fpsStr = `${simFps} FPS`;
+            }
+            const textBox = drawAlignedHudText(fpsStr, w.x, w.y, fSize, false, alignMode);
+            drawW = textBox.width;
             break;
           }
         }
