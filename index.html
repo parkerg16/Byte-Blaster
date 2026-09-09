@@ -1737,6 +1737,7 @@
             <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
               <label>PID launch baseline <select id="guided_baseline"><option value="cold">Stopped — glide between launches</option><option value="idle">Spinning idle</option></select></label>
               <label>PID passes <select id="guided_passes"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
+              <label>Feedforward <select id="guided_ff_mode"><option value="auto" selected>Auto (Use saved FF / sweep if needed)</option><option value="saved">Use saved FF profile</option><option value="sweep">Run 5-point curve sweep first</option></select></label>
               <button id="guided_start" disabled class="action-btn" style="width:auto;margin:0" onclick="startGuidedTuning()">Tune Blaster</button>
               <button id="guided_cancel" class="preset-btn" disabled onclick="cancelGuidedTuning()">Cancel &amp; glide down</button>
               <button class="preset-btn" onclick="refreshGuidedTuning()">Refresh status</button>
@@ -8904,6 +8905,8 @@ function updateWriteButtonText() {
       guidedElement('guided_cancel').disabled = !guidedTuning.busy || guidedTuning.disconnected;
       guidedElement('guided_baseline').disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_passes').disabled = guidedTuning.busy || guidedTuning.pending;
+      const ffModeEl = guidedElement('guided_ff_mode');
+      if (ffModeEl) ffModeEl.disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_export').disabled = !guidedTuning.samples.length && !guidedTuning.results.length;
       const locked = guidedTuning.busy || guidedTuning.pending;
       document.querySelectorAll('#pid_autotune_panel input, #pid_autotune_panel select, #pid_autotune_panel button').forEach(el => {
@@ -9051,6 +9054,17 @@ function updateWriteButtonText() {
         }
         const passes=Number(guidedElement('guided_passes').value), baseline=guidedElement('guided_baseline').value;
         if (!Number.isInteger(passes) || passes<1 || passes>6 || !['cold','idle'].includes(baseline)) throw new Error('Choose a valid pass count and launch baseline.');
+        const ffMode = guidedElement('guided_ff_mode')?.value || 'auto';
+        const sweepFn = typeof runFeedForwardSweep === 'function' ? runFeedForwardSweep : (typeof window !== 'undefined' ? window.runFeedForwardSweep : null);
+        const saveFfFn = typeof saveFeedforwardCalibration === 'function' ? saveFeedforwardCalibration : (typeof window !== 'undefined' ? window.saveFeedforwardCalibration : null);
+        if (ffMode === 'sweep' && typeof sweepFn === 'function') {
+          guidedMessage('Step 1/2: Characterizing Feedforward curve with 5-point sweep and aerodynamic quadratic fit...');
+          await sweepFn();
+          if (typeof saveFfFn === 'function') {
+            await saveFfFn();
+          }
+          guidedMessage('Step 2/2: Feedforward calibrated & saved. Starting PID autotune...');
+        }
         await sendSerialCommand('stream fast');
         issued=true;
         await sendSerialCommand(`autotune full ${passes} ${baseline}`);
