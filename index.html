@@ -778,7 +778,10 @@
 
   <header>
     <div>
-      <h1>Byte <span>Configurator</span></h1>
+      <div style="display: flex; align-items: baseline; gap: 0.6rem;">
+        <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.17</span>
+      </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
   </header>
@@ -1387,6 +1390,26 @@
             <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); margin-top: 0.15rem;">
               <span id="val_stream_dart_count" style="color: var(--accent-green);">0</span> / <span id="val_stream_dry_count" style="color: var(--accent-pink);">0</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Live Launch Current & Motor Metrics Strip -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.6rem; margin-bottom: 1rem;">
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Launch Control</div>
+            <div id="live_launch_mode" style="font-size: 0.85rem; font-weight: 700; color: var(--accent-green); margin-top: 0.15rem;">Standby</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Motor 1 Current</div>
+            <div id="live_current_m1" style="font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-top: 0.15rem;">-- A</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Motor 2 Current</div>
+            <div id="live_current_m2" style="font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-top: 0.15rem;">-- A</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.75rem;">
+            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Target Current</div>
+            <div id="live_current_target" style="font-size: 0.95rem; font-weight: 700; color: var(--accent-orange); margin-top: 0.15rem;">-- A</div>
           </div>
         </div>
 
@@ -2114,6 +2137,14 @@
                   <span style="font-weight: 600;"><span class="settings-row-num">05.</span> Always-On Idle Enabled</span>
                 </div>
                 <div class="settings-row-desc">Allows the rev trigger to toggle the always-on idle mode.</div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label" style="flex-direction: row; justify-content: flex-start; gap: 0.5rem; align-items: center; cursor: pointer;">
+                  <input type="checkbox" id="set_freewheel" onchange="syncBlasterField('freewheel', this.checked, 'checkbox'); toggleFreewheel(this.checked);" style="width: 16px; height: 16px; accent-color: var(--accent-violet);">
+                  <span style="font-weight: 600;"><span class="settings-row-num">05b.</span> Freewheel / Coast on Trigger Release</span>
+                </div>
+                <div class="settings-row-desc">Allows flywheel motors to coast freely upon trigger release instead of active software deceleration glide.</div>
               </div>
             </div>
 
@@ -3357,7 +3388,7 @@
                     <label style="font-size: 0.75rem; color: var(--text-secondary);">Counting Direction</label>
                     <span id="hud_ammo_mode_badge" style="font-size: 0.7rem; color: var(--accent-orange); font-weight: 600;">Count Down</span>
                   </div>
-                  <select id="hud_ammo_mode_select" onchange="onHudAmmoModeChanged()" style="width: 100%; padding: 0.35rem 0.5rem; background: #121214; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 0.8rem; margin-top: 0.2rem;">
+                  <select id="hud_ammo_mode_select" onchange="onHudAmmoModeChanged(this.value)" style="width: 100%; padding: 0.35rem 0.5rem; background: #121214; border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 0.8rem; margin-top: 0.2rem;">
                     <option value="0">Count Down (Remaining Ammo)</option>
                     <option value="1">Count Up (Shots Fired)</option>
                   </select>
@@ -3764,6 +3795,9 @@
   </main>
 
   <script>
+    const CONFIGURATOR_VERSION = "v1.1.17";
+    window.CONFIGURATOR_VERSION = "1.1.17";
+
     // === FLASHER LIBRARY REMOVED ===
     // =================================
 
@@ -4808,7 +4842,7 @@ function updateWriteButtonText() {
     }
 
     function updateBlasterSettingControl(key, val) {
-      const el = document.getElementById('set_' + key);
+      const el = document.getElementById('set_' + key) || document.getElementById(key + '_input') || document.getElementById('hud_' + key + '_input');
       if (!el) return;
       if (el.type === 'checkbox') {
         el.checked = val === true || val === 'true' || val === '1' || Number(val) !== 0;
@@ -4825,17 +4859,26 @@ function updateWriteButtonText() {
         const isUp = (val === '1' || val === 1 || val === true);
         const chk = document.getElementById('hud_sim_count_up');
         if (chk) chk.checked = isUp;
-        const inspectorSel = document.getElementById('hud_widget_ammo_mode');
+        const inspectorSel = document.getElementById('hud_ammo_mode_select') || document.getElementById('hud_widget_ammo_mode');
         if (inspectorSel) inspectorSel.value = isUp ? '1' : '0';
+        const badge = document.getElementById('hud_ammo_mode_badge');
+        if (badge) {
+          badge.textContent = isUp ? 'Count Up' : 'Count Down';
+          badge.style.color = isUp ? 'var(--accent-blue)' : 'var(--accent-orange)';
+        }
         if (typeof updateHudSimDartsLabel === 'function') updateHudSimDartsLabel();
         if (typeof renderHudCanvas === 'function') renderHudCanvas();
         if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
         if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
+      } else if (key === 'freewheel') {
+        const isFw = (val === '1' || val === 1 || val === true);
+        const checkbox = document.getElementById('set_freewheel') || document.getElementById('freewheel_toggle');
+        if (checkbox) checkbox.checked = isFw;
       }
     }
 
     function markBlasterSettingDirty(key) {
-      const el = document.getElementById('set_' + key);
+      const el = document.getElementById('set_' + key) || document.getElementById(key + '_input') || document.getElementById('hud_' + key + '_input');
       if (!el) return;
       dirtySettings.add(key);
       const row = el.closest('.settings-row');
@@ -5125,16 +5168,22 @@ function updateWriteButtonText() {
         const isUp = (val === '1' || val === 1 || val === true);
         const chk = document.getElementById('hud_sim_count_up');
         if (chk) chk.checked = isUp;
-        const inspectorSel = document.getElementById('hud_widget_ammo_mode');
+        const inspectorSel = document.getElementById('hud_ammo_mode_select') || document.getElementById('hud_widget_ammo_mode');
         if (inspectorSel) inspectorSel.value = isUp ? '1' : '0';
+        const badge = document.getElementById('hud_ammo_mode_badge');
+        if (badge) {
+          badge.textContent = isUp ? 'Count Up' : 'Count Down';
+          badge.style.color = isUp ? 'var(--accent-blue)' : 'var(--accent-orange)';
+        }
         if (typeof updateHudSimDartsLabel === 'function') updateHudSimDartsLabel();
         if (typeof renderHudCanvas === 'function') renderHudCanvas();
         if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
         if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
       } else if (key === 'freewheel') {
-        const checkbox = document.getElementById('freewheel_toggle');
+        const isFw = (controlType === 'checkbox' ? (el ? el.checked : !!val) : (val === '1' || val === 1 || val === true));
+        const checkbox = document.getElementById('set_freewheel') || document.getElementById('freewheel_toggle');
         if (checkbox) {
-          checkbox.checked = (controlType === 'checkbox' ? el.checked : (val !== 0));
+          checkbox.checked = isFw;
         }
       }
       
@@ -5290,17 +5339,61 @@ function updateWriteButtonText() {
     }
 
     function exportFullBlasterProfile() {
-      const settings = window.blasterSettings || {};
+      const allKeys = [
+        'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'led_enabled', 'brightness', 'temp_unit', 'cells',
+        'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
+        'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
+        'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
+        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'startup_rpm',
+        'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
+        'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
+        'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
+        'splash_ms', 'rpm_preset_count', 'menu_mask',
+        'dart_detect', 'dart_drop_rpm', 'dart_window_ms', 'dart_min_rpm',
+        'dart_recovery_assist', 'dart_recovery_gain_x100', 'dart_recovery_boost_max', 'dart_recovery_step_up'
+      ];
+
+      const settings = {};
+      for (const key of allKeys) {
+        const el = document.getElementById('set_' + key) || document.getElementById(key + '_input') || document.getElementById('hud_' + key + '_input');
+        if (el) {
+          if (el.type === 'checkbox') {
+            settings[key] = el.checked ? '1' : '0';
+          } else {
+            settings[key] = el.value;
+          }
+        }
+      }
+
+      const pid = {
+        pid1_kp: document.getElementById('set_pid1_kp')?.value || '0.0050',
+        pid1_ki: document.getElementById('set_pid1_ki')?.value || '0.002000',
+        pid1_ff: document.getElementById('set_pid1_ff')?.value || '1.0000',
+        pid2_kp: document.getElementById('set_pid2_kp')?.value || '0.0050',
+        pid2_ki: document.getElementById('set_pid2_ki')?.value || '0.002000',
+        pid2_ff: document.getElementById('set_pid2_ff')?.value || '1.0000'
+      };
+
+      const hudLayout = (typeof HUD_WIDGETS !== 'undefined' && Array.isArray(HUD_WIDGETS)) 
+        ? JSON.parse(JSON.stringify(HUD_WIDGETS)) 
+        : null;
+
+      const ff = (typeof activeLaunchCurveData !== 'undefined') ? JSON.parse(JSON.stringify(activeLaunchCurveData)) : null;
+
       const profile = {
         format: "ByteBlasterProfile_v1",
         timestamp: new Date().toISOString(),
-        firmware_version: settings.firmware_version || "1.0",
-        pcb_version: settings.pcb_version || "1.0",
-        settings: { ...settings },
-        pid: window.blasterPid || null,
-        ff: window.blasterFf || null,
-        hud_layout: window.blasterHudWidgets || null
+        firmware_version: connectedBlasterVersion || document.getElementById('sidebar_connected_version_val')?.textContent?.trim() || "1.1",
+        pcb_version: "1.0",
+        settings: settings,
+        pid: pid,
+        ff: ff,
+        hud_layout: hudLayout
       };
+      window.blasterSettings = settings;
+      window.blasterPid = pid;
+      window.blasterFf = ff;
+      window.blasterHudWidgets = hudLayout;
       const jsonStr = JSON.stringify(profile, null, 2);
       const blob = new Blob([jsonStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -5340,6 +5433,27 @@ function updateWriteButtonText() {
             await sendSerialCommand("settings show");
             await new Promise(r => setTimeout(r, 100));
           }
+        }
+        if (data.pid) {
+          if (typeof logToConsole === 'function') logToConsole("Importing PID gains from profile JSON...");
+          for (const [k, v] of Object.entries(data.pid)) {
+            if (typeof updateBlasterSettingControl === 'function') updateBlasterSettingControl(k, v);
+          }
+          if (port && port.writable) {
+            await sendSerialCommand(`pid set 1 ${data.pid.pid1_kp || 0.005} ${data.pid.pid1_ki || 0.002} ${data.pid.pid1_ff || 1.0}`);
+            await new Promise(r => setTimeout(r, 60));
+            await sendSerialCommand(`pid set 2 ${data.pid.pid2_kp || 0.005} ${data.pid.pid2_ki || 0.002} ${data.pid.pid2_ff || 1.0}`);
+            await new Promise(r => setTimeout(r, 60));
+          }
+        }
+        if (data.hud_layout && Array.isArray(data.hud_layout) && typeof HUD_WIDGETS !== 'undefined') {
+          if (typeof logToConsole === 'function') logToConsole("Importing HUD layout from profile JSON...");
+          HUD_WIDGETS.length = 0;
+          data.hud_layout.forEach(w => HUD_WIDGETS.push(JSON.parse(JSON.stringify(w))));
+          if (typeof syncHudInspectorFromSelected === 'function') syncHudInspectorFromSelected();
+          if (typeof renderHudCanvas === 'function') renderHudCanvas();
+          if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
+          if (typeof scheduleHudLiveMirror === 'function') scheduleHudLiveMirror(true);
         }
         if (typeof logToConsole === 'function') logToConsole("Profile JSON imported successfully!");
         alert("Profile imported successfully!");
@@ -5384,7 +5498,7 @@ function updateWriteButtonText() {
         'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'startup_rpm',
         'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
-        'glide_rpm_per_s', 'glide_step_down_x10',
+        'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
         'splash_ms', 'rpm_preset_count', 'menu_mask',
         'dart_detect', 'dart_drop_rpm', 'dart_window_ms', 'dart_min_rpm',
         'dart_recovery_assist', 'dart_recovery_gain_x100', 'dart_recovery_boost_max', 'dart_recovery_step_up'
@@ -5403,7 +5517,7 @@ function updateWriteButtonText() {
       logToConsole(`Writing ${keysToWrite.length} configuration settings to physical blaster EEPROM...`);
       
       for (const key of keysToWrite) {
-        const el = document.getElementById('set_' + key);
+        const el = document.getElementById('set_' + key) || document.getElementById(key + '_input') || document.getElementById('hud_' + key + '_input');
         if (el) {
           let val = el.value;
           if (el.type === 'checkbox') {
@@ -5504,8 +5618,13 @@ function updateWriteButtonText() {
         const isUp = (val === '1' || val === 1 || val === true);
         const chk = document.getElementById('hud_sim_count_up');
         if (chk) chk.checked = isUp;
-        const inspectorSel = document.getElementById('hud_widget_ammo_mode');
+        const inspectorSel = document.getElementById('hud_ammo_mode_select') || document.getElementById('hud_widget_ammo_mode');
         if (inspectorSel) inspectorSel.value = isUp ? '1' : '0';
+        const badge = document.getElementById('hud_ammo_mode_badge');
+        if (badge) {
+          badge.textContent = isUp ? 'Count Up' : 'Count Down';
+          badge.style.color = isUp ? 'var(--accent-blue)' : 'var(--accent-orange)';
+        }
         if (typeof updateHudSimDartsLabel === 'function') updateHudSimDartsLabel();
         if (typeof renderHudCanvas === 'function') renderHudCanvas();
         if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
@@ -5540,9 +5659,10 @@ function updateWriteButtonText() {
         syncManualPidFromSetting(key, val);
         syncSimulatorPidField(key, val);
       } else if (key === 'freewheel') {
-        const checkbox = document.getElementById('freewheel_toggle');
+        const isFw = (val === '1' || val === 1 || val === true || Number(val) !== 0);
+        const checkbox = document.getElementById('set_freewheel') || document.getElementById('freewheel_toggle');
         if (checkbox) {
-          checkbox.checked = (val !== 0);
+          checkbox.checked = isFw;
         }
       }
       
@@ -6985,6 +7105,8 @@ function updateWriteButtonText() {
           await new Promise(r => setTimeout(r, 80));
           await sendSerialCommand("ff show");
           await new Promise(r => setTimeout(r, 80));
+          await sendSerialCommand("fps show");
+          await new Promise(r => setTimeout(r, 80));
           await sendSerialCommand("errors get");
           await refreshGuidedTuning();
           logToConsole("Board settings and diagnostic fault history loaded into the UI.");
@@ -7162,6 +7284,10 @@ function updateWriteButtonText() {
     }
 
     async function toggleFreewheel(enabled) {
+      const checkbox = document.getElementById('set_freewheel') || document.getElementById('freewheel_toggle');
+      if (checkbox && typeof enabled === 'boolean') {
+        checkbox.checked = enabled;
+      }
       if (!port || !port.writable) {
         logToConsole("Serial disconnected: checkbox state will apply on next connection.");
         return;
@@ -7566,10 +7692,11 @@ function updateWriteButtonText() {
       const freewheelMatch = line.match(freewheelRegex);
       if (freewheelMatch) {
         const isFreewheel = freewheelMatch[1] === '1';
-        const checkbox = document.getElementById('freewheel_toggle');
+        const checkbox = document.getElementById('set_freewheel') || document.getElementById('freewheel_toggle');
         if (checkbox) {
           checkbox.checked = isFreewheel;
         }
+        updateBlasterSettingControl('freewheel', isFreewheel ? '1' : '0');
         logToConsole(`Release behavior synced: ${isFreewheel ? 'Coast on release' : 'Software decel glide'}`);
         return;
       }
@@ -12677,9 +12804,15 @@ function updateWriteButtonText() {
       if (ammoModeContainer) {
         if (widgetType === 1) {
           ammoModeContainer.style.display = 'block';
-          const ammoModeSel = document.getElementById('hud_widget_ammo_mode');
+          const ammoModeSel = document.getElementById('hud_ammo_mode_select') || document.getElementById('hud_widget_ammo_mode');
           if (ammoModeSel) {
-            ammoModeSel.value = (typeof isHudCountUpMode === 'function' && isHudCountUpMode()) ? '1' : '0';
+            const isUp = (typeof isHudCountUpMode === 'function' && isHudCountUpMode());
+            ammoModeSel.value = isUp ? '1' : '0';
+            const badge = document.getElementById('hud_ammo_mode_badge');
+            if (badge) {
+              badge.textContent = isUp ? 'Count Up' : 'Count Down';
+              badge.style.color = isUp ? 'var(--accent-blue)' : 'var(--accent-orange)';
+            }
           }
         } else {
           ammoModeContainer.style.display = 'none';
@@ -12854,7 +12987,7 @@ function updateWriteButtonText() {
       if (w.dashGap === undefined) w.dashGap = 2;
       syncHudInspectorFromSelected();
       renderHudCanvas();
-      if (typeof transmitHudMirror === 'function') transmitHudMirror();
+      if (typeof scheduleHudLiveMirror === 'function') scheduleHudLiveMirror();
     }
 
     function setHudWidgetBorderStyle(isDashed) {
@@ -12863,7 +12996,7 @@ function updateWriteButtonText() {
       w.borderDashed = isDashed ? 1 : 0;
       syncHudInspectorFromSelected();
       renderHudCanvas();
-      if (typeof transmitHudMirror === 'function') transmitHudMirror();
+      if (typeof scheduleHudLiveMirror === 'function') scheduleHudLiveMirror();
     }
 
     function onHudBorderPaddingChange(val) {
@@ -12873,7 +13006,7 @@ function updateWriteButtonText() {
       const el = document.getElementById('hud_border_padding_val');
       if (el) el.textContent = w.borderPadding + 'px';
       renderHudCanvas();
-      if (typeof transmitHudMirror === 'function') transmitHudMirror();
+      if (typeof scheduleHudLiveMirror === 'function') scheduleHudLiveMirror();
     }
 
     function onHudDashWidthChange(val) {
@@ -12883,7 +13016,7 @@ function updateWriteButtonText() {
       const el = document.getElementById('hud_dash_width_val');
       if (el) el.textContent = w.dashWidth + 'px';
       renderHudCanvas();
-      if (typeof transmitHudMirror === 'function') transmitHudMirror();
+      if (typeof scheduleHudLiveMirror === 'function') scheduleHudLiveMirror();
     }
 
     function onHudDashGapChange(val) {
@@ -12893,7 +13026,7 @@ function updateWriteButtonText() {
       const el = document.getElementById('hud_dash_gap_val');
       if (el) el.textContent = w.dashGap + 'px';
       renderHudCanvas();
-      if (typeof transmitHudMirror === 'function') transmitHudMirror();
+      if (typeof scheduleHudLiveMirror === 'function') scheduleHudLiveMirror();
     }
 
     function updateSelectedWidgetFromInspector() {
@@ -13333,8 +13466,13 @@ function updateWriteButtonText() {
       if (chk) chk.checked = isUp;
       const setSel = document.getElementById('set_count_up');
       if (setSel) setSel.value = isUp ? '1' : '0';
-      const inspectorSel = document.getElementById('hud_widget_ammo_mode');
+      const inspectorSel = document.getElementById('hud_ammo_mode_select') || document.getElementById('hud_widget_ammo_mode');
       if (inspectorSel) inspectorSel.value = isUp ? '1' : '0';
+      const badge = document.getElementById('hud_ammo_mode_badge');
+      if (badge) {
+        badge.textContent = isUp ? 'Count Up' : 'Count Down';
+        badge.style.color = isUp ? 'var(--accent-blue)' : 'var(--accent-orange)';
+      }
 
       const slider = document.getElementById('hud_sim_darts');
       const mag = parseInt(document.getElementById('hud_sim_mag')?.value || 15);
@@ -13349,6 +13487,10 @@ function updateWriteButtonText() {
     }
 
     function onHudAmmoModeChanged(val) {
+      if (val === undefined) {
+        const sel = document.getElementById('hud_ammo_mode_select') || document.getElementById('hud_widget_ammo_mode');
+        val = sel ? sel.value : '0';
+      }
       toggleHudSimCountUp(val === '1' || val === 1 || val === true);
     }
 
@@ -14423,6 +14565,22 @@ function updateWriteButtonText() {
     let spriteSheetCtx = spriteSheetCanvas.getContext('2d');
     let spriteSheetInitialized = false;
 
+    function sliceSpriteSheetToIsolatedCanvases() {
+      for (let i = 0; i < 16; i++) {
+        const entry = SPRITE_ATLAS[i];
+        if (entry && entry.w > 0 && entry.h > 0) {
+          const iso = document.createElement('canvas');
+          iso.width = entry.w;
+          iso.height = entry.h;
+          const ictx = iso.getContext('2d');
+          ictx.drawImage(spriteSheetCanvas, entry.x, entry.y, entry.w, entry.h, 0, 0, entry.w, entry.h);
+          isolatedSpriteCanvases[i] = iso;
+        }
+      }
+      if (typeof renderWidgetPalette === 'function') renderWidgetPalette();
+      if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
+    }
+
     function initSpriteSlicer() {
       slicerCanvas = document.getElementById('slicer_canvas');
       slicerCursorCanvas = document.getElementById('slicer_cursor_canvas');
@@ -14437,18 +14595,7 @@ function updateWriteButtonText() {
 
       if (!spriteSheetInitialized) {
         populateDefaultSpriteSheet();
-        // Initialize isolated canvases for default icons
-        for (let i = 0; i < 8; i++) {
-          const entry = SPRITE_ATLAS[i];
-          if (entry && entry.w > 0 && entry.h > 0) {
-            const iso = document.createElement('canvas');
-            iso.width = entry.w;
-            iso.height = entry.h;
-            const ictx = iso.getContext('2d');
-            ictx.drawImage(spriteSheetCanvas, entry.x, entry.y, entry.w, entry.h, 0, 0, entry.w, entry.h);
-            isolatedSpriteCanvases[i] = iso;
-          }
-        }
+        sliceSpriteSheetToIsolatedCanvases();
         spriteSheetInitialized = true;
       }
 
@@ -15164,6 +15311,7 @@ function updateWriteButtonText() {
         }
       }
       spriteSheetCtx.putImageData(imgData, 0, 0);
+      sliceSpriteSheetToIsolatedCanvases();
       renderSlicerCanvas();
       renderSlicerThumbnail();
       renderHudCanvas();
