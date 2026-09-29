@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.18</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.19</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -2341,10 +2341,10 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">17.</span> Software Glide Decay</span>
+                  <span><span class="settings-row-num">17.</span> Glide Max Decel</span>
                   <span><span id="val_set_glide_rpm_per_s">16,000 RPM/s</span></span>
                 </div>
-                <div class="settings-row-desc">Rate at which target RPM decreases during release glide. Lower values coast longer and sound smoother; higher values pull RPM down sooner.</div>
+                <div class="settings-row-desc">The glide lets the flywheels coast on their own drag (near-zero current, eRPM kept alive). If they slow faster than this rate, the glide's light slip braking is removed. Also sets the fallback decay if RPM telemetry drops out.</div>
                 <div class="settings-row-control">
                   <input type="range" id="set_glide_rpm_per_s" min="12000" max="52000" step="1000" value="16000" oninput="syncBlasterField('glide_rpm_per_s', this.value, 'range')">
                 </div>
@@ -2355,7 +2355,7 @@
                   <span><span class="settings-row-num">18.</span> Software Glide Throttle Drop</span>
                   <span><span id="val_set_glide_step_down_x10">6.0</span></span>
                 </div>
-                <div class="settings-row-desc">Slew rate limit during glide decel. Lower values make throttle decay smoother; higher values remove drive faster for battery efficiency.</div>
+                <div class="settings-row-desc">Slew limit for the light slip braking below hold throttle during glide. Drive above hold is removed immediately on release.</div>
                 <div class="settings-row-control">
                   <input type="range" id="set_glide_step_down_x10" min="10" max="200" step="5" value="60" oninput="syncBlasterField('glide_step_down_x10', this.value, 'range')">
                 </div>
@@ -3795,8 +3795,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.18";
-    window.CONFIGURATOR_VERSION = "1.1.18";
+    const CONFIGURATOR_VERSION = "v1.1.19";
+    window.CONFIGURATOR_VERSION = "1.1.19";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
