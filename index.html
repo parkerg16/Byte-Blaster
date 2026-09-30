@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.19</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.20</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -1828,7 +1828,7 @@
               <button id="guided_export" class="preset-btn" disabled onclick="exportGuidedTuning()">Download run</button>
             </div>
             <div id="guided_stages" style="display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0">
-              <span data-tuning-stage="feedforward">1 · Measure FF</span><span data-tuning-stage="validate_ff">2 · Validate FF</span><span data-tuning-stage="pid">3 · Tune PID</span><span data-tuning-stage="validate_pid">4 · Validate PID</span>
+              <span data-tuning-stage="feedforward">1 · Measure FF</span><span data-tuning-stage="validate_ff">2 · Validate FF</span><span data-tuning-stage="pid">3 · Tune PID</span><span data-tuning-stage="select_pid">4 · Select PID</span><span data-tuning-stage="validate_pid">5 · Validate PID</span>
             </div>
             <div class="guided-section" style="margin-top:0.85rem">
               <h4>Loaded Dart Recovery</h4>
@@ -1851,7 +1851,7 @@
             </div>
             <p style="font-size:.75rem;color:var(--text-secondary);margin-top:0.5rem">The graph keeps the full session across stages. FF is measured, applied, and validated before PID uses that fixed curve. Normal glide only permits DShot 0 below 2,500 RPM on both motors; cold PID tests then wait for both to stop. Fault shutdowns can stop drive immediately. Cancelling restores the prior tune after glide-down. Firmware continues if USB disconnects; reconnect to recover status.</p>
             <div class="guided-section"><h4>3 · Results</h4><p id="guided_outcome" role="status">No run completed in this session.</p></div>
-            <details id="guided_measurements"><summary>Per-motor measurements</summary><div style="max-height:240px;overflow:auto"><table style="width:100%;font-size:.8rem"><thead><tr><th>Stage</th><th>Motor</th><th>Target</th><th>Pass</th><th>Steady RPM</th><th>Error</th><th>Overshoot</th><th>Rise (ms)</th><th>Settle (ms)</th><th>Ramp limited</th><th>Result</th></tr></thead><tbody id="guided_results"></tbody></table></div></details>
+            <details id="guided_measurements"><summary>Per-motor measurements</summary><div style="max-height:240px;overflow:auto"><table style="width:100%;font-size:.8rem"><thead><tr><th>Stage</th><th>Motor</th><th>Target</th><th>Start</th><th>Pass</th><th>Steady RPM</th><th>Error</th><th>Overshoot</th><th>Rise (ms)</th><th>Settle (ms)</th><th>Kp</th><th>Ki</th><th title="The limit that set the motor output for most of the launch, until 90% of target">Launch limited by</th><th>Result</th></tr></thead><tbody id="guided_results"></tbody></table></div></details>
           </section>
 
           <!-- Interactive Feedforward Curve Canvas -->
@@ -2122,6 +2122,17 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
+                  <span><span class="settings-row-num">03+</span> Max Flywheel RPM (max_rpm)</span>
+                  <span><span id="val_set_max_rpm">40000</span> RPM</span>
+                </div>
+                <div class="settings-row-desc">Global speed limit. Presets, Always-On and tuning are capped here and the blaster stops adding drive above 105% of it. 40,000 suits the stock motors and flywheels; only raise it for hardware rated faster.</div>
+                <div class="settings-row-control">
+                  <input type="range" id="set_max_rpm" min="10000" max="60000" step="500" value="40000" oninput="syncBlasterField('max_rpm', this.value, 'range')">
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
                   <span><span class="settings-row-num">04.</span> Always-On Idle Speed</span>
                   <span><span id="val_set_always_on_rpm">1500</span> RPM</span>
                 </div>
@@ -2291,7 +2302,7 @@
                   <span><span class="settings-row-num">14.</span> Launch Ramp Trajectory</span>
                   <span><span id="val_set_launch_trajectory">Thermal Optimizer 16-Knot Curve</span></span>
                 </div>
-                <div class="settings-row-desc">Shapes the requested RPM over the first 150 ms of a launch, including RPM PID mode. Choose a 16-knot curve, S-curve, or linear ramp. Actual acceleration depends on the motors, pack, feedforward, PID, and throttle rise limit. Revalidate after changing this setting.</div>
+                <div class="settings-row-desc">Shapes the requested RPM over the launch time below, including RPM PID mode. Choose a 16-knot curve, S-curve, or linear ramp. Actual acceleration depends on the motors, pack, feedforward, PID, and throttle rise limit. Revalidate after changing this setting.</div>
                 <div class="settings-row-control">
                   <select id="set_launch_trajectory" onchange="syncBlasterField('launch_trajectory', this.value, 'select')" style="width: 100%; padding: 0.35rem; border-radius: 6px; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: white;">
                     <option value="2">16-Knot Curve</option>
@@ -2303,6 +2314,28 @@
                     <input type="file" id="import_launch_curve_file" accept=".json" style="display:none;" onchange="handleLaunchCurveImport(event)">
                     <span id="launch_curve_import_status" style="font-size: 0.8rem; color: #94a3b8;"></span>
                   </div>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <span><span class="settings-row-num">14a.</span> Launch Time</span>
+                  <span><span id="val_set_launch_time_ms">150 ms</span></span>
+                </div>
+                <div class="settings-row-desc">How long the launch reference takes to reach the target RPM (60 to 300 ms). Importing a thermal optimizer curve sets this to the curve's simulated spin-up time. Shorter launches need more motor current and make more heat per shot.</div>
+                <div class="settings-row-control">
+                  <input type="range" id="set_launch_time_ms" min="60" max="300" step="1" value="150" oninput="syncBlasterField('launch_time_ms', this.value, 'range')">
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <span><span class="settings-row-num">14b.</span> Launch Acceleration Feed-Forward</span>
+                  <span><span id="val_set_accel_ff">100%</span></span>
+                </div>
+                <div class="settings-row-desc">Adds the voltage needed to accelerate the flywheel along the launch curve, so RPM PID does not have to lag the curve to produce it. 100% models the 39 g&middot;cm&sup2; flywheel only; raise it if launchtrace still shows the motors trailing the ref column (the motor rotor adds inertia). 0% disables it.</div>
+                <div class="settings-row-control">
+                  <input type="range" id="set_accel_ff" min="0" max="250" step="5" value="100" oninput="syncBlasterField('accel_ff', this.value, 'range')">
                 </div>
               </div>
 
@@ -3795,8 +3828,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.19";
-    window.CONFIGURATOR_VERSION = "1.1.19";
+    const CONFIGURATOR_VERSION = "v1.1.20";
+    window.CONFIGURATOR_VERSION = "1.1.20";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -4708,6 +4741,13 @@ function updateWriteButtonText() {
       if (key === 'startup_rpm') {
         return `${Math.round(Number(val))} RPM`;
       }
+      if (key === 'launch_time_ms') {
+        return `${Math.round(Number(val))} ms`;
+      }
+      if (key === 'accel_ff') {
+        const pct = Math.round(Number(val));
+        return pct === 0 ? 'Off' : `${pct}%`;
+      }
       if (key === 'batt_cutoff_cell' || key === 'cutoff_voltage_cell') {
         const mv = Number(val);
         if (mv === 0) return '0.00V (Disabled / Match Mode)';
@@ -4852,6 +4892,14 @@ function updateWriteButtonText() {
       const valDisp = document.getElementById('val_set_' + key);
       if (valDisp) {
         valDisp.textContent = formatBlasterSettingValue(key, val);
+      }
+      if (key === 'max_rpm') {
+        // Presets cannot exceed the flywheel limit (the firmware clamps them too).
+        const limit = Math.round(Number(val)) || 40000;
+        ['rpm0', 'rpm1', 'rpm2'].forEach(k => {
+          const slider = document.getElementById('set_' + k);
+          if (slider) slider.max = String(limit);
+        });
       }
       if (key === 'dart_detect') {
         updateDartDetectState(val);
@@ -5260,6 +5308,8 @@ function updateWriteButtonText() {
         ctrl_algo: 1,
         launch_boost: 70,
         launch_trajectory: 0,
+        launch_time_ms: 150,
+        accel_ff: 100,
         startup_rpm: 2500,
         batt_cutoff_cell: 2800,
         batt_warn_cell: 3300,
@@ -5285,6 +5335,7 @@ function updateWriteButtonText() {
         dart_recovery_gain_x100: 8,
         dart_recovery_boost_max: 180,
         dart_recovery_step_up: 140,
+        max_rpm: 40000,
         pid1_kp: 0.051, pid1_ki: 0.002, pid1_ff: 1.0000,
         pid2_kp: 0.051, pid2_ki: 0.002, pid2_ff: 1.0000,
         led_enabled: 1,
@@ -5340,11 +5391,12 @@ function updateWriteButtonText() {
 
     function exportFullBlasterProfile() {
       const allKeys = [
+        'max_rpm', // first, so raised presets are not clamped to the old limit
         'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'led_enabled', 'brightness', 'temp_unit', 'cells',
         'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
-        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'startup_rpm',
+        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm',
         'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
         'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
@@ -5491,11 +5543,12 @@ function updateWriteButtonText() {
       }
       
       const allKeys = [
+        'max_rpm', // first, so raised presets are not clamped to the old limit
         'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'led_enabled', 'brightness', 'temp_unit', 'cells',
         'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
-        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'startup_rpm',
+        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm',
         'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
         'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
@@ -5903,7 +5956,7 @@ function updateWriteButtonText() {
       if (statVolt) statVolt.textContent = (data.thermalMetrics?.minBusVoltage || data.batteryContext?.configuredVoltage || 25.2).toFixed(2) + ' V';
       if (statCells) statCells.textContent = `${data.batteryContext?.approxCells || 6}S Pack (${data.batteryContext?.configuredVoltage || 25.2}V)`;
       if (statStrat) statStrat.textContent = data.profileStrategy || 'optimized';
-      if (activeBadge) activeBadge.textContent = `Target: ${data.targetDeadlineMs || 150} ms (${(data.targetRpm || 32000).toLocaleString()} RPM)`;
+      if (activeBadge) activeBadge.textContent = `Plays over ${Math.round(data.simulatedSpinupMs || data.targetDeadlineMs || 150)} ms (${(data.targetRpm || 32000).toLocaleString()} RPM)`;
 
       // Populate Knots Table
       const tbody = document.getElementById('launch_knots_table_body');
@@ -5977,7 +6030,11 @@ function updateWriteButtonText() {
       try {
         const knotsX10000 = activeLaunchCurveData.normalizedRpmTable16.map(v => Math.round(Number(v) * 10000));
         while (knotsX10000.length < 16) knotsX10000.push(10000);
-        await sendSerialCommand(`launch_curve set ${knotsX10000.join(' ')}`);
+        // The curve's own duration: without it the firmware stretched every curve to 150 ms.
+        const durationMs = Math.round(Math.min(300, Math.max(60,
+          Number(activeLaunchCurveData.simulatedSpinupMs) || Number(activeLaunchCurveData.targetDeadlineMs) || 150)));
+        await sendSerialCommand(`launch_curve set ${knotsX10000.join(' ')} ${durationMs}`);
+        updateBlasterSettingControl('launch_time_ms', durationMs);
         await sendSerialCommand(`settings set launch_trajectory 2`);
         
         const trajSelect = document.getElementById('set_launch_trajectory');
@@ -7768,7 +7825,7 @@ function updateWriteButtonText() {
       }
       
       // Look for format TARGET:X,RPM1:Y,RPM2:Z, optionally with MS, throttle, model-current, voltage, fault, motion mode, SOL, DD, and SON fields.
-      const regex = /(?:MS:(\d+),)?TARGET:(\d+),RPM1:(\d+),RPM2:(\d+)(?:,THR1:(\d+),THR2:(\d+))?(?:,IT1:([\d\.\-]+),IE1:([\d\.\-]+),IT2:([\d\.\-]+),IE2:([\d\.\-]+))?(?:,VB:([\d\.]+),FLT:([A-Za-z]+),MD:([A-Za-z]+))?(?:,SOL:(\d+))?(?:,DD:(\d+))?(?:,SON:(\d+))?/i;
+      const regex = /(?:MS:(\d+),)?TARGET:(\d+),RPM1:(\d+),RPM2:(\d+)(?:,THR1:(\d+),THR2:(\d+))?(?:,IT1:([\d\.\-]+),IE1:([\d\.\-]+),IT2:([\d\.\-]+),IE2:([\d\.\-]+))?(?:,VB:([\d\.]+),FLT:([A-Za-z]+),MD:([A-Za-z]+))?(?:,SOL:(\d+))?(?:,DD:(\d+))?(?:,SON:(\d+))?(?:,LIM1:([0-9A-Fa-f]+),LIM2:([0-9A-Fa-f]+))?/i;
       const match = line.match(regex);
       
       if (match) {
@@ -7788,6 +7845,8 @@ function updateWriteButtonText() {
         const sol = match[14] ? parseInt(match[14]) : 0;
         const dd = match[15] ? parseInt(match[15]) : 0;
         const son = match[16] ? parseInt(match[16]) : null;
+        const lim1 = match[17] ? parseInt(match[17], 16) : null;
+        const lim2 = match[18] ? parseInt(match[18], 16) : null;
         
         const healthEl = document.getElementById('live_system_health');
         if (healthEl) {
@@ -7853,6 +7912,8 @@ function updateWriteButtonText() {
           sol: sol,
           dd: dd,
           son: son,
+          lim1: lim1,
+          lim2: lim2,
           timestamp: Date.now(),
           boardMs: boardMs
         };
@@ -9529,8 +9590,8 @@ function updateWriteButtonText() {
 
     const guidedTuning = { status: null, busy: false, pending: false, waiter: null, chart: null,
       lockedControls: new Map(), samples: [], results: [], markers: [], origin: null, lastSeen: 0, lastDraw: 0, disconnected: false, postRecoverySession: null };
-    const guidedStages = ['feedforward', 'validate_ff', 'pid', 'validate_pid'];
-    const guidedLabels = ['Measure feedforward', 'Validate feedforward', 'Tune PID', 'Validate PID'];
+    const guidedStages = ['feedforward', 'validate_ff', 'pid', 'select_pid', 'validate_pid'];
+    const guidedLabels = ['Measure feedforward', 'Validate feedforward', 'Tune PID', 'Select PID across presets', 'Validate PID'];
     const dartRecovery = { active: false, tuning: false, holdAfter: false, target: 32000, startTs: null, startBoardMs: null, samples: [], event: null, timer: null, heartbeatTimer: null, results: [], resolver: null };
     const DART_RECOVERY_AVG_RATIO = 0.97;
     const DART_RECOVERY_MOTOR_RATIO = 0.95;
@@ -9912,21 +9973,29 @@ function updateWriteButtonText() {
       });
       guidedTuning.chart.update('none');
     }
+    // Session time (s) on the firmware clock, with millis() rollover handling. Samples and stage
+    // markers share this axis so USB delivery delays cannot shift one against the other.
+    function guidedBoardX(bMs) {
+      const WRAP = 0x100000000;
+      if (guidedTuning.boardOrigin === null || guidedTuning.boardOrigin === undefined) {
+        guidedTuning.boardOrigin = bMs;
+        guidedTuning.lastBoardUnwrapped = bMs;
+      }
+      // Unwrap to the candidate nearest the latest time seen: handles rollover and values that
+      // arrive slightly out of order (a stage start reported after newer samples).
+      const last = guidedTuning.lastBoardUnwrapped;
+      const base = last - (last % WRAP);
+      let best = base + bMs;
+      for (const c of [base + bMs - WRAP, base + bMs + WRAP]) if (Math.abs(c - last) < Math.abs(best - last)) best = c;
+      guidedTuning.lastBoardUnwrapped = Math.max(last, best);
+      return (best - guidedTuning.boardOrigin) / 1000.0;
+    }
     function captureGuidedTelemetry(point) {
       if (!guidedTuning.busy || !Number.isFinite(point.rpm1) || !Number.isFinite(point.rpm2)) return;
       const bMs = Number.isFinite(point.boardMs) ? point.boardMs : null;
       let xVal;
       if (bMs !== null) {
-        if (guidedTuning.boardOrigin === null || guidedTuning.boardOrigin === undefined) {
-          guidedTuning.boardOrigin = bMs;
-          guidedTuning.lastBoardMs = bMs;
-          guidedTuning.boardMsOffset = 0;
-        }
-        if (bMs < guidedTuning.lastBoardMs && (guidedTuning.lastBoardMs - bMs) > 0x7FFFFFFF) {
-          guidedTuning.boardMsOffset += 0x100000000;
-        }
-        guidedTuning.lastBoardMs = bMs;
-        xVal = (bMs + guidedTuning.boardMsOffset - guidedTuning.boardOrigin) / 1000.0;
+        xVal = guidedBoardX(bMs);
       } else {
         const now = point.timestamp;
         if (guidedTuning.origin === null) guidedTuning.origin = now;
@@ -9934,7 +10003,7 @@ function updateWriteButtonText() {
       }
       guidedTuning.samples.push({ x:xVal, target:point.target,
         rpm1:point.rpm1, rpm2:point.rpm2, throttle1:point.throttle1, throttle2:point.throttle2,
-        voltage:point.voltage, boardMs:point.boardMs, stage:guidedTuning.status?.stage });
+        voltage:point.voltage, boardMs:point.boardMs, lim1:point.lim1, lim2:point.lim2, stage:guidedTuning.status?.stage });
       if (guidedTuning.samples.length > 20000) guidedTuning.samples = guidedTuning.samples.filter((_,i) => i % 2 === 0);
       const nowTs = point.timestamp || Date.now();
       if (nowTs - guidedTuning.lastDraw >= 100) { guidedTuning.lastDraw = nowTs; drawGuidedChart(); }
@@ -9962,10 +10031,34 @@ function updateWriteButtonText() {
       guidedTuning.results.push(result);
       const startLabel = result.startRpm ? `${result.startRpm.toLocaleString()} RPM` : 'COLD';
       const row = document.createElement('tr');
+      const failText = result.detail ? `FAIL (${result.detail})` : formatFailReason(result.failFlags);
       const cells = [guidedLabels[guidedStages.indexOf(result.stage)] || result.stage, result.motor, result.target,
-        startLabel, result.pass, result.rpm, `${result.errorPct}%`, `${result.overshootPct}%`, result.riseMs ?? '—', result.settleMs ?? '—', result.limitedPct == null ? '—' : `${result.limitedPct}%`, result.valid ? 'PASS' : formatFailReason(result.failFlags)];
+        startLabel, result.pass, result.rpm, `${result.errorPct}%`, `${result.overshootPct}%`, result.riseMs ?? '—', result.settleMs ?? '—',
+        Number.isFinite(result.kp) ? result.kp.toFixed(4) : '—', Number.isFinite(result.ki) ? result.ki.toFixed(5) : '—',
+        guidedLimiterSummary(result.lim), result.valid ? 'PASS' : failText];
       for (const value of cells) { const td = document.createElement('td'); td.textContent = String(value); row.appendChild(td); }
       guidedElement('guided_results').appendChild(row); guidedButtons();
+    }
+    function guidedMarkerX(event) {
+      if (Number.isFinite(event.stageMs)) return guidedBoardX(event.stageMs);
+      const last = guidedTuning.samples[guidedTuning.samples.length - 1];
+      if (last) return last.x;
+      return guidedTuning.origin === null ? 0 : (Date.now() - guidedTuning.origin) / 1000;
+    }
+    const guidedLimiterNames = ['PID tracking', 'Launch ramp', 'P clamp', '4 V startup cap', '+7 V headroom cap', 'Max throttle cap', 'Launch floor', 'Throttle step limit', 'Motor sync', 'Other'];
+    function guidedLimiterSummary(lim) {
+      if (!Array.isArray(lim) || !lim.length) return '—';
+      let best = 0; lim.forEach((v, i) => { if (v > lim[best]) best = i; });
+      return lim[best] > 0 ? `${guidedLimiterNames[best] || 'Other'} ${lim[best]}%` : '—';
+    }
+    function guidedFfMessage(event) {
+      const path = event.ffPath;
+      if (event.stage === 'feedforward') {
+        if (path === 'recalibrating') return `Existing FF was off by ${Number(event.ffErrPct || 0).toFixed(1)}%; measuring a fresh curve`;
+        return 'Measuring new FF';
+      }
+      if (event.stage === 'validate_ff') return path === 'reuse_check' ? 'Checking existing FF' : 'Checking new FF';
+      return null;
     }
     function handleGuidedLine(line) {
       if (!line.startsWith('TUNING ') && !line.startsWith('TUNING_RESULT ')) return false;
@@ -9979,7 +10072,7 @@ function updateWriteButtonText() {
       const old = guidedTuning.status;
       if (old && event.session !== old.session) {
         guidedTuning.samples = []; guidedTuning.results = []; guidedTuning.markers = []; guidedTuning.origin = null;
-        guidedTuning.boardOrigin = null; guidedTuning.lastBoardMs = null; guidedTuning.boardMsOffset = 0;
+        guidedTuning.boardOrigin = null; guidedTuning.lastBoardUnwrapped = null;
         guidedElement('guided_results').textContent = '';
       }
       guidedTuning.status = event; guidedTuning.lastSeen = Date.now(); guidedTuning.disconnected = false;
@@ -9993,23 +10086,25 @@ function updateWriteButtonText() {
       }
       const index=guidedStages.indexOf(event.stage);
       if (guidedTuning.busy && (!old || old.stage !== event.stage || old.session !== event.session)) {
-        guidedTuning.markers.push({ x:guidedTuning.origin === null ? 0 : (Date.now()-guidedTuning.origin)/1000, label:guidedLabels[index] || event.stage });
+        guidedTuning.markers.push({ x:guidedMarkerX(event), label:guidedLabels[index] || event.stage });
       }
+      const ffSkipped = ['reuse_check','reused'].includes(event.ffPath);
       document.querySelectorAll('[data-tuning-stage]').forEach((el,i) => {
-        el.style.color = event.state === 'saved' || (guidedTuning.busy && i < index) ? '#4ade80' : (guidedTuning.busy && i === index ? '#22d3ee' : '#94a3b8');
+        const skipped = i === 0 && ffSkipped;
+        if (i === 0) el.textContent = skipped ? '1 · Measure FF (skipped: existing FF reused)' : '1 · Measure FF';
+        el.style.color = skipped ? '#64748b' : (event.state === 'saved' || (guidedTuning.busy && i < index) ? '#4ade80' : (guidedTuning.busy && i === index ? '#22d3ee' : '#94a3b8'));
         el.style.fontWeight = i === index ? '700' : '400';
       });
       const progress=guidedElement('guided_progress'); progress.max=event.total || 1; progress.value=event.done || 0;
       const reasons = { measurement_failed:'The measurement did not pass validation.',
-        ff_recalibrating:'Existing FF failed accuracy check. Automatically measuring fresh feedforward curve...',
         save_failed:'EEPROM commit failed. Prior tune restored.', telemetry_timeout:'Motor telemetry was lost.',
         telemetry_timeout_m1:'Motor 1 telemetry was lost.', telemetry_timeout_m2:'Motor 2 telemetry was lost.', telemetry_timeout_both:'Both motor telemetries were lost.',
         motor_stalled:'A motor did not spin as expected.', low_voltage:'Battery voltage was too low.', fault_or_timeout:'A fault, transition timeout, or configuration change stopped the run.' };
-      if (event.state === 'running') guidedMessage(`${guidedLabels[index] || 'PID measurement'} · ${event.target.toLocaleString()} RPM · ${event.phase === 'PREP' ? 'Gliding to launch baseline' : event.phase === 'HOLD' ? 'Measuring steady speed' : 'Production launch / settling'} · Pass ${event.pass || 1} · ${event.done}/${event.total} paired measurements`);
+      if (event.state === 'running') guidedMessage(`${guidedFfMessage(event) || guidedLabels[index] || 'PID measurement'} · ${event.target.toLocaleString()} RPM · ${event.phase === 'PREP' ? 'Gliding to launch baseline' : event.phase === 'HOLD' ? 'Measuring steady speed' : 'Production launch / settling'} · ${event.stage === 'select_pid' ? 'Candidate' : 'Pass'} ${event.pass || 1} · ${event.done}/${event.total} paired measurements`);
       else if (event.state === 'gliding') guidedMessage(`${reasons[event.reason] || (event.reason === 'cancelled' ? 'Cancellation requested.' : 'Measurements complete.')} Gliding down; waiting for both motors to stop.`);
       else if (event.state === 'saved') guidedMessage(resultsPending ? `Profile saved; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : 'Both stages passed. The validated feedforward and PID profile is saved on the blaster.');
-      else if (event.state === 'cancelled') guidedMessage('Cancelled. Glide-down finished and the prior tune was restored.');
-      else if (event.state === 'failed') guidedMessage(`${reasons[event.reason] || 'Tuning failed.'} The prior tune was restored. Review the results and blaster setup before retrying.`);
+      else if (event.state === 'cancelled') guidedMessage('Cancelled (from the configurator or by holding FIRE on the blaster). Glide-down finished and the prior tune was restored.');
+      else if (event.state === 'failed') guidedMessage(`${reasons[event.reason] || 'Tuning failed.'}${event.detail ? ` (${event.detail})` : ''} The prior tune was restored. Review the results and blaster setup before retrying.`);
       else if (event.state === 'complete') guidedMessage(resultsPending ? `Measurement complete; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : 'Measurement complete. Suggestions are available; no automatic save was made.');
       else guidedMessage(event.algo === 1 ? 'Ready. Tune Blaster measures and validates FF, then tunes and validates PID.' : 'Select RPM PID (controller algorithm 1) in settings before tuning.');
       const outcome = guidedElement('guided_outcome');
@@ -10047,7 +10142,7 @@ function updateWriteButtonText() {
         if (['running','gliding'].includes(previous.state)) { await sendSerialCommand('stream fast'); return; }
         if (previous.algo !== 1) throw new Error('Select RPM PID (controller algorithm 1) in settings before tuning.');
         if (typeof dirtySettings !== 'undefined' && [...dirtySettings].some(key =>
-          ['step_up','launch_trajectory','ctrl_algo','startup_rpm','spinup_skew_limit','cells','motor_kv','always_on_rpm','glide_rpm_per_s','glide_step_down_x10'].includes(key) || /^pid[12]_/.test(key))) {
+          ['step_up','launch_trajectory','launch_time_ms','accel_ff','ctrl_algo','startup_rpm','spinup_skew_limit','cells','motor_kv','always_on_rpm','glide_rpm_per_s','glide_step_down_x10'].includes(key) || /^pid[12]_/.test(key))) {
           throw new Error('Write your pending motor and launch settings to the blaster before tuning.');
         }
         const passes=Number(guidedElement('guided_passes').value), baseline=guidedElement('guided_baseline').value;
