@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.20</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.21</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -3828,8 +3828,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.20";
-    window.CONFIGURATOR_VERSION = "1.1.20";
+    const CONFIGURATOR_VERSION = "v1.1.21";
+    window.CONFIGURATOR_VERSION = "1.1.21";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -4419,6 +4419,22 @@ function updateWriteButtonText() {
         color: '#ec4899',
         cause: 'DShot output was clamped to STOP (0) while a rev request was active, likely forced by supervisor fault.',
         fix: 'Check preceding fault log entries (battery sag or telemetry timeout) to see what triggered supervisor fault mode.'
+      },
+      0x60: {
+        name: 'ERR_RPM_RUNAWAY_M1',
+        label: 'RPM Runaway (Motor 1)',
+        badgeClass: 'badge-red',
+        color: '#ef4444',
+        cause: 'Motor 1 stayed above the speed the loop was asking for (plus margin) for 30 ms, so drive was cut on both motors.',
+        fix: 'Run Tune Blaster to re-measure the FF table, check motor_kv, and send the fault entry plus a telemetry stream capture.'
+      },
+      0x61: {
+        name: 'ERR_RPM_RUNAWAY_M2',
+        label: 'RPM Runaway (Motor 2)',
+        badgeClass: 'badge-red',
+        color: '#ef4444',
+        cause: 'Motor 2 stayed above the speed the loop was asking for (plus margin) for 30 ms, so drive was cut on both motors.',
+        fix: 'Run Tune Blaster to re-measure the FF table, check motor_kv, and send the fault entry plus a telemetry stream capture.'
       }
     };
 
@@ -7858,6 +7874,9 @@ function updateWriteButtonText() {
             healthEl.style.color = '#f59e0b';
           } else if (fault === 'STALL') {
             healthEl.textContent = 'MOTOR STALL';
+            healthEl.style.color = '#ef4444';
+          } else if (fault === 'RUNAWAY') {
+            healthEl.textContent = 'RPM RUNAWAY - CUT';
             healthEl.style.color = '#ef4444';
           } else {
             healthEl.textContent = voltage ? `${voltage.toFixed(2)}V (OK)` : 'Healthy';
