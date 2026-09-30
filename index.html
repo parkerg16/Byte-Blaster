@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.21</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.22</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -1826,6 +1826,14 @@
               <button id="guided_cancel" class="preset-btn" disabled onclick="cancelGuidedTuning()">Cancel &amp; glide down</button>
               <button class="preset-btn" onclick="refreshGuidedTuning()">Refresh status</button>
               <button id="guided_export" class="preset-btn" disabled onclick="exportGuidedTuning()">Download run</button>
+            </div>
+            <div id="guided_resume" role="group" aria-label="Continue the stopped tuning run" style="display:none;margin-top:.75rem;padding:.6rem .75rem;border:1px solid rgba(56,189,248,.35);border-radius:8px">
+              <p id="guided_resume_text" class="guided-help" style="margin:0 0 .5rem"></p>
+              <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+                <button id="guided_resume_retry" class="action-btn" style="width:auto;margin:0" onclick="resumeGuidedTuning('retry')">Retry failed test</button>
+                <button id="guided_resume_retune" class="preset-btn" onclick="resumeGuidedTuning('retune')">Re-tune point, then re-validate</button>
+                <button id="guided_resume_discard" class="preset-btn" onclick="discardGuidedTuning()">Discard stopped run</button>
+              </div>
             </div>
             <div id="guided_stages" style="display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0">
               <span data-tuning-stage="feedforward">1 · Measure FF</span><span data-tuning-stage="validate_ff">2 · Validate FF</span><span data-tuning-stage="pid">3 · Tune PID</span><span data-tuning-stage="select_pid">4 · Select PID</span><span data-tuning-stage="validate_pid">5 · Validate PID</span>
@@ -3828,8 +3836,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.21";
-    window.CONFIGURATOR_VERSION = "1.1.21";
+    const CONFIGURATOR_VERSION = "v1.1.22";
+    window.CONFIGURATOR_VERSION = "1.1.22";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -9608,7 +9616,7 @@ function updateWriteButtonText() {
     }
 
     const guidedTuning = { status: null, busy: false, pending: false, waiter: null, chart: null,
-      lockedControls: new Map(), samples: [], results: [], markers: [], origin: null, lastSeen: 0, lastDraw: 0, disconnected: false, postRecoverySession: null };
+      lockedControls: new Map(), samples: [], results: [], markers: [], events: [], origin: null, lastSeen: 0, lastDraw: 0, disconnected: false, postRecoverySession: null };
     const guidedStages = ['feedforward', 'validate_ff', 'pid', 'select_pid', 'validate_pid'];
     const guidedLabels = ['Measure feedforward', 'Validate feedforward', 'Tune PID', 'Select PID across presets', 'Validate PID'];
     const dartRecovery = { active: false, tuning: false, holdAfter: false, target: 32000, startTs: null, startBoardMs: null, samples: [], event: null, timer: null, heartbeatTimer: null, results: [], resolver: null };
@@ -9936,7 +9944,8 @@ function updateWriteButtonText() {
       guidedElement('guided_cancel').disabled = !guidedTuning.busy || guidedTuning.disconnected;
       guidedElement('guided_baseline').disabled = guidedTuning.busy || guidedTuning.pending;
       guidedElement('guided_passes').disabled = guidedTuning.busy || guidedTuning.pending;
-      guidedElement('guided_export').disabled = !guidedTuning.samples.length && !guidedTuning.results.length;
+      guidedElement('guided_export').disabled = !guidedTuning.samples.length && !guidedTuning.results.length && !guidedTuning.events.length;
+      renderGuidedResume();
       guidedElement('dart_recovery_start').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || dartRecovery.tuning || guidedTuning.disconnected;
       guidedElement('dart_recovery_tune').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || dartRecovery.tuning || guidedTuning.disconnected;
       guidedElement('dart_recovery_target').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || dartRecovery.tuning;
@@ -10022,7 +10031,8 @@ function updateWriteButtonText() {
       }
       guidedTuning.samples.push({ x:xVal, target:point.target,
         rpm1:point.rpm1, rpm2:point.rpm2, throttle1:point.throttle1, throttle2:point.throttle2,
-        voltage:point.voltage, boardMs:point.boardMs, lim1:point.lim1, lim2:point.lim2, stage:guidedTuning.status?.stage });
+        voltage:point.voltage, boardMs:point.boardMs, lim1:point.lim1, lim2:point.lim2, stage:guidedTuning.status?.stage,
+        phase:guidedTuning.status?.phase, tuneTarget:guidedTuning.status?.target, pass:guidedTuning.status?.pass });
       if (guidedTuning.samples.length > 20000) guidedTuning.samples = guidedTuning.samples.filter((_,i) => i % 2 === 0);
       const nowTs = point.timestamp || Date.now();
       if (nowTs - guidedTuning.lastDraw >= 100) { guidedTuning.lastDraw = nowTs; drawGuidedChart(); }
@@ -10090,9 +10100,15 @@ function updateWriteButtonText() {
         : `Firmware measurements are independent of the graph. ${event.skippedTelemetry || 0} live graph updates coalesced while USB was busy.`;
       const old = guidedTuning.status;
       if (old && event.session !== old.session) {
-        guidedTuning.samples = []; guidedTuning.results = []; guidedTuning.markers = []; guidedTuning.origin = null;
+        guidedTuning.samples = []; guidedTuning.results = []; guidedTuning.markers = []; guidedTuning.events = []; guidedTuning.origin = null;
         guidedTuning.boardOrigin = null; guidedTuning.lastBoardUnwrapped = null;
         guidedElement('guided_results').textContent = '';
+      }
+      // Keep every change of state/stage/phase/target/pass/reason for the exported run (heartbeats are dropped).
+      const eventKey = ['state','stage','phase','target','pass','reason','ffPath','detail'].map(k => event[k]).join('|');
+      if (!old || old.session !== event.session || guidedTuning.lastEventKey !== eventKey) {
+        guidedTuning.lastEventKey = eventKey;
+        guidedTuning.events.push({ x: Number.isFinite(event.ms) ? guidedBoardX(event.ms) : guidedMarkerX(event), receivedAt: Date.now(), ...event });
       }
       guidedTuning.status = event; guidedTuning.lastSeen = Date.now(); guidedTuning.disconnected = false;
       const expectedResults = event.totalResults ? (event.totalResults - (event.lostResults || 0)) : 0;
@@ -10121,15 +10137,17 @@ function updateWriteButtonText() {
         motor_stalled:'A motor did not spin as expected.', low_voltage:'Battery voltage was too low.', fault_or_timeout:'A fault, transition timeout, or configuration change stopped the run.' };
       if (event.state === 'running') guidedMessage(`${guidedFfMessage(event) || guidedLabels[index] || 'PID measurement'} · ${event.target.toLocaleString()} RPM · ${event.phase === 'PREP' ? 'Gliding to launch baseline' : event.phase === 'HOLD' ? 'Measuring steady speed' : 'Production launch / settling'} · ${event.stage === 'select_pid' ? 'Candidate' : 'Pass'} ${event.pass || 1} · ${event.done}/${event.total} paired measurements`);
       else if (event.state === 'gliding') guidedMessage(`${reasons[event.reason] || (event.reason === 'cancelled' ? 'Cancellation requested.' : 'Measurements complete.')} Gliding down; waiting for both motors to stop.`);
-      else if (event.state === 'saved') guidedMessage(resultsPending ? `Profile saved; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : 'Both stages passed. The validated feedforward and PID profile is saved on the blaster.');
-      else if (event.state === 'cancelled') guidedMessage('Cancelled (from the configurator or by holding FIRE on the blaster). Glide-down finished and the prior tune was restored.');
-      else if (event.state === 'failed') guidedMessage(`${reasons[event.reason] || 'Tuning failed.'}${event.detail ? ` (${event.detail})` : ''} The prior tune was restored. Review the results and blaster setup before retrying.`);
+      else if (event.state === 'saved') guidedMessage(resultsPending ? `Profile saved; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : `Both stages passed. The validated feedforward and PID profile is saved on the blaster.${guidedWarnText(event.warn)}`);
+      else if (event.state === 'cancelled') guidedMessage(`Cancelled (from the configurator or by holding FIRE on the blaster). Glide-down finished and the prior tune is back in use.${guidedResumable(event) ? ' The run\'s progress is kept: continue it below or start over.' : ''}`);
+      else if (event.state === 'failed') guidedMessage(`${reasons[event.reason] || 'Tuning failed.'}${event.detail ? ` (${event.detail})` : ''} The prior tune is back in use.${guidedResumable(event) ? ' The run\'s progress is kept: retry or re-tune just this point below, or start over.' : ' Review the results and blaster setup before starting over.'}`);
       else if (event.state === 'complete') guidedMessage(resultsPending ? `Measurement complete; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : 'Measurement complete. Suggestions are available; no automatic save was made.');
       else guidedMessage(event.algo === 1 ? 'Ready. Tune Blaster measures and validates FF, then tunes and validates PID.' : 'Select RPM PID (controller algorithm 1) in settings before tuning.');
       const outcome = guidedElement('guided_outcome');
       if (outcome) {
         if (event.state === 'saved') outcome.textContent = resultsPending ? 'Profile saved · Receiving remaining results...' : 'FF passed · PID passed · Profile saved on the blaster.';
-        else if (event.state === 'failed') outcome.textContent = 'Run failed · Prior profile restored. Inspect the measurements for the failed stage.';
+        else if (event.state === 'failed') outcome.textContent = guidedResumable(event)
+          ? 'Run stopped · Prior profile in use · Progress kept: retry or re-tune the failed point, or start over.'
+          : 'Run failed · Prior profile restored. Inspect the measurements for the failed stage.';
         else if (event.state === 'cancelled') outcome.textContent = 'Run cancelled · Prior profile restored after glide-down.';
         else if (event.state === 'complete') outcome.textContent = 'Diagnostic measurement complete · Suggestions only; no automatic save.';
         else if (guidedTuning.busy) outcome.textContent = 'Run in progress · Final validation and save are pending.';
@@ -10177,6 +10195,63 @@ function updateWriteButtonText() {
         guidedMessage(error.message);
       } finally { guidedTuning.pending=false; guidedButtons(); }
     }
+    const GUIDED_POINTS = [2000, 5000, 15000, 20000, 32000];
+    function guidedResumable(event) { return !!event && ['retry', 'retune'].includes(event.resume); }
+    function guidedWarnText(mask) {
+      const points = GUIDED_POINTS.filter((_, i) => (Number(mask) || 0) & (1 << i));
+      return points.length ? ` Warning: the launch at ${points.map(p => p.toLocaleString()).join(' and ')} RPM missed a limit. No RPM preset uses ${points.length > 1 ? 'those speeds' : 'that speed'}, so the tune was kept; see the results table.` : '';
+    }
+    // Shown when the firmware kept a stopped run's progress (TUNING status "resume").
+    function renderGuidedResume() {
+      const box = guidedElement('guided_resume'); if (!box) return;
+      const st = guidedTuning.status;
+      const show = !!st && !guidedTuning.busy && !guidedTuning.disconnected && ['retry', 'retune', 'stale'].includes(st.resume);
+      box.style.display = show ? '' : 'none';
+      const start = guidedElement('guided_start');
+      if (start) start.textContent = show ? 'Start over' : 'Tune Blaster';
+      if (!show) return;
+      const stageLabel = guidedLabels[guidedStages.indexOf(st.resumeStage)] || st.resumeStage;
+      const target = Number(st.resumeTarget || 0).toLocaleString();
+      const text = guidedElement('guided_resume_text');
+      if (st.resume === 'stale') {
+        text.textContent = 'The stopped run cannot continue: launch, motor or preset settings changed since it stopped. Start over, or discard it.';
+      } else {
+        text.textContent = `Stopped at ${stageLabel} · ${target} RPM. Everything measured before that is kept (in the blaster's memory until it is powered off). ` +
+          (st.resume === 'retune'
+            ? (st.resumeStage === 'validate_ff'
+                ? `Retry repeats that check. Re-tune measures the ${target} RPM feedforward point again, then checks it.`
+                : `Retry repeats that launch. Re-tune tunes PID at ${target} RPM again, chooses the gain set again, then re-validates every target.`)
+            : 'Retry continues from the measurement that stopped.');
+      }
+      const busy = guidedTuning.busy || guidedTuning.pending || guidedTuning.disconnected;
+      guidedElement('guided_resume_retry').disabled = busy || st.resume === 'stale';
+      guidedElement('guided_resume_retry').textContent = `Retry ${target} RPM test`;
+      const retune = guidedElement('guided_resume_retune');
+      retune.style.display = st.resume === 'retune' ? '' : 'none';
+      retune.disabled = busy;
+      retune.textContent = st.resumeStage === 'validate_ff' ? `Re-measure ${target} RPM FF, then check it` : `Re-tune ${target} RPM, then re-validate`;
+      guidedElement('guided_resume_discard').disabled = busy;
+    }
+    async function resumeGuidedTuning(mode) {
+      if (guidedTuning.busy || guidedTuning.pending || !['retry', 'retune'].includes(mode)) return;
+      if (!port || !port.writable) return guidedMessage('Connect your blaster first.');
+      guidedTuning.pending = true; guidedButtons();
+      try {
+        const previous = await requestGuidedStatus();
+        if (!guidedResumable(previous)) throw new Error(previous.resume === 'stale'
+          ? 'Settings changed since the run stopped; start over.' : 'There is no stopped run to continue.');
+        await sendSerialCommand('stream fast');
+        await sendSerialCommand(`autotune resume ${mode}`);
+        const status = await requestGuidedStatus(s => ['running', 'gliding'].includes(s.state));
+        if (!['running', 'gliding'].includes(status.state)) throw new Error('The blaster did not continue the run. Release triggers, wait for idle, and check the serial log.');
+      } catch (error) { guidedMessage(error.message); }
+      finally { guidedTuning.pending = false; guidedButtons(); }
+    }
+    async function discardGuidedTuning() {
+      if (!port || !port.writable) return guidedMessage('Connect your blaster first.');
+      await sendSerialCommand('autotune discard');
+      await refreshGuidedTuning();
+    }
     async function cancelGuidedTuning() {
       if (!port || !port.writable) return guidedDisconnected();
       guidedMessage('Cancellation requested. Waiting for the blaster to finish glide-down.');
@@ -10188,10 +10263,26 @@ function updateWriteButtonText() {
       if (guidedTuning.busy) guidedMessage('USB/status connection lost. The firmware may still be tuning. Reconnect and refresh status; earlier graph data is retained.');
       guidedButtons();
     }
+    // Everything the page saw during the run, for review after the fact: live samples (with the tuning
+    // phase and test target at the time), every status change (state/stage/phase/target/pass/reason,
+    // board time in ms), the per-motor result lines, stage markers and the run options.
     function exportGuidedTuning() {
-      const blob=new Blob([JSON.stringify({ version:1,status:guidedTuning.status,results:guidedTuning.results,
-        stages:guidedTuning.markers,samples:guidedTuning.samples },null,2)],{type:'application/json'});
-      const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download='byte-blaster-tuning-run.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+      const st = guidedTuning.status || {};
+      const run = {
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        firmware: (typeof connectedBlasterVersion !== 'undefined' && connectedBlasterVersion) ||
+                  document.getElementById('sidebar_connected_version_val')?.textContent?.trim() || null,
+        session: st.session ?? null,
+        options: { baseline: guidedElement('guided_baseline')?.value, passes: Number(guidedElement('guided_passes')?.value) },
+        status: guidedTuning.status, events: guidedTuning.events, results: guidedTuning.results,
+        stages: guidedTuning.markers, samples: guidedTuning.samples,
+        sampleFields: 'x=s since first board sample; target=stream target; tuneTarget/phase/pass/stage=last TUNING status; lim1/lim2=limiter bits',
+      };
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const blob=new Blob([JSON.stringify(run,null,1)],{type:'application/json'});
+      const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url;
+      a.download=`byte-blaster-tuning-${st.session ?? 'run'}-${st.state || 'partial'}-${stamp}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
     setInterval(() => {
       if (guidedTuning.busy && !guidedTuning.pending && !dartRecovery.active && !dartRecovery.tuning && Date.now()-guidedTuning.lastSeen>3000) guidedDisconnected();
