@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.23</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.24</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -3836,8 +3836,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.23";
-    window.CONFIGURATOR_VERSION = "1.1.23";
+    const CONFIGURATOR_VERSION = "v1.1.24";
+    window.CONFIGURATOR_VERSION = "1.1.24";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -5489,6 +5489,12 @@ function updateWriteButtonText() {
     }
     window.exportFullBlasterProfile = exportFullBlasterProfile;
 
+    function blasterSettingWritePriority(key) {
+      // All RPM limits must be restored before any preset or idle RPM value.
+      return key === 'max_rpm' ? -4 : key === 'motor_kv' ? -3 : key === 'cells' ? -2 :
+        key === 'rpm_preset_count' ? -1 : key === 'always_on' ? 1 : 0;
+    }
+
     function validateBlasterProfile(data) {
       if (!data || data.format !== 'ByteBlasterProfile_v1') throw new Error('Unsupported Byte Blaster profile format');
       const settings = data.settings ?? {};
@@ -5522,34 +5528,38 @@ function updateWriteButtonText() {
         const data = JSON.parse(text);
         const curve = validateBlasterProfile(data); // validate every section before writing anything
         const connected = !!(port && port.writable);
+        const connectionPort = port, connectionGeneration = serialConnectionGeneration;
         if (data.settings) {
           if (typeof logToConsole === 'function') logToConsole("Importing settings from profile JSON...");
           const s = data.settings;
-          const entries = Object.entries(s).sort(([a], [b]) => {
-            const priority = key => key === 'max_rpm' ? -2 : key === 'rpm_preset_count' ? -1 : key === 'always_on' ? 1 : 0;
-            return priority(a) - priority(b);
-          });
+          const entries = Object.entries(s).sort(([a], [b]) => blasterSettingWritePriority(a) - blasterSettingWritePriority(b));
           for (const [k, v] of entries) {
             if (['firmware_version', 'pcb_version'].includes(k)) continue;
             // Always On is enabled only after gains/curves have also been restored.
             if (k === 'always_on' && connected) continue;
-            if (connected) await sendAcknowledgedSetting(k, v);
+            if (connected) {
+              assertSerialConnection(connectionPort, connectionGeneration);
+              await sendAcknowledgedSetting(k, v);
+            }
             if (typeof updateBlasterSettingControl === 'function') updateBlasterSettingControl(k, v);
           }
-          if (port && port.writable) {
+          if (connected) {
+            assertSerialConnection(connectionPort, connectionGeneration);
             await sendSerialCommand("settings show");
             await new Promise(r => setTimeout(r, 100));
           }
         }
         if (data.pid) {
           if (typeof logToConsole === 'function') logToConsole("Importing PID gains from profile JSON...");
-          for (const [k, v] of Object.entries(data.pid)) {
-            if (typeof updateBlasterSettingControl === 'function') updateBlasterSettingControl(k, v);
-          }
-          if (connected) {
-            for (const m of [1, 2]) {
+          for (const m of [1, 2]) {
+            if (connected) {
+              assertSerialConnection(connectionPort, connectionGeneration);
               await sendAcknowledgedCommand(`pid set m${m} ${Number(data.pid[`pid${m}_kp`])} ${Number(data.pid[`pid${m}_ki`])} ${Number(data.pid[`pid${m}_ff`])}`,
                 `pid set m${m}: ok`, 'pid set:');
+            }
+            for (const term of ['kp', 'ki', 'ff']) {
+              const key = `pid${m}_${term}`;
+              updateBlasterSettingControl(key, data.pid[key]);
             }
           }
         }
@@ -5557,14 +5567,22 @@ function updateWriteButtonText() {
           activeLaunchCurveData = curve;
           renderLaunchCurveChart();
           if (connected) {
+            assertSerialConnection(connectionPort, connectionGeneration);
             await burnLaunchCurveToBlaster(false);
             // Curve upload selects LUT mode; retain an explicitly exported mode/duration.
             for (const key of ['launch_trajectory', 'launch_time_ms']) {
-              if (data.settings?.[key] !== undefined) await sendAcknowledgedSetting(key, data.settings[key]);
+              if (data.settings?.[key] !== undefined) {
+                assertSerialConnection(connectionPort, connectionGeneration);
+                await sendAcknowledgedSetting(key, data.settings[key]);
+              }
             }
           }
         }
-        if (connected && data.settings?.always_on !== undefined) await sendAcknowledgedSetting('always_on', data.settings.always_on);
+        if (connected && data.settings?.always_on !== undefined) {
+          assertSerialConnection(connectionPort, connectionGeneration);
+          await sendAcknowledgedSetting('always_on', data.settings.always_on);
+          updateBlasterSettingControl('always_on', data.settings.always_on);
+        }
         if (data.hud_layout && Array.isArray(data.hud_layout) && typeof HUD_WIDGETS !== 'undefined') {
           if (typeof logToConsole === 'function') logToConsole("Importing HUD layout from profile JSON...");
           HUD_WIDGETS.length = 0;
@@ -5634,39 +5652,45 @@ function updateWriteButtonText() {
       } else {
         keysToWrite = Array.from(dirtySettings).filter(key => key !== 'launch_boost');
       }
-      keysToWrite.sort((a, b) => {
-        const priority = key => key === 'max_rpm' ? -2 : key === 'rpm_preset_count' ? -1 : key === 'always_on' ? 1 : 0;
-        return priority(a) - priority(b);
-      });
+      keysToWrite.sort((a, b) => blasterSettingWritePriority(a) - blasterSettingWritePriority(b));
+      const plannedWrites = keysToWrite.map(key => {
+        const el = document.getElementById('set_' + key) || document.getElementById(key + '_input') || document.getElementById('hud_' + key + '_input');
+        if (!el) return null;
+        return { key, el, value: el.type === 'checkbox' ? (el.checked ? '1' : '0') : String(el.value) };
+      }).filter(Boolean);
+      // Capture one batch before awaiting USB, and preserve unwritten values if
+      // rewriting all settings fails or the user edits a control during a write.
+      plannedWrites.forEach(({ key }) => dirtySettings.add(key));
+      updateWriteButtonText();
+      const connectionPort = port, connectionGeneration = serialConnectionGeneration;
       
       logToConsole(`Writing ${keysToWrite.length} configuration settings to physical blaster EEPROM...`);
       
-      for (const key of keysToWrite) {
-        const el = document.getElementById('set_' + key) || document.getElementById(key + '_input') || document.getElementById('hud_' + key + '_input');
-        if (el) {
-          let val = el.value;
-          if (el.type === 'checkbox') {
-            val = el.checked ? '1' : '0';
-          }
-          try {
-            await sendAcknowledgedSetting(key, val);
-          } catch (error) {
-            logToConsole(`Settings write stopped: ${error.message}`, true);
-            alert(`Settings write stopped: ${error.message}\nUnwritten settings remain pending.`);
-            return;
-          }
-          
-          // Remove dirty status for written parameter
+      for (const { key, el, value: val } of plannedWrites) {
+        try {
+          assertSerialConnection(connectionPort, connectionGeneration);
+          await sendAcknowledgedSetting(key, val);
+        } catch (error) {
+          logToConsole(`Settings write stopped: ${error.message}`, true);
+          alert(`Settings write stopped: ${error.message}\nUnwritten settings remain pending.`);
+          return;
+        }
+
+        const currentValue = el.type === 'checkbox' ? (el.checked ? '1' : '0') : String(el.value);
+        if (currentValue === val) {
           dirtySettings.delete(key);
           const row = el.closest('.settings-row');
-          if (row) {
-            row.classList.remove('setting-dirty');
-          }
-          updateWriteButtonText();
-
-          // Tiny delay between commands to avoid buffer overrun
-          await new Promise(r => setTimeout(r, 60));
+          if (row) row.classList.remove('setting-dirty');
         }
+        updateWriteButtonText();
+
+        // Tiny delay between commands to avoid buffer overrun
+        await new Promise(r => setTimeout(r, 60));
+      }
+      if (dirtySettings.size > 0) {
+        logToConsole('Write sequence finished; newer or unwritten edits remain pending.');
+        alert('Write sequence finished. Newer or unwritten edits remain pending; write again to apply them.');
+        return;
       }
       logToConsole("Settings write sequence completed. Configuration saved to board EEPROM!");
       alert("Settings written successfully to board EEPROM!");
@@ -6902,6 +6926,7 @@ function updateWriteButtonText() {
     //            WEB SERIAL TELEMETRY
     // ==========================================
     let port = null;
+    let serialConnectionGeneration = 0;
     let dirtySettings = new Set();
     let keepReading = false;
     let serialReader = null;
@@ -7291,6 +7316,7 @@ function updateWriteButtonText() {
           port = await navigator.serial.requestPort();
         }
         logToConsole("Opening port at 115200 baud...");
+        ++serialConnectionGeneration;
         await port.open({ baudRate: 115200 });
         
         logToConsole("Serial port connected!");
@@ -7301,7 +7327,14 @@ function updateWriteButtonText() {
 
         // Query static state on connect. Streaming is opt-in because live USB
         // writes can disturb launch timing on the RP2040.
+        const connectionPort = port, connectionGeneration = serialConnectionGeneration;
+        const sendForConnectedPort = sendSerialCommand;
         setTimeout(async () => {
+          try {
+          const sendSerialCommand = command => {
+            assertSerialConnection(connectionPort, connectionGeneration);
+            return sendForConnectedPort(command, { requireSuccess: true });
+          };
           const epochSec = Math.floor(Date.now() / 1000);
           await sendSerialCommand(`time set ${epochSec}`);
           await new Promise(r => setTimeout(r, 80));
@@ -7319,6 +7352,11 @@ function updateWriteButtonText() {
           await refreshGuidedTuning();
           logToConsole("Board settings and diagnostic fault history loaded into the UI.");
           logToConsole("Streaming is off. Use Basic/Full or Slow/Fast only while capturing diagnostics.");
+          } catch (error) {
+            if (port === connectionPort && serialConnectionGeneration === connectionGeneration) {
+              logToConsole(`Board initialization stopped: ${error.message}`, true);
+            }
+          }
         }, 500);
 
         readSerialLoop();
@@ -7349,6 +7387,9 @@ function updateWriteButtonText() {
     }
 
     async function disconnectSerial() {
+      ++serialConnectionGeneration;
+      for (const waiter of serialResponseWaiters) waiter.reject(new Error('Serial disconnected'));
+      if (launchCurveResponseWaiter) launchCurveResponseWaiter.reject(new Error('Serial disconnected'));
       guidedDisconnected();
       keepReading = false;
       logToConsole("Closing connection...");
@@ -7414,8 +7455,18 @@ function updateWriteButtonText() {
     const serialResponseWaiters = new Set();
     let serialAcknowledgementQueue = Promise.resolve();
 
+    function assertSerialConnection(connectionPort, generation) {
+      if (!connectionPort || port !== connectionPort || !port.writable || serialConnectionGeneration !== generation) {
+        throw new Error('Serial connection changed; reconnect and retry the operation.');
+      }
+    }
+
     function sendAcknowledgedCommand(command, successPrefix, errorPrefix) {
-      const operation = serialAcknowledgementQueue.then(() => requestAcknowledgedCommand(command, successPrefix, errorPrefix));
+      const connectionPort = port, generation = serialConnectionGeneration;
+      const operation = serialAcknowledgementQueue.then(() => {
+        assertSerialConnection(connectionPort, generation);
+        return requestAcknowledgedCommand(command, successPrefix, errorPrefix);
+      });
       serialAcknowledgementQueue = operation.catch(() => {});
       return operation;
     }
@@ -7449,18 +7500,20 @@ function updateWriteButtonText() {
     }
 
     async function sendAcknowledgedSetting(key, value) {
+      if (typeof value === 'boolean') value = value ? 1 : 0;
       if (!/^[a-z][a-z0-9_]*$/.test(key) || /[\r\n\x00]/.test(String(value))) throw new Error('Invalid setting name/value');
       return sendAcknowledgedCommand(`settings set ${key} ${value}`, `settings set ${key}: ok`, 'settings set:');
     }
 
     async function sendSerialCommand(cmd, { requireSuccess = false } = {}) {
+      const connectionPort = port, generation = serialConnectionGeneration;
       if (!port || !port.writable) {
         logToConsole("Cannot write: serial disconnected", true);
         if (requireSuccess) throw new Error('Serial disconnected');
         return;
       }
       const write = serialWriteQueue.then(async () => {
-        if (!port || !port.writable) throw new Error('Serial disconnected');
+        assertSerialConnection(connectionPort, generation);
         let writer = null;
         let timeout;
         try {
@@ -7845,7 +7898,7 @@ function updateWriteButtonText() {
 
       // Match dart_detect query status:
       // dart_detect: enabled=1 drop_rpm=800 window_ms=50 eff_window=50 min_rpm=6000 last_drop=1200 last_detected=1 darts_detected=12 dry_fires=1
-      const dartStatusMatch = line.match(/^dart_detect:\s*(?:enabled=([01]))?\s*(?:drop_rpm=(\d+))?\s*(?:window_ms=(\d+))?\s*(?:eff_window=(\d+))?\s*(?:min_rpm=(\d+))?\s*(?:last_drop=(\d+))?\s*(?:last_detected=([01]))?\s*(?:darts_detected=(\d+))?\s*(?:dry_fires=(\d+))?/i);
+      const dartStatusMatch = line.match(/^dart_detect(?::\s*enabled)?=([01])\s*(?:drop(?:_rpm)?=(\d+))?\s*(?:window(?:_ms)?=(\d+))?\s*(?:eff_window=(\d+))?\s*(?:min_rpm=(\d+))?\s*(?:last_drop=(\d+))?\s*(?:last_detected=([01]))?\s*(?:darts_detected=(\d+))?\s*(?:dry_fires=(\d+))?/i);
       if (dartStatusMatch && (dartStatusMatch[1] !== undefined || dartStatusMatch[2] !== undefined)) {
         if (dartStatusMatch[1] !== undefined) updateDartDetectState(dartStatusMatch[1] === '1');
         if (dartStatusMatch[2] !== undefined) {
