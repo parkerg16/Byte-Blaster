@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.22</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.23</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -1717,7 +1717,7 @@
 
         <div style="padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
           <div style="margin-bottom: 1rem; line-height: 1.45;">
-            Visualizes the mathematical RPM trajectory and inferred current profile from the <code>brushless_motor_thermal_calculator</code>. By shaping acceleration over the 150ms launch window, inrush stall spikes and stator copper heating ($P = I^2 R$) are slashed while eliminating battery voltage brownouts.
+            Imports the calculator's RPM reference and duration. The curve scales to the blaster's active RPM preset. Current, duty and heat values are model predictions; the motors follow through feedback and firmware limits. The blaster's displayed firing time also includes waiting for measured wheel speed and the firing gates.
           </div>
 
           <!-- Key Metrics Grid -->
@@ -1725,7 +1725,7 @@
             <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.6rem; text-align: center;">
               <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase;">Simulated Spin-up</div>
               <div id="lc_stat_time" style="font-size: 1.15rem; font-weight: 700; color: #86efac; margin-top: 2px;">149.5 ms</div>
-              <div style="font-size: 0.65rem; color: #64748b;">Target: 150 ms</div>
+              <div id="lc_stat_deadline" style="font-size: 0.65rem; color: #64748b;">Requested deadline: 150 ms</div>
             </div>
             <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.6rem; text-align: center;">
               <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase;">Stator Heat</div>
@@ -2382,12 +2382,12 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">17.</span> Glide Max Decel</span>
-                  <span><span id="val_set_glide_rpm_per_s">16,000 RPM/s</span></span>
+                  <span><span class="settings-row-num">17.</span> Glide Rate</span>
+                  <span><span id="val_set_glide_rpm_per_s">8,000 RPM/s</span></span>
                 </div>
-                <div class="settings-row-desc">The glide lets the flywheels coast on their own drag (near-zero current, eRPM kept alive). If they slow faster than this rate, the glide's light slip braking is removed. Also sets the fallback decay if RPM telemetry drops out.</div>
+                <div class="settings-row-desc">How fast both flywheels wind down after you release rev. They follow one smooth shared curve, so they stay at the same speed the whole way (under about 1 A of drive or braking). 8,000 RPM/s takes about 4 s from 32,000 RPM; higher stops sooner. Also sets the fallback decay if RPM telemetry drops out.</div>
                 <div class="settings-row-control">
-                  <input type="range" id="set_glide_rpm_per_s" min="12000" max="52000" step="1000" value="16000" oninput="syncBlasterField('glide_rpm_per_s', this.value, 'range')">
+                  <input type="range" id="set_glide_rpm_per_s" min="3000" max="52000" step="1000" value="8000" oninput="syncBlasterField('glide_rpm_per_s', this.value, 'range')">
                 </div>
               </div>
 
@@ -3836,8 +3836,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.22";
-    window.CONFIGURATOR_VERSION = "1.1.22";
+    const CONFIGURATOR_VERSION = "v1.1.23";
+    window.CONFIGURATOR_VERSION = "1.1.23";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -5307,9 +5307,16 @@ function updateWriteButtonText() {
         return;
       }
       
-      // Reset simulator physics parameters to default
+      if (port && port.writable) {
+        try {
+          await sendAcknowledgedCommand('settings defaults', 'settings defaults: ok', 'settings defaults:');
+        } catch (error) {
+          alert(`Factory reset failed: ${error.message}`);
+          return;
+        }
+      }
+      // Change local values only once the board has accepted the reset.
       loadPreset('default');
-      
       // Canonical factory defaults matching firmware
       const factoryDefaults = {
         rpm_name0: "HVZ",
@@ -5337,7 +5344,7 @@ function updateWriteButtonText() {
         startup_rpm: 2500,
         batt_cutoff_cell: 2800,
         batt_warn_cell: 3300,
-        glide_rpm_per_s: 16000,
+        glide_rpm_per_s: 8000,
         glide_step_down_x10: 60,
         post_shot_hold: 100,
         trigger_mode: 0,
@@ -5404,8 +5411,6 @@ function updateWriteButtonText() {
       logToConsole("Restoring factory defaults on physical blaster EEPROM...");
       
       // Send single atomic factory reset command supported by firmware
-      await sendSerialCommand("settings defaults");
-      await new Promise(r => setTimeout(r, 250));
       
       // Read back and sync all fresh settings directly from blaster EEPROM
       await readBlasterSettings();
@@ -5484,26 +5489,52 @@ function updateWriteButtonText() {
     }
     window.exportFullBlasterProfile = exportFullBlasterProfile;
 
+    function validateBlasterProfile(data) {
+      if (!data || data.format !== 'ByteBlasterProfile_v1') throw new Error('Unsupported Byte Blaster profile format');
+      const settings = data.settings ?? {};
+      if (typeof settings !== 'object' || Array.isArray(settings)) throw new Error('Profile settings must be an object');
+      for (const [key, value] of Object.entries(settings)) {
+        if (!/^[a-z][a-z0-9_]*$/.test(key) || !['string', 'number', 'boolean'].includes(typeof value) ||
+            /[\x00-\x1f\x7f]/.test(String(value))) throw new Error(`Invalid profile setting: ${key}`);
+        if (!['firmware_version', 'pcb_version', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label'].includes(key) &&
+            (String(value).trim() === '' || !Number.isFinite(Number(value)))) throw new Error(`Invalid numeric setting: ${key}`);
+      }
+      if (data.pid) {
+        for (const motor of [1, 2]) for (const [gain, min, max] of [['kp', .0005, .15], ['ki', .00005, .05], ['ff', .4, 1.6]]) {
+          const value = data.pid[`pid${motor}_${gain}`];
+          if (value === undefined || String(value).trim() === '' || !Number.isFinite(Number(value)) || Number(value) < min || Number(value) > max) {
+            throw new Error(`Invalid or missing PID gain: pid${motor}_${gain}`);
+          }
+        }
+      }
+      const curve = data.launch_curve ?? data.ff; // v1 exports historically named their launch curve "ff".
+      if (curve) validateLaunchCurve(curve);
+      if (data.hud_layout && (!Array.isArray(data.hud_layout) || data.hud_layout.length > 8 ||
+          data.hud_layout.some(w => !w || typeof w !== 'object' || Array.isArray(w)))) throw new Error('Invalid HUD layout');
+      return curve;
+    }
+
     async function importFullBlasterProfile(e) {
       const file = e.target.files[0];
       if (!file) return;
       try {
         const text = await file.text();
         const data = JSON.parse(text);
-        if (!data.format || !data.format.startsWith("ByteBlasterProfile")) {
-          alert("Invalid profile file format. Must be a valid Byte Blaster Profile JSON.");
-          return;
-        }
+        const curve = validateBlasterProfile(data); // validate every section before writing anything
+        const connected = !!(port && port.writable);
         if (data.settings) {
           if (typeof logToConsole === 'function') logToConsole("Importing settings from profile JSON...");
           const s = data.settings;
-          for (const [k, v] of Object.entries(s)) {
+          const entries = Object.entries(s).sort(([a], [b]) => {
+            const priority = key => key === 'max_rpm' ? -2 : key === 'rpm_preset_count' ? -1 : key === 'always_on' ? 1 : 0;
+            return priority(a) - priority(b);
+          });
+          for (const [k, v] of entries) {
             if (['firmware_version', 'pcb_version'].includes(k)) continue;
+            // Always On is enabled only after gains/curves have also been restored.
+            if (k === 'always_on' && connected) continue;
+            if (connected) await sendAcknowledgedSetting(k, v);
             if (typeof updateBlasterSettingControl === 'function') updateBlasterSettingControl(k, v);
-            if (port && port.writable) {
-              await sendSerialCommand(`settings set ${k} ${v}`);
-              await new Promise(r => setTimeout(r, 40));
-            }
           }
           if (port && port.writable) {
             await sendSerialCommand("settings show");
@@ -5515,13 +5546,25 @@ function updateWriteButtonText() {
           for (const [k, v] of Object.entries(data.pid)) {
             if (typeof updateBlasterSettingControl === 'function') updateBlasterSettingControl(k, v);
           }
-          if (port && port.writable) {
-            await sendSerialCommand(`pid set 1 ${data.pid.pid1_kp || 0.005} ${data.pid.pid1_ki || 0.002} ${data.pid.pid1_ff || 1.0}`);
-            await new Promise(r => setTimeout(r, 60));
-            await sendSerialCommand(`pid set 2 ${data.pid.pid2_kp || 0.005} ${data.pid.pid2_ki || 0.002} ${data.pid.pid2_ff || 1.0}`);
-            await new Promise(r => setTimeout(r, 60));
+          if (connected) {
+            for (const m of [1, 2]) {
+              await sendAcknowledgedCommand(`pid set m${m} ${Number(data.pid[`pid${m}_kp`])} ${Number(data.pid[`pid${m}_ki`])} ${Number(data.pid[`pid${m}_ff`])}`,
+                `pid set m${m}: ok`, 'pid set:');
+            }
           }
         }
+        if (curve) {
+          activeLaunchCurveData = curve;
+          renderLaunchCurveChart();
+          if (connected) {
+            await burnLaunchCurveToBlaster(false);
+            // Curve upload selects LUT mode; retain an explicitly exported mode/duration.
+            for (const key of ['launch_trajectory', 'launch_time_ms']) {
+              if (data.settings?.[key] !== undefined) await sendAcknowledgedSetting(key, data.settings[key]);
+            }
+          }
+        }
+        if (connected && data.settings?.always_on !== undefined) await sendAcknowledgedSetting('always_on', data.settings.always_on);
         if (data.hud_layout && Array.isArray(data.hud_layout) && typeof HUD_WIDGETS !== 'undefined') {
           if (typeof logToConsole === 'function') logToConsole("Importing HUD layout from profile JSON...");
           HUD_WIDGETS.length = 0;
@@ -5531,10 +5574,11 @@ function updateWriteButtonText() {
           if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
           if (typeof scheduleHudLiveMirror === 'function') scheduleHudLiveMirror(true);
         }
-        if (typeof logToConsole === 'function') logToConsole("Profile JSON imported successfully!");
-        alert("Profile imported successfully!");
+        const message = connected ? 'Profile settings and gains accepted by blaster.' : 'Profile loaded locally; connect and write settings to apply it.';
+        logToConsole(message);
+        alert(message + (data.hud_layout ? '\nHUD layout loaded in editor; save the HUD layout to persist it.' : ''));
       } catch (err) {
-        alert(`Failed to import profile: ${err.message}`);
+        alert(`Profile import stopped: ${err.message}\nEarlier accepted settings may already be applied. Read board settings before retrying.`);
       } finally {
         e.target.value = '';
       }
@@ -5590,6 +5634,10 @@ function updateWriteButtonText() {
       } else {
         keysToWrite = Array.from(dirtySettings).filter(key => key !== 'launch_boost');
       }
+      keysToWrite.sort((a, b) => {
+        const priority = key => key === 'max_rpm' ? -2 : key === 'rpm_preset_count' ? -1 : key === 'always_on' ? 1 : 0;
+        return priority(a) - priority(b);
+      });
       
       logToConsole(`Writing ${keysToWrite.length} configuration settings to physical blaster EEPROM...`);
       
@@ -5600,7 +5648,13 @@ function updateWriteButtonText() {
           if (el.type === 'checkbox') {
             val = el.checked ? '1' : '0';
           }
-          await sendSerialCommand(`settings set ${key} ${val}`);
+          try {
+            await sendAcknowledgedSetting(key, val);
+          } catch (error) {
+            logToConsole(`Settings write stopped: ${error.message}`, true);
+            alert(`Settings write stopped: ${error.message}\nUnwritten settings remain pending.`);
+            return;
+          }
           
           // Remove dirty status for written parameter
           dirtySettings.delete(key);
@@ -5799,10 +5853,10 @@ function updateWriteButtonText() {
       const data = activeLaunchCurveData;
       const targetRpm = data.targetRpm || 32000;
       const deadlineMs = data.targetDeadlineMs || 150;
-      const actualMs = data.simulatedSpinupMs || 149.5;
+      const actualMs = Math.round(data.launchDurationMs ?? data.simulatedSpinupMs ?? data.targetDeadlineMs ?? 150);
 
       // Extract RPM points
-      const rpmPoints = data.trajectoryKnots.map(k => ({ x: k.timeMs, y: k.targetRpm }));
+      const rpmPoints = data.normalizedRpmTable16.map((fraction, i) => ({ x: i / 15 * actualMs, y: Math.round(fraction * targetRpm) }));
 
       // Build Analytical S-Curve Comparison
       const scurvePoints = [];
@@ -5967,6 +6021,7 @@ function updateWriteButtonText() {
     function updateLaunchCurveMetricsUI() {
       const data = activeLaunchCurveData;
       const statTime = document.getElementById('lc_stat_time');
+      const statDeadline = document.getElementById('lc_stat_deadline');
       const statHeat = document.getElementById('lc_stat_heat');
       const statPeak = document.getElementById('lc_stat_peak');
       const statVolt = document.getElementById('lc_stat_voltage');
@@ -5975,12 +6030,13 @@ function updateWriteButtonText() {
       const activeBadge = document.getElementById('launch_curve_active_badge');
 
       if (statTime) statTime.textContent = (data.simulatedSpinupMs || data.targetDeadlineMs || 150).toFixed(1) + ' ms';
+      if (statDeadline) statDeadline.textContent = `Requested deadline: ${data.targetDeadlineMs ?? 150} ms`;
       if (statHeat) statHeat.textContent = (data.thermalMetrics?.motorHeatJoulesPerMotor || 0).toFixed(1) + ' J';
       if (statPeak) statPeak.textContent = (data.thermalMetrics?.peakCurrentA || 0).toFixed(1) + ' A';
       if (statVolt) statVolt.textContent = (data.thermalMetrics?.minBusVoltage || data.batteryContext?.configuredVoltage || 25.2).toFixed(2) + ' V';
       if (statCells) statCells.textContent = `${data.batteryContext?.approxCells || 6}S Pack (${data.batteryContext?.configuredVoltage || 25.2}V)`;
       if (statStrat) statStrat.textContent = data.profileStrategy || 'optimized';
-      if (activeBadge) activeBadge.textContent = `Plays over ${Math.round(data.simulatedSpinupMs || data.targetDeadlineMs || 150)} ms (${(data.targetRpm || 32000).toLocaleString()} RPM)`;
+      if (activeBadge) activeBadge.textContent = `Curve reference: ${Math.round(data.launchDurationMs ?? data.simulatedSpinupMs ?? data.targetDeadlineMs ?? 150)} ms; scales to active blaster RPM preset`;
 
       // Populate Knots Table
       const tbody = document.getElementById('launch_knots_table_body');
@@ -5999,18 +6055,79 @@ function updateWriteButtonText() {
       }
     }
 
+    function validateLaunchCurve(data) {
+      if (!data || data.format !== 'ByteBlaster_launch_curve_v1') throw new Error('Unsupported launch curve format');
+      const knots = data.normalizedRpmTable16;
+      if (!Array.isArray(knots) || knots.length !== 16) throw new Error('Launch curve must contain exactly 16 RPM knots');
+      for (let i = 0; i < knots.length; i++) {
+        if (typeof knots[i] !== 'number' || !Number.isFinite(knots[i]) || knots[i] < 0 || knots[i] > 1 ||
+            (i && knots[i] < knots[i - 1])) throw new Error('Launch knots must be finite, nondecreasing numbers between 0 and 1');
+      }
+      if (knots[15] !== 1) throw new Error('Launch curve must end at 100% RPM');
+      const duration = data.launchDurationMs ?? data.simulatedSpinupMs ?? data.targetDeadlineMs;
+      if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < 60 || duration > 300) {
+        throw new Error('Launch curve duration must be between 60 and 300 ms');
+      }
+      return { knots: knots.map(v => Math.round(v * 10000)), durationMs: Math.round(duration) };
+    }
+
+    function setLaunchCurveImportStatus(message, failed = false) {
+      const status = document.getElementById('launch_curve_import_status');
+      if (status) {
+        status.textContent = message;
+        status.style.color = failed ? '#f87171' : '#86efac';
+      }
+    }
+
+    let launchCurveResponseWaiter = null;
+    let launchCurveUploadInProgress = false;
+
+    function handleLaunchCurveSerialResponse(line) {
+      const waiter = launchCurveResponseWaiter;
+      if (!waiter) return false;
+      if (/^launch_curve:\s*(busy|invalid)/i.test(line)) {
+        waiter.reject(new Error(line));
+        return true;
+      }
+      if (waiter.kind === 'ack' && /^launch_curve:\s*ok\b/.test(line)) {
+        waiter.resolve(line);
+        return true;
+      }
+      if (waiter.kind === 'readback' && line.startsWith('launch_curve mode=')) {
+        waiter.resolve(line);
+        return true;
+      }
+      return false;
+    }
+
+    async function requestLaunchCurveResponse(command, kind) {
+      let timer;
+      const response = new Promise((resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('No launch curve acknowledgement/readback received. Check connection and firmware version.')), 4000);
+        launchCurveResponseWaiter = { kind, resolve, reject };
+      });
+      // Attach handlers before writing: a disconnect/write error must not leave an
+      // unhandled rejection or a waiter behind.
+      const write = sendSerialCommand(command, { requireSuccess: true });
+      try {
+        const [, line] = await Promise.all([write, response]);
+        return line;
+      } finally {
+        clearTimeout(timer);
+        launchCurveResponseWaiter = null;
+      }
+    }
+
     async function handleLaunchCurveCardImport(event) {
       const file = event.target.files?.[0];
       if (!file) return;
       try {
         const text = await file.text();
         const data = JSON.parse(text);
-        if (!data.normalizedRpmTable16 || !Array.isArray(data.normalizedRpmTable16)) {
-          throw new Error("Invalid Byte Blaster launch curve JSON: missing normalizedRpmTable16 array");
-        }
+        const curve = validateLaunchCurve(data);
         if (!data.trajectoryKnots || !data.trajectoryKnots.length) {
           const targetRpm = data.targetRpm || 32000;
-          const deadline = data.simulatedSpinupMs || data.targetDeadlineMs || 150;
+          const deadline = curve.durationMs;
           data.trajectoryKnots = data.normalizedRpmTable16.map((frac, idx) => {
             const u = idx / 15.0;
             return {
@@ -6024,42 +6141,45 @@ function updateWriteButtonText() {
         }
         activeLaunchCurveData = data;
         renderLaunchCurveChart();
-        await burnLaunchCurveToBlaster(false);
-        logToConsole(`Loaded Launch Curve JSON: ${data.title || 'Optimized Curve'} (${data.simulatedSpinupMs || data.targetDeadlineMs}ms)`);
-        alert(`Loaded ${data.title || 'Launch Curve'}!\nSpinup: ${data.simulatedSpinupMs || data.targetDeadlineMs}ms\nKnots burned to blaster EEPROM and active mode set to 2.`);
+        if (port && port.writable) {
+          await burnLaunchCurveToBlaster(false);
+          alert(`Launch curve verified on blaster: ${curve.durationMs} ms, 16 knots, Optimizer LUT mode.`);
+        } else {
+          setLaunchCurveImportStatus(`Loaded ${curve.durationMs} ms locally; connect and burn to apply.`);
+          alert(`Loaded ${curve.durationMs} ms curve locally. Connect the blaster and burn the curve to apply it.`);
+        }
+        logToConsole(`Loaded Launch Curve JSON: ${data.title || 'Optimized Curve'} (${curve.durationMs} ms)`);
       } catch (err) {
         console.error(err);
+        setLaunchCurveImportStatus(`Curve import/upload failed: ${err.message}`, true);
         alert(`Import failed: ${err.message}`);
       }
     }
 
     async function handleLaunchCurveImport(event) {
       await handleLaunchCurveCardImport(event);
-      const statusEl = document.getElementById('launch_curve_import_status');
-      if (statusEl && activeLaunchCurveData) {
-        const d = activeLaunchCurveData;
-        const timeLabel = d.simulatedSpinupMs ? `${d.simulatedSpinupMs}ms` : `${d.targetDeadlineMs}ms`;
-        const heatLabel = d.thermalMetrics?.motorHeatJoulesPerMotor ? ` | Heat: ${d.thermalMetrics.motorHeatJoulesPerMotor}J` : '';
-        const peakLabel = d.thermalMetrics?.peakCurrentA ? ` | Peak: ${d.thermalMetrics.peakCurrentA}A` : '';
-        statusEl.textContent = `Loaded ${timeLabel}${heatLabel}${peakLabel}`;
-        statusEl.style.color = "#86efac";
-      }
     }
 
     async function burnLaunchCurveToBlaster(showAlert = true) {
-      if (!port || !port.writable) {
-        if (showAlert) alert("Connect blaster via Web Serial first to write launch curve to EEPROM.");
-        return;
+      if (launchCurveUploadInProgress) {
+        const error = new Error('A launch curve upload is already in progress');
+        if (showAlert) { alert(error.message); return false; }
+        throw error;
       }
+      launchCurveUploadInProgress = true;
       try {
-        const knotsX10000 = activeLaunchCurveData.normalizedRpmTable16.map(v => Math.round(Number(v) * 10000));
-        while (knotsX10000.length < 16) knotsX10000.push(10000);
-        // The curve's own duration: without it the firmware stretched every curve to 150 ms.
-        const durationMs = Math.round(Math.min(300, Math.max(60,
-          Number(activeLaunchCurveData.simulatedSpinupMs) || Number(activeLaunchCurveData.targetDeadlineMs) || 150)));
-        await sendSerialCommand(`launch_curve set ${knotsX10000.join(' ')} ${durationMs}`);
+        if (!port || !port.writable) throw new Error('Connect blaster via Web Serial before burning the curve');
+        const { knots: knotsX10000, durationMs } = validateLaunchCurve(activeLaunchCurveData);
+        setLaunchCurveImportStatus(`Uploading ${durationMs} ms curve; awaiting blaster verification...`);
+        await requestLaunchCurveResponse(`launch_curve set ${knotsX10000.join(' ')} ${durationMs}`, 'ack');
+        const readback = await requestLaunchCurveResponse('launch_curve', 'readback');
+        const match = /^launch_curve mode=(\d+) time_ms=(\d+) accel_ff=(\d+) knots=([\d ]+)$/.exec(readback);
+        const storedKnots = match ? match[4].trim().split(/\s+/).map(Number) : [];
+        if (!match || Number(match[1]) !== 2 || Number(match[2]) !== durationMs ||
+            storedKnots.length !== 16 || storedKnots.some((v, i) => v !== knotsX10000[i])) {
+          throw new Error('Blaster curve readback does not match the uploaded mode, duration or knots');
+        }
         updateBlasterSettingControl('launch_time_ms', durationMs);
-        await sendSerialCommand(`settings set launch_trajectory 2`);
         
         const trajSelect = document.getElementById('set_launch_trajectory');
         if (trajSelect) {
@@ -6067,11 +6187,18 @@ function updateWriteButtonText() {
           syncBlasterField('launch_trajectory', "2", 'select');
         }
         
-        logToConsole("Burned 16 launch knots to blaster EEPROM and switched to Mode 2 (Optimizer LUT).");
-        if (showAlert) alert("Successfully burned 16-knot launch curve to blaster EEPROM!");
+        setLaunchCurveImportStatus(`Verified on blaster: ${durationMs} ms | 16 knots | Optimizer LUT`);
+        logToConsole(`Verified ${durationMs} ms curve and all 16 knots on blaster in Optimizer LUT mode.`);
+        if (showAlert) alert(`Launch curve verified on blaster: ${durationMs} ms, 16 knots, Optimizer LUT mode.`);
+        return true;
       } catch (e) {
         console.error(e);
+        setLaunchCurveImportStatus(`Curve upload failed: ${e.message}`, true);
         if (showAlert) alert("Failed to write to blaster: " + e.message);
+        else throw e;
+        return false;
+      } finally {
+        launchCurveUploadInProgress = false;
       }
     }
 
@@ -7284,14 +7411,58 @@ function updateWriteButtonText() {
 
     let serialWriteQueue = Promise.resolve();
 
-    async function sendSerialCommand(cmd) {
+    const serialResponseWaiters = new Set();
+    let serialAcknowledgementQueue = Promise.resolve();
+
+    function sendAcknowledgedCommand(command, successPrefix, errorPrefix) {
+      const operation = serialAcknowledgementQueue.then(() => requestAcknowledgedCommand(command, successPrefix, errorPrefix));
+      serialAcknowledgementQueue = operation.catch(() => {});
+      return operation;
+    }
+
+    function handleSerialCommandResponse(line) {
+      for (const waiter of serialResponseWaiters) {
+        const result = waiter.match(line);
+        if (result === true) waiter.resolve(line);
+        else if (result instanceof Error) waiter.reject(result);
+      }
+    }
+
+    async function requestAcknowledgedCommand(command, successPrefix, errorPrefix) {
+      let waiter, timer;
+      const response = new Promise((resolve, reject) => {
+        waiter = { resolve, reject, match(line) {
+          if (line.startsWith(successPrefix)) return true;
+          if (line.startsWith(errorPrefix) || line.startsWith('unknown command: ' + command)) return new Error(line);
+          return false;
+        } };
+        serialResponseWaiters.add(waiter);
+        timer = setTimeout(() => reject(new Error(`No acknowledgement for ${command.split(' ').slice(0, 3).join(' ')}. Check connection and firmware.`)), 4000);
+      });
+      try {
+        const [, line] = await Promise.all([sendSerialCommand(command, { requireSuccess: true }), response]);
+        return line;
+      } finally {
+        clearTimeout(timer);
+        serialResponseWaiters.delete(waiter);
+      }
+    }
+
+    async function sendAcknowledgedSetting(key, value) {
+      if (!/^[a-z][a-z0-9_]*$/.test(key) || /[\r\n\x00]/.test(String(value))) throw new Error('Invalid setting name/value');
+      return sendAcknowledgedCommand(`settings set ${key} ${value}`, `settings set ${key}: ok`, 'settings set:');
+    }
+
+    async function sendSerialCommand(cmd, { requireSuccess = false } = {}) {
       if (!port || !port.writable) {
         logToConsole("Cannot write: serial disconnected", true);
+        if (requireSuccess) throw new Error('Serial disconnected');
         return;
       }
-      serialWriteQueue = serialWriteQueue.then(async () => {
-        if (!port || !port.writable) return;
+      const write = serialWriteQueue.then(async () => {
+        if (!port || !port.writable) throw new Error('Serial disconnected');
         let writer = null;
+        let timeout;
         try {
           const encoder = new TextEncoder();
           writer = port.writable.getWriter();
@@ -7301,19 +7472,22 @@ function updateWriteButtonText() {
             logToConsole(`> ${cmd}`);
           }
           const writePromise = writer.write(encoder.encode(cmd + "\r\n"));
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Serial write timed out")), 1500));
+          const timeoutPromise = new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error("Serial write timed out")), 1500); });
           await Promise.race([writePromise, timeoutPromise]);
         } catch (err) {
           logToConsole(`Write error: ${err.message}`, true);
+          throw err;
         } finally {
+          clearTimeout(timeout);
           if (writer) {
             try { writer.releaseLock(); } catch (_) {}
           }
         }
-      }).catch(err => {
+      });
+      serialWriteQueue = write.catch(err => {
         logToConsole(`Serial queue error: ${err.message}`, true);
       });
-      return serialWriteQueue;
+      return requireSuccess ? write : serialWriteQueue;
     }
 
     function updateManualThrottleDisplay() {
@@ -7472,6 +7646,8 @@ function updateWriteButtonText() {
 
     // Parse incoming lines
     function parseSerialLine(line) {
+      handleSerialCommandResponse(line);
+      if (handleLaunchCurveSerialResponse(line)) return;
       if (handleTuningPacket(line)) return;
       if (handleGuidedLine(line)) return;
       if (!line) return;
@@ -9015,18 +9191,27 @@ function updateWriteButtonText() {
         alert("Please connect to the blaster via Web Serial first.");
         return;
       }
-      logToConsole("Saving 5-Point FPS Calibration Curve to EEPROM...");
+      const pairs = [];
       for (let i = 0; i < 5; i++) {
         const rpmInput = document.getElementById(`fps_pt${i}_rpm`);
         const fpsInput = document.getElementById(`fps_pt${i}_fps`);
         if (rpmInput && fpsInput) {
-          const rpm = parseInt(rpmInput.value) || 0;
-          const fps = parseInt(fpsInput.value) || 0;
-          await sendSerialCommand(`fps set ${i} ${rpm} ${fps}`);
-          await new Promise(r => setTimeout(r, 60));
+          const rpm = Number(rpmInput.value), fps = Number(fpsInput.value);
+          if (!Number.isInteger(rpm) || rpm <= 0 || rpm >= 65535 || !Number.isInteger(fps) || fps <= 0 || fps > 350 ||
+              (i > 0 && rpm <= pairs[(i - 1) * 2])) {
+            alert('Use five strictly increasing RPM values (1–65534) and FPS values between 1 and 350.');
+            return;
+          }
+          pairs.push(rpm, fps);
         }
       }
-      logToConsole("FPS Calibration Table successfully written to blaster!");
+      if (pairs.length !== 10) return;
+      try {
+        await sendAcknowledgedCommand(`fps table ${pairs.join(' ')}`, 'fps table: ok', 'fps table:');
+        logToConsole('FPS calibration table accepted and saved by blaster.');
+      } catch (error) {
+        alert(`FPS calibration not saved: ${error.message}`);
+      }
     }
 
     async function resetFpsEstimatorDefaults() {
@@ -9035,7 +9220,12 @@ function updateWriteButtonText() {
         return;
       }
       logToConsole("Resetting FPS Calibration Table to factory defaults...");
-      await sendSerialCommand("fps reset");
+      try {
+        await sendAcknowledgedCommand('fps reset', 'fps_estimator: reset to factory defaults', 'fps reset:');
+      } catch (error) {
+        alert(`FPS defaults not restored: ${error.message}`);
+        return;
+      }
       const defs = [
         { rpm: 10000, fps: 65 },
         { rpm: 16000, fps: 105 },
@@ -10058,7 +10248,12 @@ function updateWriteButtonText() {
     function renderGuidedResult(result) {
       if (!guidedTuning.status || result.session !== guidedTuning.status.session) return;
       guidedTuning.results.push(result);
-      const startLabel = result.startRpm ? `${result.startRpm.toLocaleString()} RPM` : 'COLD';
+      // Cold launches report the speed drive was released at and how long the outputs then sat at STOP
+      // (the ESC reports nothing once undriven); idle launches report the baseline speed; FF steps the
+      // speed they started from.
+      const startLabel = Number.isFinite(result.stopMs) && result.stopMs > 0
+        ? `COLD (released ${Number(result.startRpm || 0).toLocaleString()} RPM, ${result.stopMs} ms stopped)`
+        : (result.startRpm ? `${result.startRpm.toLocaleString()} RPM` : 'COLD');
       const row = document.createElement('tr');
       const failText = result.detail ? `FAIL (${result.detail})` : formatFailReason(result.failFlags);
       const cells = [guidedLabels[guidedStages.indexOf(result.stage)] || result.stage, result.motor, result.target,
@@ -10604,6 +10799,7 @@ function updateWriteButtonText() {
 
     // === GitHub Release and Firmware Flashing Logic ===
     let selectedFirmwareBuffer = null;
+    let firmwareDownloadGeneration = 0;
     const FIRMWARE_RELEASES_REPO = 'parkerg16/Byte-Blaster';
 
     function firmwareRawContentUrl(tagName, assetName) {
@@ -10647,7 +10843,7 @@ function updateWriteButtonText() {
             const option = document.createElement('option');
             option.value = firmwareRawContentUrl(rel.tag_name, asset.name);
             option.dataset.releaseUrl = asset.browser_download_url;
-            option.textContent = `${rel.name || rel.tag_name} (${asset.name})`;
+            option.textContent = `${rel.name || rel.tag_name}${rel.prerelease ? ' — Prerelease' : ''} (${asset.name})`;
             select.appendChild(option);
             foundAssets = true;
           }
@@ -10677,6 +10873,9 @@ function updateWriteButtonText() {
     async function loadSelectedRelease() {
       const select = document.getElementById('firmware_release_select');
       const downloadUrl = select.value;
+      const generation = ++firmwareDownloadGeneration;
+      selectedFirmwareBuffer = null;
+      document.getElementById('btn_flash_device').disabled = true;
       if (!downloadUrl) return;
       
       const statusText = document.getElementById('flash_status_text');
@@ -10700,6 +10899,7 @@ function updateWriteButtonText() {
         let chunks = [];
         while(true) {
           const {done, value} = await reader.read();
+          if (generation !== firmwareDownloadGeneration) { await reader.cancel(); return; }
           if (done) break;
           chunks.push(value);
           receivedLength += value.length;
@@ -10724,6 +10924,7 @@ function updateWriteButtonText() {
         
         document.getElementById('btn_flash_device').disabled = false;
       } catch (err) {
+        if (generation !== firmwareDownloadGeneration) return;
         statusText.textContent = `Download failed: ${err.message}`;
         console.error(err);
       }
@@ -10785,17 +10986,28 @@ function updateWriteButtonText() {
       // Determine file format
       let isUf2 = false;
       if (firmwareBytes.length >= 512) {
-        const magic0 = (firmwareBytes[3] << 24) | (firmwareBytes[2] << 16) | (firmwareBytes[1] << 8) | firmwareBytes[0];
-        const magic1 = (firmwareBytes[7] << 24) | (firmwareBytes[6] << 16) | (firmwareBytes[5] << 8) | firmwareBytes[4];
+        const header = new DataView(firmwareBytes.buffer, firmwareBytes.byteOffset, firmwareBytes.byteLength);
+        const magic0 = header.getUint32(0, true);
+        const magic1 = header.getUint32(4, true);
         if (magic0 === 0x0A324655 && magic1 === 0x9E5D5157) {
           isUf2 = true;
         }
       }
       
       let uf2Data = firmwareBytes;
-      if (!isUf2) {
-        logToConsole("Converting BIN to UF2 format...");
-        uf2Data = binToUf2(firmwareBytes);
+      try {
+        const sourceName = selectSource === 'local' ? fileInput.files[0].name : document.getElementById('firmware_release_select').value;
+        if (!isUf2 && sourceName.toLowerCase().endsWith('.uf2')) throw new Error('Selected UF2 file has an invalid header');
+        if (isUf2) validateRp2040Uf2(firmwareBytes);
+        else {
+          logToConsole("Converting BIN to UF2 format...");
+          uf2Data = binToUf2(firmwareBytes);
+          validateRp2040Uf2(uf2Data);
+        }
+      } catch (error) {
+        statusText.textContent = `Invalid firmware: ${error.message}`;
+        alert(`Firmware file rejected: ${error.message}`);
+        return;
       }
       
       const blob = new Blob([uf2Data], { type: "application/octet-stream" });
@@ -10826,8 +11038,8 @@ function updateWriteButtonText() {
           const writable = await handle.createWritable();
           await writable.write(uf2Data);
           await writable.close();
-          logToConsole("Firmware file saved successfully! The RP2040 will now flash and reboot automatically.");
-          statusText.textContent = 'Flash successful!';
+          logToConsole("UF2 file saved. If saved to the RPI-RP2 drive, the RP2040 will flash and reboot automatically.");
+          statusText.textContent = 'UF2 file saved';
           progressBar.style.width = '100%';
           pctText.textContent = '100%';
           return;
@@ -10862,8 +11074,30 @@ function updateWriteButtonText() {
       pctText.textContent = '100%';
     }
     
+    function validateRp2040Uf2(data) {
+      if (!(data instanceof Uint8Array) || !data.length || data.length % 512) throw new Error('UF2 file is empty or truncated');
+      const count = data.length / 512, seen = new Set(), addresses = new Set();
+      let flashBlocks = 0;
+      for (let i = 0; i < count; i++) {
+        const view = new DataView(data.buffer, data.byteOffset + i * 512, 512);
+        if (view.getUint32(0, true) !== 0x0A324655 || view.getUint32(4, true) !== 0x9E5D5157 || view.getUint32(508, true) !== 0x0AB16F30) throw new Error(`Invalid UF2 block ${i}`);
+        const flags = view.getUint32(8, true), address = view.getUint32(12, true), size = view.getUint32(16, true), block = view.getUint32(20, true);
+        if (flags & 0x1000) throw new Error('UF2 file containers are not firmware');
+        if ((flags & 0x2000) && view.getUint32(28, true) !== 0xe48bff56) throw new Error('UF2 firmware is for a different MCU family');
+        if (view.getUint32(24, true) !== count || block >= count || seen.has(block)) throw new Error('UF2 blocks are missing or duplicated');
+        seen.add(block);
+        if (flags & 1) continue; // non-flash metadata
+        if (size !== 256 || address % 256 || address < 0x10000000 || address + size > 0x10200000 || addresses.has(address)) throw new Error('UF2 flash addresses or payload sizes are invalid for this blaster');
+        addresses.add(address); flashBlocks++;
+      }
+      if (!flashBlocks || !addresses.has(0x10000000)) throw new Error('UF2 does not contain RP2040 boot firmware');
+      return true;
+    }
+
     // Convert BIN to UF2
     function binToUf2(binData, startAddress = 0x10000000) {
+      if (!(binData instanceof Uint8Array) || binData.length < 256 || binData.length > 2 * 1024 * 1024 ||
+          startAddress !== 0x10000000) throw new Error('BIN must contain 256 bytes to 2 MB of RP2040 boot firmware');
       const blockSize = 256;
       const numBlocks = Math.ceil(binData.length / blockSize);
       const uf2Data = new Uint8Array(numBlocks * 512);
