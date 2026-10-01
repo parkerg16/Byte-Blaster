@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.25</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.26</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -2233,7 +2233,7 @@
                   <span><span class="settings-row-num">08b.</span> Spinup Motor Sync Limit</span>
                   <span><span id="val_set_spinup_skew_limit">&plusmn;80 throttle</span></span>
                 </div>
-                <div class="settings-row-desc">Limits throttle difference between motors during acceleration to keep them synchronized. Prevents one motor running away before the other detects BEMF. Set to 0 to disable sync coupling.</div>
+                <div class="settings-row-desc">Limits extra throttle on the leading wheel during acceleration. A clearly slower wheel can use more throttle to catch up; near-equal speeds retain the command-difference limit. Startup power remains capped until both wheels pass the startup RPM threshold. Set to 0 to disable sync coupling.</div>
                 <div class="settings-row-control">
                   <input type="range" id="set_spinup_skew_limit" min="0" max="250" step="5" value="80" oninput="syncBlasterField('spinup_skew_limit', this.value, 'range')">
                 </div>
@@ -2373,12 +2373,23 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">15.</span> Startup Commutation RPM</span>
+                  <span><span class="settings-row-num">15.</span> Startup Handoff RPM</span>
                   <span><span id="val_set_startup_rpm">2500 RPM</span></span>
                 </div>
-                <div class="settings-row-desc">Minimum motor speed threshold for BEMF lockstep and startup torque release. Adjustable from 1,000 to 3,500 RPM (default 2,500 RPM). Low-RPM idle targets below 5,000 RPM bypass startup assist.</div>
+                <div class="settings-row-desc">The shared startup drive cap ends when both filtered wheel speeds reach this threshold (default 2,500 RPM). This is a firmware speed heuristic; ESC telemetry alone does not prove commutation lock.</div>
                 <div class="settings-row-control">
                   <input type="range" id="set_startup_rpm" min="1000" max="3500" step="50" value="2500" oninput="syncBlasterField('startup_rpm', this.value, 'range')">
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <span>Startup Drive Budget</span>
+                  <span id="val_set_startup_drive_mv">4.00 V equivalent</span>
+                </div>
+                <div class="settings-row-desc">PID startup command budget at standstill: 3–5 V equivalent, default 4 V. Firmware adds a bounded speed/Kv allowance as the slower wheel accelerates, with a 35% duty ceiling. This estimates command headroom, not winding voltage or current. Increase only after comparing cold launches, pack sag and motor heat on hardware.</div>
+                <div class="settings-row-control">
+                  <input type="range" id="set_startup_drive_mv" min="3000" max="5000" step="100" value="4000" oninput="syncBlasterField('startup_drive_mv', this.value, 'range')">
                 </div>
               </div>
 
@@ -3860,8 +3871,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.25";
-    window.CONFIGURATOR_VERSION = "1.1.25";
+    const CONFIGURATOR_VERSION = "v1.1.26";
+    window.CONFIGURATOR_VERSION = "1.1.26";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -4789,6 +4800,9 @@ function updateWriteButtonText() {
       if (key === 'startup_rpm') {
         return `${Math.round(Number(val))} RPM`;
       }
+      if (key === 'startup_drive_mv') {
+        return `${(Number(val)/1000).toFixed(2)} V equivalent`;
+      }
       if (key === 'launch_time_ms') {
         return `${Math.round(Number(val))} ms`;
       }
@@ -5366,6 +5380,7 @@ function updateWriteButtonText() {
         launch_time_ms: 150,
         accel_ff: 100,
         startup_rpm: 2500,
+        startup_drive_mv: 4000,
         batt_cutoff_cell: 2800,
         batt_warn_cell: 3300,
         glide_rpm_per_s: 8000,
@@ -5449,7 +5464,7 @@ function updateWriteButtonText() {
         'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
-        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm',
+        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv',
         'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
         'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
@@ -5661,7 +5676,7 @@ function updateWriteButtonText() {
         'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
-        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm',
+        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv',
         'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
         'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
@@ -7038,6 +7053,9 @@ function updateWriteButtonText() {
       }
       return null;
     }
+    function comparisonWindow(samples) {
+      return samples.length ? {firstMs:samples[0].ms,lastMs:samples.at(-1).ms,samples:samples.length} : null;
+    }
     function analyzeLaunchComparison(run) {
       const rows = run.samples, config = run.config || {}, target = config.target || rows.at(-1)?.target;
       if (!rows.length || !(target > 0)) return { messages:['No usable launch samples.'] };
@@ -7057,21 +7075,34 @@ function updateWriteButtonText() {
       }
       for (const m of [1,2]) {
         const measuredRows=launchRows.filter(s=>s[`age${m}`]!==65535 && !(s[`lim${m}`] & (1<<11)));
+        const excludedRpmSamples=launchRows.length-measuredRows.length;
+        const firstTelemetryMs=measuredRows[0]?.ms??null;
         const rise90 = comparisonCrossing(measuredRows,`rpm${m}`,target*.9);
         const rise95 = comparisonCrossing(measuredRows,`rpm${m}`,target*.95);
-        const acceleration = launchRows.filter(s=>rise95 === null || s.ms <= rise95);
+        const acceleration = measuredRows.filter(s=>rise95 === null || s.ms <= rise95);
         const limits = {}, lagRows = acceleration.filter(s=>s.ref-s[`rpm${m}`] > Math.max(150,s.ref*.05));
         for (const s of lagRows) for (const [bit,name] of Object.entries(launchLimitNames)) if ((s[`lim${m}`]||0) & (1<<Number(bit))) limits[name]=(limits[name]||0)+1;
-        const minimumOverspeed = launchRows.some(s=>s[`thr${m}`]===48 && s[`rpm${m}`]>s.ref+Math.max(150,target*.05));
+        const minimumOverspeed = measuredRows.some(s=>s[`thr${m}`]===48 && s[`rpm${m}`]>s.ref+Math.max(150,target*.05));
         const deliveredLag = lagRows.some(s=>Number.isFinite(s[`req${m}`]) && s[`req${m}`]<=s[`thr${m}`]+2 && !(s[`lim${m}`] & ((1<<11)|(1<<12))));
+        const startupCap = comparisonWindow(acceleration.filter(s=>(s[`lim${m}`]||0)&(1<<3)));
+        const peer=m===1?2:1;
+        const syncCatchup = comparisonWindow(lagRows.filter(s=> {
+          if (!(s[`lim${m}`] & (1<<15)) || !(s[`req${m}`]>s[`thr${m}`]+2) || s[`age${peer}`]===65535 || (s[`lim${peer}`]&(1<<11))) return false;
+          const rpm=Number.isFinite(s[`filt${m}`])?s[`filt${m}`]:s[`rpm${m}`];
+          const peerRpm=Number.isFinite(s[`filt${peer}`])?s[`filt${peer}`]:s[`rpm${peer}`];
+          return rpm+Math.max(150,s.ref*.01)<peerRpm;
+        }));
         const peak = Math.max(0,...measuredRows.map(s=>s[`rpm${m}`]));
-        const motor = { motor:m,rise90Ms:rise90,rise95Ms:rise95,overshootPct:Math.max(0,(peak-target)/target*100),limits,minimumOverspeed,deliveredLag };
+        const motor = { motor:m,rise90Ms:rise90,rise95Ms:rise95,overshootPct:Math.max(0,(peak-target)/target*100),limits,minimumOverspeed,deliveredLag,startupCap,syncCatchup,firstTelemetryMs,excludedRpmSamples };
         result.motors.push(motor);
+        if (excludedRpmSamples) result.messages.push(`M${m}: ${excludedRpmSamples} samples had unavailable/stale RPM and are excluded from speed and delivered-command conclusions. First usable telemetry: ${firstTelemetryMs===null?'none':firstTelemetryMs+' ms'}.`);
         if (minimumOverspeed) result.messages.push(`M${m}: RPM exceeded the reference while already at minimum running throttle. Startup impulse/momentum or ESC behavior needs investigation; more PID gain cannot command a smaller running throttle.`);
         if (Object.keys(limits).length) result.messages.push(`M${m}: firmware limits observed while trailing the reference: ${Object.keys(limits).join(', ')}.`);
+        if (startupCap) result.messages.push(`M${m}: startup drive cap observed at ${startupCap.samples} samples between ${startupCap.firstMs} and ${startupCap.lastMs} ms${config.startupDriveMv?` (standstill budget ${(config.startupDriveMv/1000).toFixed(2)} V equivalent)`:''}.`);
+        if (syncCatchup) result.messages.push(`M${m}: synchronization reduced the slower wheel's catch-up command at ${syncCatchup.samples} samples between ${syncCatchup.firstMs} and ${syncCatchup.lastMs} ms.`);
         if (deliveredLag) result.messages.push(`M${m}: requested command reached the firmware output while RPM still lagged. Current measurements are needed to separate model error, motor/load physics and ESC response.`);
       }
-      const volts = accelerationVoltage(rows);
+      const volts = accelerationVoltage(launchRows);
       result.minVoltage = volts.min; result.voltageDrop = volts.drop;
       if (volts.drop !== null && volts.drop > .5) result.messages.push(`Recorded voltage fell ${volts.drop.toFixed(2)} V (minimum ${volts.min.toFixed(2)} V).`);
       if (run.source === 'live') result.messages.push('Live stream is sampled more slowly; read the launch recorder after release for command details.');
@@ -7146,6 +7177,9 @@ function updateWriteButtonText() {
       return false;
     }
     function validateBoardLaunchConfiguration(data) {
+      if ((data.startupDriveMv !== undefined && (!Number.isInteger(data.startupDriveMv) || data.startupDriveMv<3000 || data.startupDriveMv>5000)) ||
+          (data.skewLimit !== undefined && (!Number.isInteger(data.skewLimit) || data.skewLimit<0 || data.skewLimit>500)) ||
+          (data.startupPolicy !== undefined && data.startupPolicy !== 'bemf_compensated_shared_v1')) throw new Error('Invalid board startup configuration');
       if (data?.v!==1 || ![0,1,2].includes(data.mode) || !Number.isInteger(data.durationMs) || data.durationMs<60 || data.durationMs>300 ||
           !Array.isArray(data.knots)||data.knots.length!==16||data.knots.some((v,i)=>!Number.isInteger(v)||v<0||v>10000||(i&&v<data.knots[i-1]))||data.knots[15]!==10000) throw new Error('Invalid board launch configuration');
       if (!Number.isInteger(data.startMs)||data.startMs<0||data.startMs>0xffffffff||!Number.isInteger(data.target)||data.target<0||data.target>65535||
@@ -10570,7 +10604,7 @@ function updateWriteButtonText() {
       if (last) return last.x;
       return guidedTuning.origin === null ? 0 : (Date.now() - guidedTuning.origin) / 1000;
     }
-    const guidedLimiterNames = ['PID tracking', 'Launch ramp', 'P clamp', '4 V startup cap', '+7 V headroom cap', 'Max throttle cap', 'Launch floor', 'Throttle step limit', 'Motor sync', 'Other'];
+    const guidedLimiterNames = ['PID tracking', 'Launch ramp', 'P clamp', 'Startup drive cap', '+7 V headroom cap', 'Max throttle cap', 'Launch floor', 'Throttle step limit', 'Motor sync', 'Other'];
     function guidedLimiterSummary(lim) {
       if (!Array.isArray(lim) || !lim.length) return '—';
       let best = 0; lim.forEach((v, i) => { if (v > lim[best]) best = i; });
@@ -10675,7 +10709,7 @@ function updateWriteButtonText() {
         if (['running','gliding'].includes(previous.state)) { await sendSerialCommand('stream fast'); return; }
         if (previous.algo !== 1) throw new Error('Select RPM PID (controller algorithm 1) in settings before tuning.');
         if (typeof dirtySettings !== 'undefined' && [...dirtySettings].some(key =>
-          ['step_up','launch_trajectory','launch_time_ms','accel_ff','ctrl_algo','startup_rpm','spinup_skew_limit','cells','motor_kv','always_on_rpm','glide_rpm_per_s','glide_step_down_x10'].includes(key) || /^pid[12]_/.test(key))) {
+          ['step_up','launch_trajectory','launch_time_ms','accel_ff','ctrl_algo','startup_rpm','startup_drive_mv','spinup_skew_limit','cells','motor_kv','always_on_rpm','glide_rpm_per_s','glide_step_down_x10'].includes(key) || /^pid[12]_/.test(key))) {
           throw new Error('Write your pending motor and launch settings to the blaster before tuning.');
         }
         const passes=Number(guidedElement('guided_passes').value), baseline=guidedElement('guided_baseline').value;
