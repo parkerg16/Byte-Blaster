@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.24</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.25</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -1271,6 +1271,23 @@
         </div>
       </div>
 
+      <div class="visualizer-card" id="launch_comparison_card">
+        <div class="section-title">Launch comparison</div>
+        <p style="color:var(--text-secondary);font-size:0.85rem">Load the optimizer export, rev, release, then read the recorded launch. Compare the model with the reference and commands the blaster actually used. Reading the recorder does not run the motors.</p>
+        <div class="preset-bar" style="gap:0.5rem;flex-wrap:wrap">
+          <button class="preset-btn" onclick="document.getElementById('comparison_sim_file').click()">Load simulation JSON</button>
+          <input id="comparison_sim_file" type="file" accept=".json" hidden onchange="loadComparisonSimulation(event)">
+          <button class="preset-btn" onclick="readLaunchComparison()">Read last launch</button>
+          <button class="preset-btn" onclick="exportLaunchComparison()">Download comparison</button>
+          <button class="preset-btn" onclick="exportVerifiedLaunchConfiguration()">Export board tuning for defaults</button>
+        </div>
+        <p id="launch_comparison_status" role="status" style="color:var(--text-secondary);font-size:0.8rem">Waiting for a launch. Live samples appear here when streaming; the recorder supplies finer detail after release.</p>
+        <div style="height:320px"><canvas id="launch_comparison_canvas"></canvas></div>
+        <div style="height:220px;margin-top:1rem"><canvas id="launch_command_canvas"></canvas></div>
+        <div id="launch_comparison_findings" style="font-size:0.85rem;line-height:1.6;margin-top:0.7rem"></div>
+        <p style="color:var(--text-secondary);font-size:0.75rem">Throttle is the command sent to the ESC, not measured motor power. Current estimates are model values. These observations can identify firmware limits; separating ESC behavior from motor physics requires current measurements.</p>
+      </div>
+
       <!-- Real-time Plot -->
       <div class="visualizer-card">
         <div class="section-title" style="margin-bottom: 0.5rem;">
@@ -1294,6 +1311,8 @@
             <div style="display: flex; align-items: center; gap: 0.35rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 6px; padding: 0.2rem 0.5rem;">
               <span style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Target:</span>
               <select id="autotune_target_rpm" style="background: transparent; border: none; color: var(--accent-cyan); font-size: 0.75rem; font-weight: 700; outline: none; cursor: pointer;">
+                <option value="2000">2,000 RPM (Startup diagnostic)</option>
+                <option value="5000">5,000 RPM (Low)</option>
                 <option value="15000" style="background: #0f172a; color: white;">15,000 RPM (HVZ)</option>
                 <option value="20000" style="background: #0f172a; color: white;">20,000 RPM (Mid)</option>
                 <option value="25000" style="background: #0f172a; color: white;">25,000 RPM</option>
@@ -1302,6 +1321,11 @@
                 <option value="35000" style="background: #0f172a; color: white;">35,000 RPM (Ultra)</option>
               </select>
             </div>
+            <label style="font-size:0.75rem;color:var(--text-secondary)">Baseline
+              <select id="diagnostic_launch_baseline" style="background:#0f172a;color:white;border:1px solid #475569;border-radius:5px;padding:0.25rem">
+                <option value="cold">Cold startup</option><option value="idle">Already spinning</option>
+              </select>
+            </label>
             <button id="btn_live_autotune" class="action-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-size: 0.75rem; padding: 0.35rem 0.85rem; width: auto; margin: 0;" onclick="runCriticalDampingAutotune()">Measure PID with Firmware</button>
             <button id="btn_pause_stream" class="preset-btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="toggleTelemetryPause()">Pause</button>
             <button class="preset-btn" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="clearCapturedTelemetry()">Clear Graph</button>
@@ -1703,7 +1727,7 @@
       <div class="visualizer-card" id="launch_curve_card" style="border-color: rgba(34, 197, 94, 0.35); background: rgba(17, 24, 39, 0.55); margin-top: 1.5rem;">
         <div class="section-title" style="color: #22c55e; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <span>150ms Thermally-Optimized Launch Trajectory & Current Inference</span>
+            <span>Imported Launch Trajectory &amp; Model Predictions</span>
             <span class="badge" style="background: rgba(34, 197, 94, 0.2); color: #86efac; font-size: 0.65rem; border: 1px solid rgba(34, 197, 94, 0.4);">16-Knot Simulation Model</span>
             <span id="launch_curve_active_badge" class="badge" style="background: rgba(139, 92, 246, 0.2); color: #c4b5fd; font-size: 0.65rem; border: 1px solid rgba(139, 92, 246, 0.4);">Target: 150 ms (32,000 RPM)</span>
           </div>
@@ -3836,8 +3860,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.24";
-    window.CONFIGURATOR_VERSION = "1.1.24";
+    const CONFIGURATOR_VERSION = "v1.1.25";
+    window.CONFIGURATOR_VERSION = "1.1.25";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -5471,6 +5495,9 @@ function updateWriteButtonText() {
         ff: ff,
         hud_layout: hudLayout
       };
+      profile.board_configuration = boardLaunchConfiguration?.generation === serialConnectionGeneration ? boardLaunchConfiguration : null;
+      profile.settings_readback = {...boardSettingsSnapshot};
+      profile.unsaved_ui_settings = Array.from(dirtySettings);
       window.blasterSettings = settings;
       window.blasterPid = pid;
       window.blasterFf = ff;
@@ -5697,6 +5724,7 @@ function updateWriteButtonText() {
     }
 
     function handleIncomingBlasterSetting(key, val) {
+      boardSettingsSnapshot[key] = val;
       if (key === 'ctrl_algo') updateLaunchModeHelp(val);
       if (key === 'firmware_version') {
         connectedBlasterVersion = String(val).trim();
@@ -6966,6 +6994,209 @@ function updateWriteButtonText() {
     };
 
     let connectedBlasterVersion = null;
+
+    // BEGIN LAUNCH COMPARISON
+    let launchComparison = { samples: [], config: null, source: null, simulation: null };
+    let comparisonSimulation = null, comparisonChart = null, comparisonCommandChart = null;
+    let launchReadPending = null, launchConfigPending = null, boardLaunchConfiguration = null;
+    let boardSettingsSnapshot = {};
+    const launchLimitNames = {
+      2:'P correction clamp', 3:'startup voltage cap', 4:'acceleration headroom cap', 5:'pack voltage ceiling',
+      6:'minimum running throttle', 7:'command clamp', 11:'stale RPM telemetry', 12:'STOP/fault/coast',
+      13:'throttle rise limit', 14:'throttle fall limit', 15:'motor synchronization', 16:'hard RPM limit'
+    };
+    function comparisonStatus(message) {
+      const el = document.getElementById('launch_comparison_status'); if (el) el.textContent = message;
+    }
+    function copyComparisonSimulation() {
+      return comparisonSimulation ? JSON.parse(JSON.stringify(comparisonSimulation)) : null;
+    }
+    function comparisonElapsed(now, start) { return (Number(now) - Number(start)) >>> 0; }
+    function comparisonCurvePoints(simulation, target, startRpm = 0, endMs = 320) {
+      if (!simulation || !(target > startRpm)) return [];
+      const curve = validateLaunchCurve(simulation);
+      const dense = simulation.simulationTrace;
+      const useDense = Array.isArray(dense) && dense.length > 1 && dense.length <= 4097 && dense.every((p,i)=>
+        Number.isFinite(p.timeMs)&&p.timeMs>=0&&Number.isFinite(p.rpm)&&p.rpm>=0&&(!i||p.timeMs>=dense[i-1].timeMs)) &&
+        Number(simulation.targetRpm) === target && startRpm === 0;
+      if (useDense) {
+        const points=dense.filter(p=>p.timeMs<=endMs).map(p=>({x:p.timeMs,y:p.rpm}));
+        const last=points.at(-1), next=dense.find(p=>p.timeMs>endMs);
+        if(last && last.x<endMs) points.push({x:endMs,y:next?last.y+(next.rpm-last.y)*(endMs-last.x)/(next.timeMs-last.x):last.y});
+        return points;
+      }
+      const points = curve.knots.map((k, i) => ({ x:i * curve.durationMs / 15, y:startRpm + (target-startRpm)*k/10000 }));
+      if (endMs > curve.durationMs) points.push({ x:endMs, y:target });
+      return points;
+    }
+    function comparisonCrossing(samples, key, threshold) {
+      for (let i = 0; i < samples.length; i++) {
+        const s = samples[i]; if (!Number.isFinite(s[key]) || s[key] < threshold) continue;
+        const prev = samples[i-1];
+        if (!prev || !Number.isFinite(prev[key]) || prev[key] >= threshold) return s.ms;
+        return prev.ms + (s.ms-prev.ms)*(threshold-prev[key])/(s[key]-prev[key]);
+      }
+      return null;
+    }
+    function analyzeLaunchComparison(run) {
+      const rows = run.samples, config = run.config || {}, target = config.target || rows.at(-1)?.target;
+      if (!rows.length || !(target > 0)) return { messages:['No usable launch samples.'] };
+      const shot = rows.find(s => s.shot > 0);
+      const launchRows = shot ? rows.filter(s => s.ms < shot.ms) : rows;
+      const result = { target, motors:[], messages:[], currentSource:'model_estimate' };
+      result.reference95Ms = comparisonCrossing(launchRows,'ref',target*.95);
+      if (shot) result.messages.push(`Solenoid fired at ${shot.ms} ms; timing analysis uses samples before that shot.`);
+      if (run.simulation) {
+        const sim = validateLaunchCurve(run.simulation);
+        if (config.durationMs && config.durationMs !== sim.durationMs) result.messages.push(`Curve duration mismatch: simulation ${sim.durationMs} ms, recorded firmware ${config.durationMs} ms.`);
+        if (config.knots && (config.mode !== 2 || config.knots.some((v,i) => v !== sim.knots[i]))) result.messages.push('Recorded firmware reference differs from the loaded optimizer curve.');
+        if (run.simulation.batteryContext?.approxCells && config.cells && run.simulation.batteryContext.approxCells !== config.cells) result.messages.push(`Battery context differs: model ${run.simulation.batteryContext.approxCells}S, firmware ${config.cells}S.`);
+        if (Number(run.simulation.targetRpm)!==target || config.startRpm>0) result.messages.push('Model reference is scaled to this launch target/baseline; its physical simulation was not recalculated for these conditions.');
+        // Curve points use x; keep the crossing helper in the same board-relative units.
+        result.predicted95Ms = comparisonCrossing(comparisonCurvePoints(run.simulation,target,config.startRpm||0).map(p=>({...p,ms:p.x})), 'y',target*.95);
+      }
+      for (const m of [1,2]) {
+        const measuredRows=launchRows.filter(s=>s[`age${m}`]!==65535 && !(s[`lim${m}`] & (1<<11)));
+        const rise90 = comparisonCrossing(measuredRows,`rpm${m}`,target*.9);
+        const rise95 = comparisonCrossing(measuredRows,`rpm${m}`,target*.95);
+        const acceleration = launchRows.filter(s=>rise95 === null || s.ms <= rise95);
+        const limits = {}, lagRows = acceleration.filter(s=>s.ref-s[`rpm${m}`] > Math.max(150,s.ref*.05));
+        for (const s of lagRows) for (const [bit,name] of Object.entries(launchLimitNames)) if ((s[`lim${m}`]||0) & (1<<Number(bit))) limits[name]=(limits[name]||0)+1;
+        const minimumOverspeed = launchRows.some(s=>s[`thr${m}`]===48 && s[`rpm${m}`]>s.ref+Math.max(150,target*.05));
+        const deliveredLag = lagRows.some(s=>Number.isFinite(s[`req${m}`]) && s[`req${m}`]<=s[`thr${m}`]+2 && !(s[`lim${m}`] & ((1<<11)|(1<<12))));
+        const peak = Math.max(0,...measuredRows.map(s=>s[`rpm${m}`]));
+        const motor = { motor:m,rise90Ms:rise90,rise95Ms:rise95,overshootPct:Math.max(0,(peak-target)/target*100),limits,minimumOverspeed,deliveredLag };
+        result.motors.push(motor);
+        if (minimumOverspeed) result.messages.push(`M${m}: RPM exceeded the reference while already at minimum running throttle. Startup impulse/momentum or ESC behavior needs investigation; more PID gain cannot command a smaller running throttle.`);
+        if (Object.keys(limits).length) result.messages.push(`M${m}: firmware limits observed while trailing the reference: ${Object.keys(limits).join(', ')}.`);
+        if (deliveredLag) result.messages.push(`M${m}: requested command reached the firmware output while RPM still lagged. Current measurements are needed to separate model error, motor/load physics and ESC response.`);
+      }
+      const volts = accelerationVoltage(rows);
+      result.minVoltage = volts.min; result.voltageDrop = volts.drop;
+      if (volts.drop !== null && volts.drop > .5) result.messages.push(`Recorded voltage fell ${volts.drop.toFixed(2)} V (minimum ${volts.min.toFixed(2)} V).`);
+      if (run.source === 'live') result.messages.push('Live stream is sampled more slowly; read the launch recorder after release for command details.');
+      if (!run.config) result.messages.push('Older firmware supplied no configuration snapshot; curve matching cannot be confirmed.');
+      return result;
+    }
+    function accelerationVoltage(rows) {
+      const values=rows.map(s=>s.volts).filter(v=>Number.isFinite(v)&&v>0);
+      return { min:values.length?Math.min(...values):null,drop:values.length?values[0]-Math.min(...values):null };
+    }
+    function renderLaunchComparison() {
+      const canvas=document.getElementById('launch_comparison_canvas'); if (!canvas) return;
+      const run=launchComparison, rows=run.samples, target=run.config?.target||rows.at(-1)?.target||32000;
+      const end=Math.max(320,rows.at(-1)?.ms||0);
+      const data=[comparisonCurvePoints(run.simulation,target,run.config?.startRpm||0,end),
+        rows.map(s=>({x:s.ms,y:s.ref})),rows.map(s=>({x:s.ms,y:s.rpm1})),rows.map(s=>({x:s.ms,y:s.rpm2}))];
+      if (!comparisonChart) comparisonChart=new Chart(canvas.getContext('2d'),{type:'line',data:{datasets:
+        ['Loaded optimizer model / reference','Recorded firmware reference','Measured M1 RPM','Measured M2 RPM'].map((label,i)=>({label,data:[],borderColor:['#22c55e','#fbbf24','#22d3ee','#a78bfa'][i],borderDash:i<2?[6,3]:[],pointRadius:0,borderWidth:2}))},
+        options:{responsive:true,maintainAspectRatio:false,animation:false,parsing:false,scales:{x:{type:'linear',min:0,max:end,title:{display:true,text:'Time since launch request (ms)'}},y:{min:0,title:{display:true,text:'RPM'}}},plugins:{legend:{labels:{color:'#cbd5e1'}}}}});
+      data.forEach((d,i)=>comparisonChart.data.datasets[i].data=d);comparisonChart.options.scales.x.max=end;comparisonChart.update('none');
+      const cmdCanvas=document.getElementById('launch_command_canvas');
+      if (cmdCanvas) {
+        const fields=['req1','req2','thr1','thr2','volts'];
+        if (!comparisonCommandChart) comparisonCommandChart=new Chart(cmdCanvas.getContext('2d'),{type:'line',data:{datasets:
+          ['M1 requested','M2 requested','M1 applied','M2 applied','Pack voltage'].map((label,i)=>({label,data:[],borderColor:['#22d3ee','#a78bfa','#0891b2','#7c3aed','#fb923c'][i],borderDash:i<2?[5,3]:[],pointRadius:0,borderWidth:1.5,yAxisID:i===4?'voltage':'command'}))},
+          options:{responsive:true,maintainAspectRatio:false,animation:false,parsing:false,scales:{x:{type:'linear',min:0,max:end},command:{min:0,title:{display:true,text:'DShot command'}},voltage:{position:'right',min:0,title:{display:true,text:'Pack V'},grid:{drawOnChartArea:false}}},plugins:{legend:{labels:{color:'#cbd5e1'}}}}});
+        fields.forEach((f,i)=>comparisonCommandChart.data.datasets[i].data=rows.filter(s=>Number.isFinite(s[f])).map(s=>({x:s.ms,y:s[f]})));
+        comparisonCommandChart.options.scales.x.max=end; comparisonCommandChart.update('none');
+      }
+      const report=analyzeLaunchComparison(run), el=document.getElementById('launch_comparison_findings');
+      if (el) {
+        el.replaceChildren();
+        const timing=document.createElement('div');timing.textContent=`95% timing: loaded model ${Number.isFinite(report.predicted95Ms)?report.predicted95Ms.toFixed(1)+' ms':'unavailable'} · firmware reference ${Number.isFinite(report.reference95Ms)?report.reference95Ms.toFixed(1)+' ms':'not reached'}`;el.appendChild(timing);
+        for (const m of report.motors||[]) { const p=document.createElement('div');p.textContent=`M${m.motor}: sampled 90% ${m.rise90Ms===null?'not reached':m.rise90Ms.toFixed(1)+' ms'} · 95% ${m.rise95Ms===null?'not reached':m.rise95Ms.toFixed(1)+' ms'} · peak overshoot ${m.overshootPct.toFixed(1)}%`;el.appendChild(p); }
+        for (const message of report.messages) { const p=document.createElement('div');p.textContent=message;el.appendChild(p); }
+      }
+    }
+    async function loadComparisonSimulation(event) {
+      try {const file=event.target.files?.[0];if(!file)return;const data=JSON.parse(await file.text());validateLaunchCurve(data);
+        comparisonSimulation=data;launchComparison.simulation=copyComparisonSimulation();renderLaunchComparison();comparisonStatus('Simulation loaded for comparison. This does not upload it to the blaster.');
+      }catch(error){comparisonStatus(`Simulation load failed: ${error.message}`);}
+    }
+    function consumeLaunchComparisonLine(line) {
+      if (line.startsWith('launch_config ')) {
+        try { const data=JSON.parse(line.slice(14)); validateBoardLaunchConfiguration(data);
+          boardLaunchConfiguration={data,readAt:new Date().toISOString(),generation:serialConnectionGeneration};
+          if (launchConfigPending) launchConfigPending.resolve(data);
+        }catch(error){if(launchConfigPending)launchConfigPending.reject(error);}
+        return true;
+      }
+      if (line.startsWith('launch_config:')) {if(launchConfigPending)launchConfigPending.reject(new Error(line));return true;}
+      if (!launchReadPending) return false;
+      const pending=launchReadPending;
+      try {
+        if (line.startsWith('launchtrace:')) throw new Error(line);
+        const count=/^launchtrace count=(\d+)$/.exec(line);
+        if(count){pending.expected=Number(count[1]);if(pending.expected>160)throw new Error('Invalid recorder count');return true;}
+        if(line.startsWith('launchtrace meta ')){pending.run.config=JSON.parse(line.slice(17));validateBoardLaunchConfiguration(pending.run.config);return true;}
+        if(line.startsWith('idx ms target ')){pending.columns=line.split(/\s+/);if(pending.expected===0)pending.resolve(pending.run);return true;}
+        if(line==='launchtrace end'){if(pending.run.samples.length!==pending.expected)throw new Error('Incomplete launch capture');pending.resolve(pending.run);return true;}
+        if(pending.columns && /^\d+\s/.test(line)){
+          const values=line.split(/\s+/);if(values.length!==pending.columns.length)throw new Error('Malformed launch row');
+          const row={};pending.columns.forEach((key,i)=>row[key]=key.startsWith('bind')?values[i]:key.startsWith('lim')?parseInt(values[i],16):Number(values[i]));
+          if(Object.entries(row).some(([k,v])=>!k.startsWith('bind')&&!Number.isFinite(v)))throw new Error('Nonfinite launch row');
+          if(row.idx!==pending.run.samples.length||row.ms<0||row.ms>320||row.ms< (pending.run.samples.at(-1)?.ms||0))throw new Error('Out-of-order launch row');
+          pending.run.samples.push(row);
+          // Legacy firmware had no end marker.
+          if(!pending.run.config && pending.run.samples.length===pending.expected)pending.resolve(pending.run);
+          return true;
+        }
+      }catch(error){pending.reject(error);return true;}
+      return false;
+    }
+    function validateBoardLaunchConfiguration(data) {
+      if (data?.v!==1 || ![0,1,2].includes(data.mode) || !Number.isInteger(data.durationMs) || data.durationMs<60 || data.durationMs>300 ||
+          !Array.isArray(data.knots)||data.knots.length!==16||data.knots.some((v,i)=>!Number.isInteger(v)||v<0||v>10000||(i&&v<data.knots[i-1]))||data.knots[15]!==10000) throw new Error('Invalid board launch configuration');
+      if (!Number.isInteger(data.startMs)||data.startMs<0||data.startMs>0xffffffff||!Number.isInteger(data.target)||data.target<0||data.target>65535||
+          !Number.isInteger(data.startRpm)||data.startRpm<0||data.startRpm>65535||![0,1,2,3].includes(data.algorithm)||![3,4,5,6].includes(data.cells)||
+          !Array.isArray(data.pid)||data.pid.length!==2||data.pid.some(p=>['kp','ki','ffScale'].some(k=>!Number.isFinite(p[k])||p[k]<0))||
+          !Array.isArray(data.feedforward?.rpm)||data.feedforward.rpm.join(',')!=='2000,5000,15000,20000,32000'||
+          !Array.isArray(data.feedforward.motors)||data.feedforward.motors.length!==2||data.feedforward.motors.some(m=>!Number.isInteger(m.validMask)||m.validMask<0||m.validMask>31||
+            !Array.isArray(m.drive)||m.drive.length!==5||m.drive.some(d=>!Number.isInteger(d)||d<0||d>65535))) throw new Error('Invalid board gains or feedforward calibration');
+      return data;
+    }
+    async function readLaunchComparison() {
+      if(launchReadPending){comparisonStatus('A launch read is already in progress.');return;}
+      let timer;const generation=serialConnectionGeneration, connectionPort=port;
+      const response=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error('Launch read timed out; use firmware with launch diagnostics.')),10000);
+        launchReadPending={resolve,reject,run:{samples:[],config:null,source:'recorder',connectionGeneration:generation,firmware:connectedBlasterVersion,simulation:copyComparisonSimulation()}};});
+      try {comparisonStatus('Reading recorder. Release rev/fire and wait for the motors to stop.');
+        const [,run]=await Promise.all([sendSerialCommand('launchtrace',{requireSuccess:true}),response]);assertSerialConnection(connectionPort,generation);
+        launchComparison=run;renderLaunchComparison();comparisonStatus(`${run.samples.length} recorded samples · ${run.config?.durationMs||'unknown'} ms firmware reference · loaded simulation ${run.simulation?validateLaunchCurve(run.simulation).durationMs+' ms':'none'}`);
+      }catch(error){comparisonStatus(`Launch read failed: ${error.message}`);}finally{clearTimeout(timer);launchReadPending=null;}
+    }
+    async function requestBoardLaunchConfiguration() {
+      if(launchConfigPending)throw new Error('Configuration read already in progress');
+      let timer;const generation=serialConnectionGeneration,connectionPort=port;
+      const response=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error('No board configuration received. Update firmware or wait for idle.')),4000);launchConfigPending={resolve,reject};});
+      try{const [,data]=await Promise.all([sendSerialCommand('launch_config',{requireSuccess:true}),response]);assertSerialConnection(connectionPort,generation);return data;}
+      finally{clearTimeout(timer);launchConfigPending=null;}
+    }
+    function downloadLaunchObject(data,name) {
+      const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
+    function exportLaunchComparison() {
+      if(!launchComparison.samples.length){comparisonStatus('Record or read a launch first.');return;}
+      downloadLaunchObject({format:'ByteBlasterLaunchComparison_v1',exportedAt:new Date().toISOString(),firmware:connectedBlasterVersion,...launchComparison,analysis:analyzeLaunchComparison(launchComparison)},'byte-blaster-launch-comparison.json');
+    }
+    async function exportVerifiedLaunchConfiguration() {
+      try {const config=await requestBoardLaunchConfiguration();downloadLaunchObject({format:'ByteBlasterDefaultsCandidate_v1',exportedAt:new Date().toISOString(),firmware:connectedBlasterVersion,
+        launchConfiguration:config,settingsReadback:{...boardSettingsSnapshot},unsavedUiSettings:Array.from(dirtySettings),tuningStatus:guidedTuning.status,simulation:copyComparisonSimulation(),
+        note:'Launch configuration and feedforward are read from hardware now. Settings readback may be older; verify presets before promoting to firmware defaults. Motor current is estimated.'},'byte-blaster-defaults-candidate.json');
+        comparisonStatus('Exported board curve, gains and measured feedforward calibration for review as future defaults.');
+      }catch(error){comparisonStatus(`Configuration export failed: ${error.message}`);}
+    }
+    function captureLiveLaunchComparison(point) {
+      if(launchReadPending||!point.launchStartMs||!Number.isFinite(point.boardMs)||!(point.launchTarget>0))return;
+      if(launchComparison.connectionGeneration===serialConnectionGeneration && launchComparison.source==='recorder' && launchComparison.config?.startMs===point.launchStartMs)return;
+      if(launchComparison.connectionGeneration!==serialConnectionGeneration || launchComparison.config?.startMs!==point.launchStartMs){launchComparison={source:'live',connectionGeneration:serialConnectionGeneration,firmware:connectedBlasterVersion,samples:[],simulation:copyComparisonSimulation(),config:{startMs:point.launchStartMs,target:point.launchTarget,startRpm:point.launchStartRpm,durationMs:point.launchDurationMs}};}
+      const ms=comparisonElapsed(point.boardMs,point.launchStartMs);if(ms>320)return;
+      launchComparison.samples.push({ms,target:point.launchTarget,ref:point.target,rpm1:point.rpm1,rpm2:point.rpm2,thr1:point.throttle1,thr2:point.throttle2,volts:point.voltage,lim1:point.lim1,lim2:point.lim2,shot:point.sol});
+      if(launchComparison.samples.length>160)launchComparison.samples.shift();
+      renderLaunchComparison();comparisonStatus(`Live launch · ${point.launchDurationMs} ms firmware reference · read recorder after release for full details.`);
+    }
+    // END LAUNCH COMPARISON
     let latestGitHubReleaseVersion = null;
 
     function parseSemver(v) {
@@ -7349,6 +7580,7 @@ function updateWriteButtonText() {
           await sendSerialCommand("fps show");
           await new Promise(r => setTimeout(r, 80));
           await sendSerialCommand("errors get");
+          await sendSerialCommand("launch_config");
           await refreshGuidedTuning();
           logToConsole("Board settings and diagnostic fault history loaded into the UI.");
           logToConsole("Streaming is off. Use Basic/Full or Slow/Fast only while capturing diagnostics.");
@@ -7390,6 +7622,10 @@ function updateWriteButtonText() {
       ++serialConnectionGeneration;
       for (const waiter of serialResponseWaiters) waiter.reject(new Error('Serial disconnected'));
       if (launchCurveResponseWaiter) launchCurveResponseWaiter.reject(new Error('Serial disconnected'));
+      if (launchReadPending) launchReadPending.reject(new Error('Serial disconnected'));
+      if (launchConfigPending) launchConfigPending.reject(new Error('Serial disconnected'));
+      boardSettingsSnapshot = {};
+      boardLaunchConfiguration = null;
       guidedDisconnected();
       keepReading = false;
       logToConsole("Closing connection...");
@@ -7699,6 +7935,7 @@ function updateWriteButtonText() {
 
     // Parse incoming lines
     function parseSerialLine(line) {
+      if (consumeLaunchComparisonLine(line)) return;
       handleSerialCommandResponse(line);
       if (handleLaunchCurveSerialResponse(line)) return;
       if (handleTuningPacket(line)) return;
@@ -8173,6 +8410,13 @@ function updateWriteButtonText() {
           timestamp: Date.now(),
           boardMs: boardMs
         };
+        const launchFields = /,LS:(\d+),LT:(\d+),LMS:(\d+),LR:(\d+)/.exec(line);
+        if (launchFields) {
+          telemetryPoint.launchStartMs = Number(launchFields[1]);
+          telemetryPoint.launchTarget = Number(launchFields[2]);
+          telemetryPoint.launchDurationMs = Number(launchFields[3]);
+          telemetryPoint.launchStartRpm = Number(launchFields[4]);
+        }
         
         // Push to rolling ring buffer for pre-trigger lookback
         rollingBuffer.push(telemetryPoint);
@@ -8182,6 +8426,7 @@ function updateWriteButtonText() {
         
         captureGuidedTelemetry(telemetryPoint);
         captureDartRecoveryTelemetry(telemetryPoint);
+        captureLiveLaunchComparison(telemetryPoint);
         updateLiveTelemetryChart(telemetryPoint);
         processTelemetryStep(telemetryPoint);
 
@@ -8806,7 +9051,9 @@ function updateWriteButtonText() {
     async function runCriticalDampingAutotune() {
       if (!port || !port.writable) return alert("Please connect to the blaster first.");
       const target = Math.round(Number(document.getElementById('autotune_target_rpm')?.value) || 30000);
-      await sendSerialCommand(`autotune run both ${target} cold`);
+      const baseline = document.getElementById('diagnostic_launch_baseline')?.value || 'cold';
+      if (!['cold','idle'].includes(baseline)) return alert('Choose cold startup or already spinning.');
+      await sendSerialCommand(`autotune run both ${target} ${baseline}`);
       logToConsole("Firmware PID measurement requested. Use autotune status and autotune apply both in the console. Feedforward is held fixed. Read autotune status before applying a result; Tune Blaster validates both stages automatically.");
     }
     window.runCriticalDampingAutotune = runCriticalDampingAutotune;
@@ -10275,7 +10522,8 @@ function updateWriteButtonText() {
       guidedTuning.samples.push({ x:xVal, target:point.target,
         rpm1:point.rpm1, rpm2:point.rpm2, throttle1:point.throttle1, throttle2:point.throttle2,
         voltage:point.voltage, boardMs:point.boardMs, lim1:point.lim1, lim2:point.lim2, stage:guidedTuning.status?.stage,
-        phase:guidedTuning.status?.phase, tuneTarget:guidedTuning.status?.target, pass:guidedTuning.status?.pass });
+        phase:guidedTuning.status?.phase, tuneTarget:guidedTuning.status?.target, pass:guidedTuning.status?.pass,
+        launchStartMs:point.launchStartMs,launchTarget:point.launchTarget,launchDurationMs:point.launchDurationMs,launchStartRpm:point.launchStartRpm });
       if (guidedTuning.samples.length > 20000) guidedTuning.samples = guidedTuning.samples.filter((_,i) => i % 2 === 0);
       const nowTs = point.timestamp || Date.now();
       if (nowTs - guidedTuning.lastDraw >= 100) { guidedTuning.lastDraw = nowTs; drawGuidedChart(); }
@@ -10514,9 +10762,10 @@ function updateWriteButtonText() {
     // Everything the page saw during the run, for review after the fact: live samples (with the tuning
     // phase and test target at the time), every status change (state/stage/phase/target/pass/reason,
     // board time in ms), the per-motor result lines, stage markers and the run options.
-    function exportGuidedTuning() {
+    async function exportGuidedTuning() {
       const st = guidedTuning.status || {};
-      const run = {
+      const generation = serialConnectionGeneration;
+      const run = structuredClone({
         version: 2,
         exportedAt: new Date().toISOString(),
         firmware: (typeof connectedBlasterVersion !== 'undefined' && connectedBlasterVersion) ||
@@ -10524,9 +10773,18 @@ function updateWriteButtonText() {
         session: st.session ?? null,
         options: { baseline: guidedElement('guided_baseline')?.value, passes: Number(guidedElement('guided_passes')?.value) },
         status: guidedTuning.status, events: guidedTuning.events, results: guidedTuning.results,
+        boardConfiguration: boardLaunchConfiguration?.generation === serialConnectionGeneration ? boardLaunchConfiguration : null,
+        settingsReadback: {...boardSettingsSnapshot}, simulation: copyComparisonSimulation(),
         stages: guidedTuning.markers, samples: guidedTuning.samples,
-        sampleFields: 'x=s since first board sample; target=stream target; tuneTarget/phase/pass/stage=last TUNING status; lim1/lim2=limiter bits',
-      };
+        sampleFields: 'x=s since first board sample; target=firmware ramp reference; launchTarget=final preset; launchStartMs=board-clock origin; launchDurationMs=firmware duration during this sample; tuneTarget/phase/pass/stage=last TUNING status; lim1/lim2=limiter bits; boardConfiguration=readback at its readAt time',
+      });
+      if (st.state === 'saved' && port?.writable) {
+        try {
+          await requestBoardLaunchConfiguration();
+          if (serialConnectionGeneration !== generation || guidedTuning.status?.session !== st.session) throw new Error('Connection or tuning session changed during export');
+          run.boardConfiguration = structuredClone(boardLaunchConfiguration);
+        } catch(error) {run.configurationReadError=error.message;logToConsole(`Run export has no fresh board configuration: ${error.message}`,true);}
+      }
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const blob=new Blob([JSON.stringify(run,null,1)],{type:'application/json'});
       const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url;
