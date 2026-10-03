@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.27</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.28</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -3871,8 +3871,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.27";
-    window.CONFIGURATOR_VERSION = "1.1.27";
+    const CONFIGURATOR_VERSION = "v1.1.28";
+    window.CONFIGURATOR_VERSION = "1.1.28";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -5457,77 +5457,98 @@ function updateWriteButtonText() {
       alert("Factory defaults restored successfully!");
     }
 
-    function exportFullBlasterProfile() {
-      const allKeys = [
-        'max_rpm', // first, so raised presets are not clamped to the old limit
-        'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'led_enabled', 'brightness', 'temp_unit', 'cells',
-        'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
-        'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
-        'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
-        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv',
-        'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
-        'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
-        'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
-        'splash_ms', 'rpm_preset_count', 'menu_mask',
-        'dart_detect', 'dart_drop_rpm', 'dart_window_ms', 'dart_min_rpm',
-        'dart_recovery_assist', 'dart_recovery_gain_x100', 'dart_recovery_boost_max', 'dart_recovery_step_up'
-      ];
+    async function exportFullBlasterProfile() {
+      try {
+        const connected = !!(port && port.writable);
+        const connectionPort = port, generation = serialConnectionGeneration;
+        let boardConfig = null;
+        if (connected) {
+          await sendAcknowledgedCommand('settings show', 'settings double_click_reload_ms=', 'settings:');
+          assertSerialConnection(connectionPort, generation);
+          boardConfig = await requestBoardLaunchConfiguration();
+          assertSerialConnection(connectionPort, generation);
+        }
+        const allKeys = [
+          'max_rpm', // first, so raised presets are not clamped to the old limit
+          'rpm0', 'rpm1', 'rpm2', 'rpm_name0', 'rpm_name1', 'rpm_name2', 'hud_target_label', 'hud_current_label', 'led_enabled', 'brightness', 'temp_unit', 'cells',
+          'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
+          'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
+          'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
+          'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv',
+          'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
+          'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
+          'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
+          'splash_ms', 'rpm_preset_count', 'menu_mask',
+          'dart_detect', 'dart_drop_rpm', 'dart_window_ms', 'dart_min_rpm',
+          'dart_recovery_assist', 'dart_recovery_gain_x100', 'dart_recovery_boost_max', 'dart_recovery_step_up'
+        ];
 
-      const settings = {};
-      for (const key of allKeys) {
-        const el = document.getElementById('set_' + key) || document.getElementById(key + '_input') || document.getElementById('hud_' + key + '_input');
-        if (el) {
-          if (el.type === 'checkbox') {
-            settings[key] = el.checked ? '1' : '0';
-          } else {
-            settings[key] = el.value;
+        const settings = {};
+        for (const key of allKeys) {
+          const el = document.getElementById('set_' + key) || document.getElementById(key + '_input') || document.getElementById('hud_' + key + '_input');
+          if (el) {
+            if (el.type === 'checkbox') {
+              settings[key] = el.checked ? '1' : '0';
+            } else {
+              settings[key] = el.value;
+            }
           }
         }
+
+        const pid = {
+          pid1_kp: document.getElementById('set_pid1_kp')?.value || '0.0050',
+          pid1_ki: document.getElementById('set_pid1_ki')?.value || '0.002000',
+          pid1_ff: document.getElementById('set_pid1_ff')?.value || '1.0000',
+          pid2_kp: document.getElementById('set_pid2_kp')?.value || '0.0050',
+          pid2_ki: document.getElementById('set_pid2_ki')?.value || '0.002000',
+          pid2_ff: document.getElementById('set_pid2_ff')?.value || '1.0000'
+        };
+
+        const hudLayout = (typeof HUD_WIDGETS !== 'undefined' && Array.isArray(HUD_WIDGETS))
+          ? JSON.parse(JSON.stringify(HUD_WIDGETS))
+          : null;
+
+        const ff = (typeof activeLaunchCurveData !== 'undefined') ? JSON.parse(JSON.stringify(activeLaunchCurveData)) : null;
+
+        const profile = {
+          format: "ByteBlasterProfile_v1",
+          timestamp: new Date().toISOString(),
+          firmware_version: connectedBlasterVersion || document.getElementById('sidebar_connected_version_val')?.textContent?.trim() || "1.1",
+          pcb_version: boardSettingsSnapshot.pcb_version ?? "unknown",
+          settings: settings,
+          pid: pid,
+          ff: ff,
+          hud_layout: hudLayout
+        };
+        profile.board_configuration = boardConfig ? {data: boardConfig, readAt: new Date().toISOString(), generation} : null;
+        profile.settings_readback = {...boardSettingsSnapshot};
+        profile.unsaved_ui_settings = Array.from(dirtySettings);
+        if (boardConfig) {
+          profile.feedforward_calibration = {format: 'ByteBlasterFeedforward_v1', units: 'voltage_normalized_drive', ...structuredClone(boardConfig.feedforward)};
+        }
+        const normalized = normalizeBlasterProfile(profile);
+        Object.assign(profile, normalized);
+        profile.launch_curve = profile.ff;
+        validateBlasterProfile(profile);
+        window.blasterSettings = profile.settings;
+        window.blasterPid = profile.pid;
+        window.blasterFf = profile.ff;
+        window.blasterHudWidgets = hudLayout;
+        const jsonStr = JSON.stringify(profile, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `byte_blaster_profile_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "_")}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        if (typeof logToConsole === 'function') logToConsole("Full Blaster Profile exported to JSON successfully.");
+      } catch (err) {
+        logToConsole(`Profile export failed: ${err.message}`, true);
+        alert(`Profile export failed: ${err.message}\nNo incomplete backup was downloaded.`);
       }
-
-      const pid = {
-        pid1_kp: document.getElementById('set_pid1_kp')?.value || '0.0050',
-        pid1_ki: document.getElementById('set_pid1_ki')?.value || '0.002000',
-        pid1_ff: document.getElementById('set_pid1_ff')?.value || '1.0000',
-        pid2_kp: document.getElementById('set_pid2_kp')?.value || '0.0050',
-        pid2_ki: document.getElementById('set_pid2_ki')?.value || '0.002000',
-        pid2_ff: document.getElementById('set_pid2_ff')?.value || '1.0000'
-      };
-
-      const hudLayout = (typeof HUD_WIDGETS !== 'undefined' && Array.isArray(HUD_WIDGETS)) 
-        ? JSON.parse(JSON.stringify(HUD_WIDGETS)) 
-        : null;
-
-      const ff = (typeof activeLaunchCurveData !== 'undefined') ? JSON.parse(JSON.stringify(activeLaunchCurveData)) : null;
-
-      const profile = {
-        format: "ByteBlasterProfile_v1",
-        timestamp: new Date().toISOString(),
-        firmware_version: connectedBlasterVersion || document.getElementById('sidebar_connected_version_val')?.textContent?.trim() || "1.1",
-        pcb_version: "1.0",
-        settings: settings,
-        pid: pid,
-        ff: ff,
-        hud_layout: hudLayout
-      };
-      profile.board_configuration = boardLaunchConfiguration?.generation === serialConnectionGeneration ? boardLaunchConfiguration : null;
-      profile.settings_readback = {...boardSettingsSnapshot};
-      profile.unsaved_ui_settings = Array.from(dirtySettings);
-      window.blasterSettings = settings;
-      window.blasterPid = pid;
-      window.blasterFf = ff;
-      window.blasterHudWidgets = hudLayout;
-      const jsonStr = JSON.stringify(profile, null, 2);
-      const blob = new Blob([jsonStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `byte_blaster_profile_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "_")}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      if (typeof logToConsole === 'function') logToConsole("Full Blaster Profile exported to JSON successfully.");
     }
     window.exportFullBlasterProfile = exportFullBlasterProfile;
 
@@ -5535,6 +5556,110 @@ function updateWriteButtonText() {
       // All RPM limits must be restored before any preset or idle RPM value.
       return key === 'max_rpm' ? -4 : key === 'motor_kv' ? -3 : key === 'cells' ? -2 :
         key === 'rpm_preset_count' ? -1 : key === 'always_on' ? 1 : 0;
+    }
+
+    function validateProfileFeedforward(table) {
+      if (!table || (table.format !== undefined && table.format !== 'ByteBlasterFeedforward_v1') ||
+          (table.units !== undefined && table.units !== 'voltage_normalized_drive') ||
+          !Array.isArray(table.rpm) || table.rpm.length !== 5 ||
+          table.rpm.some((rpm, i) => rpm !== [2000, 5000, 15000, 20000, 32000][i]) ||
+          !Array.isArray(table.motors) || table.motors.length !== 2) throw new Error('Invalid profile feedforward table');
+      for (const motor of table.motors) {
+        if (!Number.isInteger(motor?.validMask) || motor.validMask < 0 || motor.validMask > 31 ||
+            !Array.isArray(motor.drive) || motor.drive.length !== 5 || motor.drive.some((drive, i) =>
+              !Number.isInteger(drive) || drive < 0 || drive > (2047 - 48) * 26 ||
+              (!(motor.validMask & (1 << i)) && drive !== 0))) {
+          throw new Error('Feedforward calibration cannot be restored exactly by this firmware protocol');
+        }
+      }
+      return table;
+    }
+
+    function profileCurveFromBoard(config) {
+      if (!Number.isInteger(config?.durationMs) || !Array.isArray(config.knots) ||
+          config.knots.some(k => !Number.isInteger(k))) throw new Error('Invalid saved board launch curve');
+      const normalizedRpmTable16 = config.knots.map(k => k / 10000);
+      const targetRpm = config.target || 32000;
+      const curve = {format: 'ByteBlaster_launch_curve_v1', title: 'Saved blaster launch curve',
+        launchDurationMs: config.durationMs, targetDeadlineMs: config.durationMs, targetRpm,
+        batteryContext: {approxCells: config.cells}, normalizedRpmTable16,
+        trajectoryKnots: normalizedRpmTable16.map((rpmFrac, index) => ({index, timeFrac: index / 15,
+          timeMs: index / 15 * config.durationMs, targetRpm: Math.round(rpmFrac * targetRpm), rpmFrac}))};
+      validateLaunchCurve(curve);
+      return curve;
+    }
+
+    function normalizeBlasterProfile(data) {
+      const profile = structuredClone(data);
+      const board = profile.board_configuration?.data;
+      const dirty = new Set(profile.unsaved_ui_settings || []);
+      // Legacy exports rounded DOM gains and carried a stale simulator curve.
+      // Only replace values documented as unedited with their board readback.
+      if (board && Array.isArray(profile.unsaved_ui_settings)) {
+        for (const key of Object.keys(profile.settings || {})) {
+          if (!dirty.has(key) && profile.settings_readback?.[key] !== undefined) profile.settings[key] = profile.settings_readback[key];
+        }
+        if (profile.pid && Array.isArray(board.pid)) for (const motor of [1, 2]) {
+          for (const [term, boardTerm] of [['kp', 'kp'], ['ki', 'ki'], ['ff', 'ffScale']]) {
+            const key = `pid${motor}_${term}`;
+            if (!dirty.has(key) && board.pid[motor - 1]?.[boardTerm] !== undefined) {
+              profile.pid[key] = board.pid[motor - 1][boardTerm];
+              if (profile.settings) profile.settings[key] = profile.pid[key];
+            }
+          }
+        }
+        if (!profile.launch_curve && !dirty.has('launch_time_ms') && !dirty.has('launch_trajectory')) {
+          profile.ff = profileCurveFromBoard(board);
+        }
+      }
+      const table = profile.feedforward_calibration ?? board?.feedforward;
+      if (table !== undefined && table !== null) profile.feedforward_calibration = validateProfileFeedforward(table);
+      return profile;
+    }
+
+    async function restoreProfileFeedforward(table, connectionPort, generation) {
+      validateProfileFeedforward(table);
+      logToConsole('Restoring calibrated feedforward table for both motors...');
+      // Stored drive is (throttle - 48) * voltage. Use an explicit reference
+      // voltage and enough decimal places to recover every integer exactly,
+      // regardless of the receiving board's current battery voltage.
+      for (let motor = 0; motor < 2; motor++) {
+        assertSerialConnection(connectionPort, generation);
+        await sendAcknowledgedCommand(`ff clear m${motor + 1}`, 'ff clear: ok', 'ff clear:');
+        for (let point = 0; point < 5; point++) if (table.motors[motor].validMask & (1 << point)) {
+          assertSerialConnection(connectionPort, generation);
+          const throttle = (48 + table.motors[motor].drive[point] / 26).toFixed(9);
+          await sendAcknowledgedCommand(`ff set m${motor + 1} ${table.rpm[point]} ${throttle} 26`, 'ff set: ok', 'ff set:');
+        }
+      }
+      assertSerialConnection(connectionPort, generation);
+      const readback = await requestBoardLaunchConfiguration();
+      assertSerialConnection(connectionPort, generation);
+      if (JSON.stringify(readback.feedforward?.rpm) !== JSON.stringify(table.rpm) ||
+          table.motors.some((motor, i) => readback.feedforward?.motors?.[i]?.validMask !== motor.validMask ||
+            motor.drive.some((drive, point) => readback.feedforward?.motors?.[i]?.drive?.[point] !== drive))) {
+        throw new Error('Feedforward readback does not match the imported calibration');
+      }
+      logToConsole('Both feedforward masks and all ten stored drive values verified on blaster.');
+      return readback;
+    }
+
+    function verifyProfileTuneReadback(data, readback) {
+      if (data.pid) for (const motor of [1, 2]) for (const [term, boardTerm] of [['kp', 'kp'], ['ki', 'ki'], ['ff', 'ffScale']]) {
+        const stored = readback.pid?.[motor - 1]?.[boardTerm];
+        if (!Number.isFinite(stored) || Math.abs(stored - Number(data.pid[`pid${motor}_${term}`])) > 0.000001) {
+          throw new Error(`PID readback does not match imported motor ${motor} ${term}`);
+        }
+      }
+      const curve = data.launch_curve ?? data.ff;
+      if (curve) {
+        const expected = validateLaunchCurve(curve);
+        const mode = Number(data.settings?.launch_trajectory ?? 2);
+        const duration = Number(data.settings?.launch_time_ms ?? expected.durationMs);
+        if (readback.mode !== mode || readback.durationMs !== duration ||
+            !Array.isArray(readback.knots) || readback.knots.length !== 16 ||
+            readback.knots.some((k, i) => k !== expected.knots[i])) throw new Error('Saved launch curve does not match imported profile');
+      }
     }
 
     function validateBlasterProfile(data) {
@@ -5557,6 +5682,7 @@ function updateWriteButtonText() {
       }
       const curve = data.launch_curve ?? data.ff; // v1 exports historically named their launch curve "ff".
       if (curve) validateLaunchCurve(curve);
+      if (data.feedforward_calibration) validateProfileFeedforward(data.feedforward_calibration);
       if (data.hud_layout && (!Array.isArray(data.hud_layout) || data.hud_layout.length > 8 ||
           data.hud_layout.some(w => !w || typeof w !== 'object' || Array.isArray(w)))) throw new Error('Invalid HUD layout');
       return curve;
@@ -5567,10 +5693,15 @@ function updateWriteButtonText() {
       if (!file) return;
       try {
         const text = await file.text();
-        const data = JSON.parse(text);
+        const data = normalizeBlasterProfile(JSON.parse(text));
         const curve = validateBlasterProfile(data); // validate every section before writing anything
         const connected = !!(port && port.writable);
         const connectionPort = port, connectionGeneration = serialConnectionGeneration;
+        if (connected && data.feedforward_calibration) {
+          // Check readback support and idle state before changing any settings.
+          await requestBoardLaunchConfiguration();
+          assertSerialConnection(connectionPort, connectionGeneration);
+        }
         if (data.settings) {
           if (typeof logToConsole === 'function') logToConsole("Importing settings from profile JSON...");
           const s = data.settings;
@@ -5620,6 +5751,10 @@ function updateWriteButtonText() {
             }
           }
         }
+        if (connected && data.feedforward_calibration) {
+          const readback = await restoreProfileFeedforward(data.feedforward_calibration, connectionPort, connectionGeneration);
+          verifyProfileTuneReadback(data, readback);
+        }
         if (connected && data.settings?.always_on !== undefined) {
           assertSerialConnection(connectionPort, connectionGeneration);
           await sendAcknowledgedSetting('always_on', data.settings.always_on);
@@ -5634,10 +5769,12 @@ function updateWriteButtonText() {
           if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
           if (typeof scheduleHudLiveMirror === 'function') scheduleHudLiveMirror(true);
         }
-        const message = connected ? 'Profile settings and gains accepted by blaster.' : 'Profile loaded locally; connect and write settings to apply it.';
+        const message = connected ? 'Profile settings and gains accepted by blaster.' + (data.feedforward_calibration ? ' Calibrated feedforward verified.' : ' No feedforward calibration was present in this profile.') :
+          'Profile loaded locally; connect and re-import this file to restore the complete tune.';
         logToConsole(message);
         alert(message + (data.hud_layout ? '\nHUD layout loaded in editor; save the HUD layout to persist it.' : ''));
       } catch (err) {
+        logToConsole(`Profile import stopped: ${err.message}. Earlier accepted settings may already be applied.`, true);
         alert(`Profile import stopped: ${err.message}\nEarlier accepted settings may already be applied. Read board settings before retrying.`);
       } finally {
         e.target.value = '';
@@ -7778,6 +7915,14 @@ function updateWriteButtonText() {
     async function sendAcknowledgedSetting(key, value) {
       if (typeof value === 'boolean') value = value ? 1 : 0;
       if (!/^[a-z][a-z0-9_]*$/.test(key) || /[\r\n\x00]/.test(String(value))) throw new Error('Invalid setting name/value');
+      // Existing firmware exposes this through its dedicated command, rather
+      // than settings set. Keep profile imports and full writes compatible.
+      if (key === 'lifetime_counter') {
+        if (!['0', '1'].includes(String(value))) throw new Error('Invalid lifetime counter value');
+        const enabled = String(value) === '1';
+        return sendAcknowledgedCommand(`lifetime_counter ${enabled ? 'on' : 'off'}`,
+          enabled ? 'lifetime_counter: enabled' : 'lifetime_counter: disabled', 'lifetime_counter:');
+      }
       return sendAcknowledgedCommand(`settings set ${key} ${value}`, `settings set ${key}: ok`, 'settings set:');
     }
 
