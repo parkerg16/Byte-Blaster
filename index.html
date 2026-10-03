@@ -780,7 +780,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.26</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.27</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -3871,8 +3871,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.26";
-    window.CONFIGURATOR_VERSION = "1.1.26";
+    const CONFIGURATOR_VERSION = "v1.1.27";
+    window.CONFIGURATOR_VERSION = "1.1.27";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -7084,6 +7084,10 @@ function updateWriteButtonText() {
         for (const s of lagRows) for (const [bit,name] of Object.entries(launchLimitNames)) if ((s[`lim${m}`]||0) & (1<<Number(bit))) limits[name]=(limits[name]||0)+1;
         const minimumOverspeed = measuredRows.some(s=>s[`thr${m}`]===48 && s[`rpm${m}`]>s.ref+Math.max(150,target*.05));
         const deliveredLag = lagRows.some(s=>Number.isFinite(s[`req${m}`]) && s[`req${m}`]<=s[`thr${m}`]+2 && !(s[`lim${m}`] & ((1<<11)|(1<<12))));
+        const commandHeadroom = comparisonWindow(lagRows.filter(s=>Number.isFinite(s[`cap${m}`]) && Number.isFinite(s[`req${m}`]) &&
+          s[`req${m}`] < s[`cap${m}`]-50 && s[`thr${m}`] >= s[`req${m}`]-2 && !(s[`lim${m}`]&((1<<11)|(1<<12)))));
+        const negativeFeedback = comparisonWindow(lagRows.filter(s=>['p','i','d','boost'].every(k=>Number.isFinite(s[`${k}${m}`])) &&
+          ['p','i','d','boost'].reduce((sum,k)=>sum+s[`${k}${m}`],0)<-10));
         const startupCap = comparisonWindow(acceleration.filter(s=>(s[`lim${m}`]||0)&(1<<3)));
         const peer=m===1?2:1;
         const syncCatchup = comparisonWindow(lagRows.filter(s=> {
@@ -7093,7 +7097,7 @@ function updateWriteButtonText() {
           return rpm+Math.max(150,s.ref*.01)<peerRpm;
         }));
         const peak = Math.max(0,...measuredRows.map(s=>s[`rpm${m}`]));
-        const motor = { motor:m,rise90Ms:rise90,rise95Ms:rise95,overshootPct:Math.max(0,(peak-target)/target*100),limits,minimumOverspeed,deliveredLag,startupCap,syncCatchup,firstTelemetryMs,excludedRpmSamples };
+        const motor = { motor:m,rise90Ms:rise90,rise95Ms:rise95,overshootPct:Math.max(0,(peak-target)/target*100),limits,minimumOverspeed,deliveredLag,commandHeadroom,negativeFeedback,startupCap,syncCatchup,firstTelemetryMs,excludedRpmSamples };
         result.motors.push(motor);
         if (excludedRpmSamples) result.messages.push(`M${m}: ${excludedRpmSamples} samples had unavailable/stale RPM and are excluded from speed and delivered-command conclusions. First usable telemetry: ${firstTelemetryMs===null?'none':firstTelemetryMs+' ms'}.`);
         if (minimumOverspeed) result.messages.push(`M${m}: RPM exceeded the reference while already at minimum running throttle. Startup impulse/momentum or ESC behavior needs investigation; more PID gain cannot command a smaller running throttle.`);
@@ -7101,6 +7105,8 @@ function updateWriteButtonText() {
         if (startupCap) result.messages.push(`M${m}: startup drive cap observed at ${startupCap.samples} samples between ${startupCap.firstMs} and ${startupCap.lastMs} ms${config.startupDriveMv?` (standstill budget ${(config.startupDriveMv/1000).toFixed(2)} V equivalent)`:''}.`);
         if (syncCatchup) result.messages.push(`M${m}: synchronization reduced the slower wheel's catch-up command at ${syncCatchup.samples} samples between ${syncCatchup.firstMs} and ${syncCatchup.lastMs} ms.`);
         if (deliveredLag) result.messages.push(`M${m}: requested command reached the firmware output while RPM still lagged. Current measurements are needed to separate model error, motor/load physics and ESC response.`);
+        if (commandHeadroom) result.messages.push(`M${m}: controller requested less than its allowed ceiling while RPM lagged, between ${commandHeadroom.firstMs} and ${commandHeadroom.lastMs} ms. Inspect feedforward and feedback terms; available command headroom does not guarantee additional motor current.`);
+        if (negativeFeedback) result.messages.push(`M${m}: combined P/I/D/recovery feedback reduced the command despite RPM trailing the reference, between ${negativeFeedback.firstMs} and ${negativeFeedback.lastMs} ms. Enable the feedback curves to identify the term. This does not establish ESC braking current.`);
       }
       const volts = accelerationVoltage(launchRows);
       result.minVoltage = volts.min; result.voltageDrop = volts.drop;
@@ -7125,10 +7131,10 @@ function updateWriteButtonText() {
       data.forEach((d,i)=>comparisonChart.data.datasets[i].data=d);comparisonChart.options.scales.x.max=end;comparisonChart.update('none');
       const cmdCanvas=document.getElementById('launch_command_canvas');
       if (cmdCanvas) {
-        const fields=['req1','req2','thr1','thr2','volts'];
+        const fields=['req1','req2','thr1','thr2','volts','p1','i1','d1','boost1','p2','i2','d2','boost2'];
         if (!comparisonCommandChart) comparisonCommandChart=new Chart(cmdCanvas.getContext('2d'),{type:'line',data:{datasets:
-          ['M1 requested','M2 requested','M1 applied','M2 applied','Pack voltage'].map((label,i)=>({label,data:[],borderColor:['#22d3ee','#a78bfa','#0891b2','#7c3aed','#fb923c'][i],borderDash:i<2?[5,3]:[],pointRadius:0,borderWidth:1.5,yAxisID:i===4?'voltage':'command'}))},
-          options:{responsive:true,maintainAspectRatio:false,animation:false,parsing:false,scales:{x:{type:'linear',min:0,max:end},command:{min:0,title:{display:true,text:'DShot command'}},voltage:{position:'right',min:0,title:{display:true,text:'Pack V'},grid:{drawOnChartArea:false}}},plugins:{legend:{labels:{color:'#cbd5e1'}}}}});
+          ['M1 requested','M2 requested','M1 applied','M2 applied','Pack voltage','M1 P','M1 I','M1 D','M1 recovery','M2 P','M2 I','M2 D','M2 recovery'].map((label,i)=>({label,data:[],borderColor:['#22d3ee','#a78bfa','#0891b2','#7c3aed','#fb923c','#22c55e','#facc15','#f43f5e','#38bdf8','#86efac','#fef08a','#fda4af','#bae6fd'][i],hidden:i>=5,borderDash:i<2?[5,3]:[],pointRadius:0,borderWidth:1.5,yAxisID:i===4?'voltage':'command'}))},
+          options:{responsive:true,maintainAspectRatio:false,animation:false,parsing:false,scales:{x:{type:'linear',min:0,max:end},command:{title:{display:true,text:'DShot command / signed feedback'}},voltage:{position:'right',min:0,title:{display:true,text:'Pack V'},grid:{drawOnChartArea:false}}},plugins:{legend:{labels:{color:'#cbd5e1'}}}}});
         fields.forEach((f,i)=>comparisonCommandChart.data.datasets[i].data=rows.filter(s=>Number.isFinite(s[f])).map(s=>({x:s.ms,y:s[f]})));
         comparisonCommandChart.options.scales.x.max=end; comparisonCommandChart.update('none');
       }
