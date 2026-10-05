@@ -772,6 +772,127 @@
     .guided-profile { display: flex; flex-wrap: wrap; gap: .6rem; margin: .6rem 0; }
     .guided-profile span { background: rgba(0,0,0,0.3); padding: .4rem .75rem; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.3); font-weight: 600; font-size: 0.8rem; }
     .guided-help { font-size: .75rem; color: var(--text-secondary); line-height: 1.4; }
+    /* ===== Launch Planner (phased launch profile) ===== */
+    .lp-root {
+      --lp-surface: #0f1626;
+      --lp-ink: #e5e7eb;
+      --lp-ink-2: #9ca3af;
+      --lp-ink-3: #6b7280;
+      --lp-grid: rgba(148, 163, 184, 0.10);
+      --lp-axis: rgba(148, 163, 184, 0.35);
+      --lp-ref: #0b9ab8;        /* reference (what the blaster commands) */
+      --lp-ref-hi: #22d3ee;
+      --lp-pred: #8b5cf6;       /* predicted motor (model) */
+      --lp-m1: #d9437a;         /* last launch, motor 1 */
+      --lp-m2: #c98008;         /* last launch, motor 2 */
+      --lp-good: #22c55e;
+      --lp-warn: #f59e0b;
+      --lp-crit: #ef4444;
+      --lp-serious: #f97316;
+      flex-direction: column; gap: 1.25rem; width: 100%;
+    }
+    .lp-card { background: linear-gradient(180deg, rgba(15, 22, 38, 0.92), rgba(11, 15, 25, 0.92)); border: 1px solid rgba(34, 211, 238, 0.18); }
+    .lp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+    .lp-eyebrow { font-family: 'Space Grotesk', sans-serif; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lp-ref-hi); font-weight: 700; }
+    .lp-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.35rem; margin: 0.15rem 0 0.25rem; color: var(--lp-ink); font-weight: 700; }
+    .lp-title .lp-arrow { color: var(--lp-ink-3); font-weight: 400; margin: 0 0.35rem; }
+    .lp-sub { margin: 0; color: var(--lp-ink-2); font-size: 0.85rem; max-width: 62ch; line-height: 1.5; }
+    .lp-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .lp-btn { font-family: inherit; font-size: 0.8rem; font-weight: 600; border-radius: 8px; padding: 0.5rem 0.95rem; cursor: pointer; border: 1px solid rgba(148, 163, 184, 0.25); background: rgba(148, 163, 184, 0.08); color: var(--lp-ink); transition: background 0.15s, border-color 0.15s, transform 0.1s; }
+    .lp-btn:hover { background: rgba(148, 163, 184, 0.16); }
+    .lp-btn:active { transform: translateY(1px); }
+    .lp-btn.primary { background: linear-gradient(135deg, #0891b2, #0e7490); border-color: rgba(34, 211, 238, 0.55); color: #ecfeff; box-shadow: 0 0 18px rgba(34, 211, 238, 0.18); }
+    .lp-btn.primary:hover { background: linear-gradient(135deg, #06a3c7, #0891b2); }
+    .lp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .lp-btn:focus-visible, .lp-seg button:focus-visible, .lp-root input:focus-visible, .lp-root select:focus-visible { outline: 2px solid var(--lp-ref-hi); outline-offset: 2px; }
+    .lp-badge { font-size: 0.72rem; font-weight: 700; padding: 0.3rem 0.65rem; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.3); color: var(--lp-ink-2); background: rgba(148, 163, 184, 0.08); white-space: nowrap; }
+    .lp-badge.on { color: #86efac; border-color: rgba(34, 197, 94, 0.45); background: rgba(34, 197, 94, 0.12); }
+    .lp-badge.pending { color: #fcd34d; border-color: rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.12); }
+
+    .lp-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.65rem; }
+    .lp-kpi { background: rgba(0, 0, 0, 0.28); border: 1px solid rgba(148, 163, 184, 0.12); border-radius: 12px; padding: 0.7rem 0.85rem; min-width: 0; }
+    .lp-kpi-label { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--lp-ink-2); font-weight: 600; }
+    .lp-kpi-value { font-family: 'Space Grotesk', sans-serif; font-size: 1.55rem; font-weight: 700; color: var(--lp-ink); margin-top: 0.15rem; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    .lp-kpi-value small { font-size: 0.8rem; font-weight: 500; color: var(--lp-ink-2); margin-left: 0.2rem; }
+    .lp-kpi-sub { font-size: 0.72rem; color: var(--lp-ink-3); margin-top: 0.2rem; line-height: 1.35; }
+    .lp-chip { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 999px; margin-left: 0.35rem; vertical-align: middle; }
+    .lp-chip.good { color: #86efac; background: rgba(34, 197, 94, 0.14); }
+    .lp-chip.warn { color: #fcd34d; background: rgba(245, 158, 11, 0.14); }
+    .lp-chip.crit { color: #fca5a5; background: rgba(239, 68, 68, 0.14); }
+
+    .lp-toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; }
+    .lp-toolbar-group { display: flex; align-items: center; gap: 0.5rem; }
+    .lp-toolbar-label { font-size: 0.72rem; color: var(--lp-ink-2); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .lp-seg { display: inline-flex; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 9px; padding: 2px; }
+    .lp-seg button { font-family: inherit; font-size: 0.78rem; font-weight: 600; color: var(--lp-ink-2); background: transparent; border: 0; padding: 0.35rem 0.7rem; border-radius: 7px; cursor: pointer; }
+    .lp-seg button[aria-pressed="true"] { background: rgba(34, 211, 238, 0.16); color: #cffafe; box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.35); }
+
+    .lp-chart { position: relative; width: 100%; border-radius: 12px; background: var(--lp-surface); border: 1px solid rgba(148, 163, 184, 0.10); overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .lp-chart svg { display: block; width: 100%; height: auto; }
+    .lp-chart text { font-family: 'Outfit', sans-serif; fill: var(--lp-ink-2); font-size: 11px; }
+    .lp-chart .lp-axis-label { fill: var(--lp-ink-3); font-size: 10.5px; letter-spacing: 0.04em; }
+    .lp-chart .lp-band-label { fill: var(--lp-ink-3); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+    .lp-chart .lp-anno { fill: var(--lp-ink); font-size: 11px; font-weight: 600; }
+    .lp-handle { cursor: grab; outline: none; }
+    .lp-handle:active { cursor: grabbing; }
+    .lp-handle .lp-halo { fill: rgba(34, 211, 238, 0); stroke: none; transition: fill 0.15s; }
+    .lp-handle:hover .lp-halo, .lp-handle:focus .lp-halo, .lp-handle.dragging .lp-halo { fill: rgba(34, 211, 238, 0.16); }
+    .lp-handle:focus-visible .lp-dot { stroke: #fff; stroke-width: 3; }
+    .lp-handle.ghost .lp-dot { fill: var(--lp-surface); stroke: var(--lp-ref-hi); stroke-dasharray: 2 2; }
+    .lp-handle-x { cursor: ew-resize; }
+    .lp-handle-y { cursor: ns-resize; }
+    .lp-tooltip { position: absolute; pointer-events: none; background: rgba(2, 6, 23, 0.94); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 10px; padding: 0.5rem 0.65rem; font-size: 0.75rem; color: var(--lp-ink); min-width: 150px; opacity: 0; transform: translateY(4px); transition: opacity 0.12s, transform 0.12s; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); z-index: 3; }
+    .lp-tooltip.show { opacity: 1; transform: translateY(0); }
+    .lp-tooltip .lp-tt-head { color: var(--lp-ink-2); font-size: 0.7rem; margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .lp-tooltip .lp-tt-row { display: flex; align-items: center; gap: 0.45rem; line-height: 1.6; }
+    .lp-tooltip .lp-tt-key { width: 12px; height: 0; border-top: 2px solid; flex: none; }
+    .lp-tooltip .lp-tt-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .lp-tooltip .lp-tt-name { color: var(--lp-ink-2); }
+    .lp-hint { position: absolute; right: 0.75rem; top: 0.6rem; font-size: 0.7rem; color: var(--lp-ink-3); pointer-events: none; }
+
+    .lp-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem; font-size: 0.75rem; color: var(--lp-ink-2); align-items: center; }
+    .lp-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .lp-legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; }
+    .lp-legend i.dash { border-top-style: dashed; }
+
+    .lp-alerts { display: flex; flex-direction: column; gap: 0.4rem; }
+    .lp-alert { display: flex; gap: 0.55rem; align-items: flex-start; font-size: 0.8rem; line-height: 1.45; padding: 0.55rem 0.75rem; border-radius: 10px; border: 1px solid; }
+    .lp-alert b { font-weight: 700; }
+    .lp-alert .lp-ico { flex: none; font-weight: 800; width: 1.1rem; height: 1.1rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; margin-top: 0.1rem; }
+    .lp-alert.warn { color: #fde68a; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.07); }
+    .lp-alert.warn .lp-ico { background: rgba(245, 158, 11, 0.25); color: #fcd34d; }
+    .lp-alert.crit { color: #fecaca; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.07); }
+    .lp-alert.crit .lp-ico { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+    .lp-alert.info { color: #bae6fd; border-color: rgba(34, 211, 238, 0.25); background: rgba(34, 211, 238, 0.06); }
+    .lp-alert.info .lp-ico { background: rgba(34, 211, 238, 0.2); color: #7dd3fc; }
+
+    .lp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.85rem; }
+    .lp-panel { background: rgba(0, 0, 0, 0.22); border: 1px solid rgba(148, 163, 184, 0.12); border-radius: 12px; padding: 0.85rem 1rem 0.5rem; min-width: 0; }
+    .lp-panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; margin-bottom: 0.35rem; }
+    .lp-panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--lp-ink); }
+    .lp-panel-note { font-size: 0.7rem; color: var(--lp-ink-3); }
+    .lp-row { padding: 0.45rem 0; border-top: 1px solid rgba(148, 163, 184, 0.07); }
+    .lp-row:first-of-type { border-top: 0; }
+    .lp-row-top { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; font-size: 0.8rem; color: var(--lp-ink); }
+    .lp-row-top output { font-variant-numeric: tabular-nums; color: var(--lp-ref-hi); font-weight: 600; font-size: 0.78rem; text-align: right; }
+    .lp-row-desc { font-size: 0.7rem; color: var(--lp-ink-3); margin-top: 0.15rem; line-height: 1.4; }
+    .lp-row input[type="range"] { width: 100%; margin: 0.35rem 0 0.1rem; accent-color: #0891b2; }
+    .lp-row select { width: 100%; margin-top: 0.35rem; padding: 0.35rem; border-radius: 7px; background: #0f172a; border: 1px solid rgba(148, 163, 184, 0.25); color: var(--lp-ink); font-family: inherit; }
+    .lp-check { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--lp-ink); cursor: pointer; }
+    .lp-check input { accent-color: #0891b2; width: 15px; height: 15px; }
+    .lp-dirty-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--lp-warn); margin-left: 0.35rem; vertical-align: middle; }
+    .lp-fit { font-size: 0.75rem; color: var(--lp-ink-2); line-height: 1.5; margin: 0.4rem 0; }
+    .lp-fit b { color: var(--lp-ink); }
+    .lp-mini-btn { font-family: inherit; font-size: 0.72rem; font-weight: 600; padding: 0.3rem 0.6rem; border-radius: 7px; border: 1px solid rgba(34, 211, 238, 0.35); background: rgba(34, 211, 238, 0.08); color: #a5f3fc; cursor: pointer; margin: 0.2rem 0.35rem 0.4rem 0; }
+    .lp-mini-btn:hover { background: rgba(34, 211, 238, 0.16); }
+    .lp-explain { font-size: 0.8rem; color: var(--lp-ink-2); line-height: 1.55; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 12px; padding: 0.75rem 1rem; }
+    .lp-explain summary { cursor: pointer; color: var(--lp-ink); font-weight: 600; }
+    .lp-explain table { width: 100%; border-collapse: collapse; margin-top: 0.6rem; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+    .lp-explain th, .lp-explain td { text-align: right; padding: 0.3rem 0.5rem; border-bottom: 1px solid rgba(148, 163, 184, 0.08); }
+    .lp-explain th:first-child, .lp-explain td:first-child { text-align: left; }
+    .lp-explain th { color: var(--lp-ink-3); font-weight: 600; text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.05em; }
+    @media (prefers-reduced-motion: reduce) { .lp-tooltip, .lp-btn, .lp-handle .lp-halo { transition: none; } }
+    @media (forced-colors: active) { .lp-chart .lp-ref-line { stroke: CanvasText; } .lp-chart .lp-pred-line { stroke: Highlight; } }
   </style>
 </head>
 <body>
@@ -780,7 +901,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.28</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.29</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -1229,6 +1350,9 @@
         </button>
         <button id="tab_btn_pid" class="preset-btn" style="font-size: 0.8rem; padding: 0.4rem 1.0rem; border-radius: 6px;" onclick="switchTab('pid')">
           PID Tuning
+        </button>
+        <button id="tab_btn_launch" class="preset-btn" style="font-size: 0.8rem; padding: 0.4rem 1.0rem; border-radius: 6px;" onclick="switchTab('launch')">
+          Launch Planner
         </button>
         <button id="tab_btn_settings" class="preset-btn" style="font-size: 0.8rem; padding: 0.4rem 1.0rem; border-radius: 6px;" onclick="switchTab('settings')">
           Numbered Settings Configuration
@@ -2062,6 +2186,145 @@
       </div> <!-- End tab_content_dashboard -->
 
       <!-- PID Tuning Tab Content -->
+      <!-- ===== Launch Planner: phased launch profile (launch_trajectory 3) ===== -->
+      <div id="tab_content_launch" class="lp-root" style="display: none;">
+        <div class="visualizer-card lp-card">
+          <div class="lp-head">
+            <div>
+              <div class="lp-eyebrow">Launch Planner</div>
+              <h2 class="lp-title">Startup<span class="lp-arrow">→</span>Ramp<span class="lp-arrow">→</span>Landing</h2>
+              <p class="lp-sub">Drag the points on the graph to shape the launch. Every number updates live from a model of your blaster, and the blaster runs exactly this profile once you apply it.</p>
+            </div>
+            <div class="lp-actions">
+              <span id="lp_status_badge" class="lp-badge" role="status">Not read from blaster</span>
+              <button type="button" class="lp-btn" onclick="lpReadFromBlaster()">Read blaster</button>
+              <button type="button" class="lp-btn" onclick="lpReadLastLaunch()">Read last launch</button>
+              <button type="button" class="lp-btn" onclick="lpResetDefaults()">Reset</button>
+              <button type="button" class="lp-btn primary" id="lp_apply_btn" onclick="lpApplyToBlaster()">Apply to blaster</button>
+            </div>
+          </div>
+
+          <div class="lp-kpis" aria-live="polite">
+            <div class="lp-kpi"><div class="lp-kpi-label">Trigger → 90 %</div><div class="lp-kpi-value" id="lp_kpi_t90">–</div><div class="lp-kpi-sub" id="lp_kpi_t90_sub">–</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Ramp</div><div class="lp-kpi-value" id="lp_kpi_ramp">–</div><div class="lp-kpi-sub" id="lp_kpi_ramp_sub">–</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Peak current</div><div class="lp-kpi-value" id="lp_kpi_peak">–</div><div class="lp-kpi-sub" id="lp_kpi_peak_sub">–</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Heat per shot</div><div class="lp-kpi-value" id="lp_kpi_heat">–</div><div class="lp-kpi-sub" id="lp_kpi_heat_sub">–</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">150 ms holds down to</div><div class="lp-kpi-value" id="lp_kpi_minv">–</div><div class="lp-kpi-sub" id="lp_kpi_minv_sub">–</div></div>
+          </div>
+
+          <div class="lp-toolbar">
+            <div class="lp-toolbar-group"><span class="lp-toolbar-label">Pacing</span>
+              <div class="lp-seg" role="group" aria-label="Pacing">
+                <button type="button" id="lp_pacing_accel" aria-pressed="true" onclick="lpSetSetting('launch_pacing', 0)">Fixed acceleration</button>
+                <button type="button" id="lp_pacing_deadline" aria-pressed="false" onclick="lpSetSetting('launch_pacing', 1)">Hit a deadline</button>
+              </div>
+            </div>
+            <div class="lp-toolbar-group"><span class="lp-toolbar-label">Ramp</span>
+              <div class="lp-seg" role="group" aria-label="Ramp shape">
+                <button type="button" id="lp_shape_one" aria-pressed="true" onclick="lpSetKneeEnabled(false)">One slope</button>
+                <button type="button" id="lp_shape_two" aria-pressed="false" onclick="lpSetKneeEnabled(true)">Two slopes</button>
+              </div>
+            </div>
+            <div class="lp-toolbar-group"><span class="lp-toolbar-label">Target</span>
+              <select id="lp_target_select" onchange="lpSetModel('targetRpm', Number(this.value))" aria-label="Target RPM preset" style="padding: 0.3rem 0.4rem; border-radius: 7px; background: #0f172a; border: 1px solid rgba(148,163,184,0.25); color: #e5e7eb; font-family: inherit;"></select>
+            </div>
+            <div class="lp-toolbar-group"><span class="lp-toolbar-label">Pack</span>
+              <output id="lp_pack_readout" style="font-size: 0.8rem; color: #e5e7eb; font-variant-numeric: tabular-nums;">–</output>
+            </div>
+          </div>
+
+          <div class="lp-chart" id="lp_chart_main">
+            <svg id="lp_svg" viewBox="0 0 900 380" role="img" aria-labelledby="lp_svg_title lp_svg_desc">
+              <title id="lp_svg_title">Launch profile: RPM against time from the trigger</title>
+              <desc id="lp_svg_desc">Reference RPM the blaster commands, the model's predicted motor RPM and, when read, the last recorded launch. Draggable handles set BEMF lock time, startup power, knee, landing, ramp end and deadline.</desc>
+            </svg>
+            <div class="lp-hint">Drag ● handles · arrow keys nudge · double-click the knee to remove it</div>
+            <div class="lp-tooltip" id="lp_tooltip" role="presentation"></div>
+          </div>
+          <div class="lp-legend" id="lp_legend"></div>
+          <div class="lp-chart" id="lp_chart_current">
+            <svg id="lp_svg_current" viewBox="0 0 900 170" role="img" aria-labelledby="lp_svgc_title">
+              <title id="lp_svgc_title">Predicted motor current per motor against time</title>
+            </svg>
+          </div>
+          <div class="lp-alerts" id="lp_alerts" role="status" aria-live="polite"></div>
+
+          <div class="lp-grid">
+            <section class="lp-panel" aria-labelledby="lp_p1">
+              <div class="lp-panel-head"><span class="lp-panel-title" id="lp_p1">Profile</span><span class="lp-panel-note" id="lp_profile_note">sent to the blaster</span></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Startup power<span id="lp_d_startup_drive_mv"></span></span><output id="lp_o_startup">–</output></div>
+                <input type="range" id="lp_startup_drive_mv" min="1000" max="5000" step="100" value="4000" oninput="lpSetSetting('startup_drive_mv', Number(this.value))" aria-label="Startup power, millivolts">
+                <div class="lp-row-desc">Open-loop drive until each ESC reports RPM. AM32 clips about 20 % duty below ~2,300 RPM.</div></div>
+              <div class="lp-row"><div class="lp-row-top"><span><span id="lp_accel_label">Acceleration</span><span id="lp_d_launch_accel"></span></span><output id="lp_o_accel">–</output></div>
+                <input type="range" id="lp_launch_accel" min="40" max="1500" step="5" value="280" oninput="lpSetSetting('launch_accel', Number(this.value))" aria-label="Ramp acceleration, RPM per millisecond"></div>
+              <div class="lp-row" id="lp_row_knee" hidden><div class="lp-row-top"><span>Knee<span id="lp_d_launch_knee_rpm"></span></span><output id="lp_o_knee">–</output></div>
+                <input type="range" id="lp_launch_knee_rpm" min="2000" max="45000" step="250" value="16000" oninput="lpSetSetting('launch_knee_rpm', Number(this.value))" aria-label="Knee RPM"></div>
+              <div class="lp-row" id="lp_row_accel2" hidden><div class="lp-row-top"><span>Upper acceleration<span id="lp_d_launch_accel2"></span></span><output id="lp_o_accel2">–</output></div>
+                <input type="range" id="lp_launch_accel2" min="40" max="1500" step="5" value="280" oninput="lpSetSetting('launch_accel2', Number(this.value))" aria-label="Acceleration above the knee, RPM per millisecond"></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Landing<span id="lp_d_launch_landing_ms"></span></span><output id="lp_o_landing">–</output></div>
+                <input type="range" id="lp_launch_landing_ms" min="0" max="60" step="1" value="10" oninput="lpSetSetting('launch_landing_ms', Number(this.value))" aria-label="Landing, milliseconds">
+                <div class="lp-row-desc">The slope eases to zero over this time, so the motors arrive without overshoot.</div></div>
+              <div class="lp-row" id="lp_row_deadline" hidden><div class="lp-row-top"><span>Deadline<span id="lp_d_launch_deadline_ms"></span></span><output id="lp_o_deadline">–</output></div>
+                <input type="range" id="lp_launch_deadline_ms" min="60" max="400" step="1" value="145" oninput="lpSetSetting('launch_deadline_ms', Number(this.value))" aria-label="Deadline from the trigger, milliseconds">
+                <div class="lp-row-desc">A late lock steepens the ramp (up to 2×) to still reach target by this time. Early locks keep the set slope.</div></div>
+              <div class="lp-row"><label class="lp-check"><input type="checkbox" id="lp_leash_on" onchange="lpSetSetting('launch_leash_rpm', this.checked ? 3000 : 0)"> Sync leash<span id="lp_d_launch_leash_rpm"></span></label>
+                <div id="lp_leash_body" hidden><div class="lp-row-top" style="margin-top: 0.3rem;"><span>Max lag before the ramp waits</span><output id="lp_o_leash">–</output></div>
+                <input type="range" id="lp_launch_leash_rpm" min="1500" max="15000" step="250" value="3000" oninput="lpSetSetting('launch_leash_rpm', Number(this.value))" aria-label="Sync leash, RPM"></div>
+                <div class="lp-row-desc">Holds the ramp while a motor trails it, e.g. after a late lock. Less catch-up current, a later finish.</div></div>
+            </section>
+
+            <section class="lp-panel" aria-labelledby="lp_p2">
+              <div class="lp-panel-head"><span class="lp-panel-title" id="lp_p2">What-if</span><span class="lp-panel-note">planning only, not sent</span></div>
+              <div class="lp-row"><div class="lp-row-top"><span>BEMF lock time</span><output id="lp_o_lock">–</output></div>
+                <input type="range" id="lp_m_lockMs" min="5" max="150" step="1" value="45" oninput="lpSetModel('lockMs', Number(this.value))" aria-label="BEMF lock time, milliseconds"></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Lock spread</span><output id="lp_o_spread">–</output></div>
+                <input type="range" id="lp_m_lockSpread" min="0" max="60" step="1" value="12" oninput="lpSetModel('lockSpread', Number(this.value))" aria-label="Lock time spread, plus or minus milliseconds">
+                <div class="lp-row-desc" id="lp_lock_hist_note">Measured lock times appear here after you read launches.</div>
+                <button type="button" class="lp-mini-btn" id="lp_use_measured_lock" hidden onclick="lpUseMeasuredLocks()">Use measured locks</button></div>
+              <div class="lp-row"><div class="lp-row-top"><span>RPM at lock</span><output id="lp_o_lockrpm">–</output></div>
+                <input type="range" id="lp_m_lockRpm" min="500" max="4000" step="50" value="1200" oninput="lpSetModel('lockRpm', Number(this.value))" aria-label="RPM at BEMF lock"></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Pack state</span><output id="lp_o_cell">–</output></div>
+                <input type="range" id="lp_m_cellV" min="3.30" max="4.20" step="0.01" value="3.90" oninput="lpSetModel('cellV', Number(this.value))" aria-label="Resting cell voltage">
+                <select id="lp_m_cells" onchange="lpSetModel('cells', Number(this.value))" aria-label="Cell count"><option value="3">3S</option><option value="4">4S</option><option value="5" selected>5S</option><option value="6">6S</option></select></div>
+            </section>
+
+            <section class="lp-panel" aria-labelledby="lp_p3">
+              <div class="lp-panel-head"><span class="lp-panel-title" id="lp_p3">Model</span><span class="lp-panel-note">from your blaster where known</span></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Inertia (flywheel + rotor)</span><output id="lp_o_j">–</output></div>
+                <input type="range" id="lp_m_jGcm2" min="15" max="120" step="1" value="39" oninput="lpSetModel('jGcm2', Number(this.value))" aria-label="Inertia, gram square centimetres">
+                <div class="lp-row-desc">The biggest unknown. It sets current and heat; it does not change what is followable once the impedance is fitted.</div></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Effective impedance<span id="lp_d_current_model_mohm"></span></span><output id="lp_o_reff">–</output></div>
+                <input type="range" id="lp_current_model_mohm" min="20" max="400" step="1" value="125" oninput="lpSetSetting('current_model_mohm', Number(this.value))" aria-label="Effective impedance, milliohms">
+                <div class="lp-row-desc">Blaster setting: the current cap and this mode's acceleration feed-forward use it.</div>
+                <button type="button" class="lp-mini-btn" onclick="lpFitFromLaunch()">Fit from last launch</button>
+                <div class="lp-fit" id="lp_fit_result"></div></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Current cap<span id="lp_d_current_limit_a"></span></span><output id="lp_o_cap">–</output></div>
+                <input type="range" id="lp_current_limit_a" min="0" max="150" step="5" value="60" oninput="lpSetSetting('current_limit_a', Number(this.value))" aria-label="Current cap per motor, amps"></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Winding + FET resistance</span><output id="lp_o_rcu">–</output></div>
+                <input type="range" id="lp_m_rCuMohm" min="10" max="100" step="1" value="31" oninput="lpSetModel('rCuMohm', Number(this.value))" aria-label="Winding and FET resistance, milliohms">
+                <div class="lp-row-desc">Heat only.</div></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Pack + wiring resistance</span><output id="lp_o_rpack">–</output></div>
+                <input type="range" id="lp_m_rPackMohm" min="0" max="150" step="1" value="46" oninput="lpSetModel('rPackMohm', Number(this.value))" aria-label="Pack and wiring resistance, milliohms"></div>
+              <div class="lp-row"><label class="lp-check"><input type="checkbox" id="lp_m_am32Low" checked onchange="lpSetModel('am32Low', this.checked)"> AM32 low-RPM duty limit (~20 % below 2.3k, full by 19k)</label></div>
+            </section>
+          </div>
+
+          <details class="lp-explain">
+            <summary>How the planner works, and the profile as a table</summary>
+            <p>The blaster runs three phases. <b>Startup</b>: each motor gets the startup power open-loop until its ESC reports RPM. <b>Ramp</b>: from the first lock, the reference rises at a constant acceleration (two, with a knee). Constant acceleration means constant current, the coolest way to reach a given speed in a given time. <b>Landing</b>: the slope eases to zero so the motors arrive without overshoot.</p>
+            <p>The predicted curve and the numbers come from a motor model: back-EMF from KV, the voltage headroom pushing current through the effective impedance, pack sag, the current cap and the AM32 low-RPM limit. Heat is copper loss, I²R in the windings and FETs. Fit the impedance from a real launch, and set inertia from CAD, for numbers you can trust. The shape is exact; the predictions are only as good as those two inputs.</p>
+            <table id="lp_table"><thead><tr><th>Point</th><th>Time from trigger</th><th>RPM</th><th>Slope (RPM/ms)</th><th>Current (A)</th></tr></thead><tbody></tbody></table>
+          </details>
+
+          <!-- Blaster settings this planner owns (read back / written with the rest of the settings) -->
+          <div hidden>
+            <input type="hidden" id="set_launch_accel" value="280"><input type="hidden" id="set_launch_accel2" value="280">
+            <input type="hidden" id="set_launch_knee_rpm" value="0"><input type="hidden" id="set_launch_landing_ms" value="10">
+            <input type="hidden" id="set_launch_pacing" value="0"><input type="hidden" id="set_launch_deadline_ms" value="145">
+            <input type="hidden" id="set_launch_leash_rpm" value="0">
+          </div>
+        </div>
+      </div>
       <div id="tab_content_pid" style="display: none; flex-direction: column; gap: 1.5rem; width: 100%;">
         <div id="pid_controls_mount" style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;"></div>
         <details id="pid_diagnostics_drawer" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem; background: rgba(0,0,0,0.12);">
@@ -2334,9 +2597,10 @@
                   <span><span class="settings-row-num">14.</span> Launch Ramp Trajectory</span>
                   <span><span id="val_set_launch_trajectory">Thermal Optimizer 16-Knot Curve</span></span>
                 </div>
-                <div class="settings-row-desc">Shapes the requested RPM over the launch time below, including RPM PID mode. Choose a 16-knot curve, S-curve, or linear ramp. Actual acceleration depends on the motors, pack, feedforward, PID, and throttle rise limit. Revalidate after changing this setting.</div>
+                <div class="settings-row-desc">Shapes the requested RPM over the launch time below, including RPM PID mode. Phased (startup &rarr; constant-acceleration ramp &rarr; landing) is set up in the Launch Planner tab and ignores the launch time below. Or choose a 16-knot curve, S-curve, or linear ramp. Actual acceleration depends on the motors, pack, feedforward, PID, and throttle rise limit. Revalidate after changing this setting.</div>
                 <div class="settings-row-control">
                   <select id="set_launch_trajectory" onchange="syncBlasterField('launch_trajectory', this.value, 'select')" style="width: 100%; padding: 0.35rem; border-radius: 6px; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: white;">
+                    <option value="3">Phased: Startup → Ramp → Landing (Launch Planner)</option>
                     <option value="2">16-Knot Curve</option>
                     <option value="1">S-Curve Minimum-Jerk (Equation)</option>
                     <option value="0">Linear Ramp (Direct)</option>
@@ -2384,12 +2648,48 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span>Startup Drive Budget</span>
-                  <span id="val_set_startup_drive_mv">4.00 V equivalent</span>
+                  <span>Startup Power</span>
+                  <span id="val_set_startup_drive_mv">4.00 V</span>
                 </div>
-                <div class="settings-row-desc">PID startup command budget at standstill: 3–5 V equivalent, default 4 V. Firmware adds a bounded speed/Kv allowance as the slower wheel accelerates, with a 35% duty ceiling. This estimates command headroom, not winding voltage or current. Increase only after comparing cold launches, pack sag and motor heat on hardware.</div>
+                <div class="settings-row-desc">From a stop, each motor is driven open-loop at this voltage until its ESC reports RPM (BEMF lock); the launch curve then starts from the measured speed. 1–5 V, default 4 V; the % shown is the duty at the current pack voltage. AM32 itself caps duty at about 20% until ~2,300 RPM, so on a full 5S pack anything above ~4.2 V is clipped by the ESC. After lock it stays the drive ceiling until the Startup Handoff RPM. Higher locks faster but pulls more standstill current: compare lock times (launchtrace) and pack current on the bench, e.g. 2 / 3 / 4 V.</div>
                 <div class="settings-row-control">
-                  <input type="range" id="set_startup_drive_mv" min="3000" max="5000" step="100" value="4000" oninput="syncBlasterField('startup_drive_mv', this.value, 'range')">
+                  <input type="range" id="set_startup_drive_mv" min="1000" max="5000" step="100" value="4000" oninput="syncBlasterField('startup_drive_mv', this.value, 'range')">
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <span>Launch Curve Start (from a stop)</span>
+                  <span id="val_set_launch_clock">At trigger request</span>
+                </div>
+                <div class="settings-row-desc">At BEMF lock: the curve starts when the first motor reports RPM, from its measured speed, so the motors follow the whole curve instead of catching up after lock. Use curves exported for the after-lock part (curve tool), whose duration already leaves room for the lock time. At request: the pre-v5 timing &mdash; the curve runs during BEMF acquisition and the motors catch up after lock (higher catch-up current, especially with late locks). Uploading a curve sets this automatically: after-lock exports select BEMF lock, older curves select request.</div>
+                <div class="settings-row-control">
+                  <select id="set_launch_clock" onchange="syncBlasterField('launch_clock', this.value, 'select')" style="width: 100%; padding: 0.35rem; border-radius: 6px; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: white;">
+                    <option value="0">At trigger request (default; legacy curves)</option>
+                    <option value="1">At BEMF lock (after-lock curves)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <span>Motor Current Cap</span>
+                  <span id="val_set_current_limit_a">60 A</span>
+                </div>
+                <div class="settings-row-desc">Estimated per-motor current limit, 0 = off. Each motor's drive is held to hold(measured RPM) + limit &times; model impedance, so a motor that falls behind the launch curve catches up at bounded current instead of surging. Amps are a model estimate (see the next setting), not a measurement.</div>
+                <div class="settings-row-control">
+                  <input type="range" id="set_current_limit_a" min="0" max="150" step="5" value="60" oninput="syncBlasterField('current_limit_a', this.value, 'range')">
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-label">
+                  <span>Current Cap Model Impedance</span>
+                  <span id="val_set_current_model_mohm">125 m&Omega;</span>
+                </div>
+                <div class="settings-row-desc">Effective impedance that turns voltage above hold into estimated amps for the cap. Default 125 m&Omega; is calibrated from launch data with the 39 g&middot;cm&sup2; flywheel (not the 31 m&Omega; copper + FET resistance, which would make a 60 A cap behave like ~15 A). Raise it to make the same amp setting more restrictive.</div>
+                <div class="settings-row-control">
+                  <input type="range" id="set_current_model_mohm" min="20" max="400" step="5" value="125" oninput="syncBlasterField('current_model_mohm', this.value, 'range')">
                 </div>
               </div>
 
@@ -3871,8 +4171,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.28";
-    window.CONFIGURATOR_VERSION = "1.1.28";
+    const CONFIGURATOR_VERSION = "v1.1.29";
+    window.CONFIGURATOR_VERSION = "1.1.29";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -3885,6 +4185,10 @@
       const esc = document.getElementById('tab_content_esc');
       const boot = document.getElementById('tab_content_bootscreen');
       const hud = document.getElementById('tab_content_hud');
+      const launch = document.getElementById('tab_content_launch');
+      const btnLaunch = document.getElementById('tab_btn_launch');
+      if (launch) launch.style.display = 'none';
+      if (btnLaunch) btnLaunch.classList.remove('active');
       
       const btnDb = document.getElementById('tab_btn_dashboard');
       const btnPid = document.getElementById('tab_btn_pid');
@@ -3913,6 +4217,10 @@
       if (tab === 'dashboard') {
         db.style.display = 'flex';
         btnDb.classList.add('active');
+      } else if (tab === 'launch') {
+        if (launch) launch.style.display = 'flex';
+        if (btnLaunch) btnLaunch.classList.add('active');
+        if (typeof lpShow === 'function') lpShow();
       } else if (tab === 'pid') {
         if (typeof mountPidTabContent === 'function') {
           mountPidTabContent();
@@ -4794,14 +5102,33 @@ function updateWriteButtonText() {
         return `${Math.round(Number(val))}%`;
       }
       if (key === 'launch_trajectory' || key === 'launch_profile') {
-        const trajs = ['Linear Ramp', 'S-Curve (Minimum-Jerk)', 'Thermal Optimizer 16-Knot Curve'];
+        const trajs = ['Linear Ramp', 'S-Curve (Minimum-Jerk)', 'Thermal Optimizer 16-Knot Curve', 'Phased (Launch Planner)'];
         return trajs[Math.round(Number(val))] || 'Thermal Optimizer 16-Knot Curve';
       }
       if (key === 'startup_rpm') {
         return `${Math.round(Number(val))} RPM`;
       }
       if (key === 'startup_drive_mv') {
-        return `${(Number(val)/1000).toFixed(2)} V equivalent`;
+        const volts = Number(val) / 1000;
+        const pack = Number.isFinite(lastTelemetryPackVoltage) && lastTelemetryPackVoltage > 6 ? lastTelemetryPackVoltage
+          : Math.min(6, Math.max(3, Math.round(Number(document.getElementById('set_cells')?.value || 5)))) * 3.8;
+        const duty = Math.min(35, volts / pack * 100);
+        return `${volts.toFixed(2)} V ≈ ${duty.toFixed(0)}% @ ${pack.toFixed(1)} V${duty > 20.5 ? ' (ESC clips ~20%)' : ''}`;
+      }
+      if (key === 'launch_accel' || key === 'launch_accel2') return `${Math.round(Number(val))} RPM/ms`;
+      if (key === 'launch_knee_rpm') return Number(val) > 0 ? `${Math.round(Number(val)).toLocaleString()} RPM` : 'Off';
+      if (key === 'launch_landing_ms' || key === 'launch_deadline_ms') return `${Math.round(Number(val))} ms`;
+      if (key === 'launch_pacing') return Math.round(Number(val)) === 1 ? 'Hit a deadline' : 'Fixed acceleration';
+      if (key === 'launch_leash_rpm') return Number(val) > 0 ? `${Math.round(Number(val)).toLocaleString()} RPM` : 'Off';
+      if (key === 'launch_clock') {
+        return Math.round(Number(val)) === 0 ? 'At trigger request' : 'At BEMF lock';
+      }
+      if (key === 'current_limit_a') {
+        const amps = Math.round(Number(val));
+        return amps === 0 ? 'Off' : `${amps} A`;
+      }
+      if (key === 'current_model_mohm') {
+        return `${Math.round(Number(val))} mΩ`;
       }
       if (key === 'launch_time_ms') {
         return `${Math.round(Number(val))} ms`;
@@ -5381,6 +5708,16 @@ function updateWriteButtonText() {
         accel_ff: 100,
         startup_rpm: 2500,
         startup_drive_mv: 4000,
+        current_limit_a: 60,
+        current_model_mohm: 125,
+        launch_clock: 0,
+        launch_accel: 280,
+        launch_accel2: 280,
+        launch_knee_rpm: 0,
+        launch_landing_ms: 10,
+        launch_pacing: 0,
+        launch_deadline_ms: 145,
+        launch_leash_rpm: 0,
         batt_cutoff_cell: 2800,
         batt_warn_cell: 3300,
         glide_rpm_per_s: 8000,
@@ -5474,7 +5811,8 @@ function updateWriteButtonText() {
           'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
           'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
           'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
-          'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv',
+          'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv', 'current_limit_a', 'current_model_mohm', 'launch_clock',
+          'launch_accel', 'launch_accel2', 'launch_knee_rpm', 'launch_landing_ms', 'launch_pacing', 'launch_deadline_ms', 'launch_leash_rpm',
           'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
           'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
           'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
@@ -5485,6 +5823,7 @@ function updateWriteButtonText() {
 
         const settings = {};
         for (const key of allKeys) {
+          if (connected && !blasterSupportsSetting(key)) continue;
           const el = document.getElementById('set_' + key) || document.getElementById(key + '_input') || document.getElementById('hud_' + key + '_input');
           if (el) {
             if (el.type === 'checkbox') {
@@ -5697,6 +6036,10 @@ function updateWriteButtonText() {
         const curve = validateBlasterProfile(data); // validate every section before writing anything
         const connected = !!(port && port.writable);
         const connectionPort = port, connectionGeneration = serialConnectionGeneration;
+        const skippedSettings = [];
+        if (connected && Number(data.settings?.launch_trajectory) === 3 && !blasterSupportsSetting('launch_accel')) {
+          throw new Error('Phased launch requires v1.1.29 or newer firmware. Flash the blaster before importing this profile.');
+        }
         if (connected && data.feedforward_calibration) {
           // Check readback support and idle state before changing any settings.
           await requestBoardLaunchConfiguration();
@@ -5710,6 +6053,11 @@ function updateWriteButtonText() {
             if (['firmware_version', 'pcb_version'].includes(k)) continue;
             // Always On is enabled only after gains/curves have also been restored.
             if (k === 'always_on' && connected) continue;
+            if (connected && !blasterSupportsSetting(k)) {
+              skippedSettings.push(k);
+              logToConsole(`Skipped unsupported setting ${k}; update the blaster firmware to use it.`);
+              continue;
+            }
             if (connected) {
               assertSerialConnection(connectionPort, connectionGeneration);
               await sendAcknowledgedSetting(k, v);
@@ -5772,7 +6120,8 @@ function updateWriteButtonText() {
         const message = connected ? 'Profile settings and gains accepted by blaster.' + (data.feedforward_calibration ? ' Calibrated feedforward verified.' : ' No feedforward calibration was present in this profile.') :
           'Profile loaded locally; connect and re-import this file to restore the complete tune.';
         logToConsole(message);
-        alert(message + (data.hud_layout ? '\nHUD layout loaded in editor; save the HUD layout to persist it.' : ''));
+        alert(message + (skippedSettings.length ? `\nUnsupported settings skipped: ${skippedSettings.join(', ')}. Update firmware to use them.` : '') +
+          (data.hud_layout ? '\nHUD layout loaded in editor; save the HUD layout to persist it.' : ''));
       } catch (err) {
         logToConsole(`Profile import stopped: ${err.message}. Earlier accepted settings may already be applied.`, true);
         alert(`Profile import stopped: ${err.message}\nEarlier accepted settings may already be applied. Read board settings before retrying.`);
@@ -5800,6 +6149,15 @@ function updateWriteButtonText() {
       await sendSerialCommand("settings show");
     }
 
+    function blasterSupportsSetting(key) {
+      // These settings were introduced after v1.1.28. Readback is scoped to
+      // the current USB connection and cleared when connecting/disconnecting.
+      const newKeys = ['current_limit_a', 'current_model_mohm', 'launch_clock',
+        'launch_accel', 'launch_accel2', 'launch_knee_rpm', 'launch_landing_ms',
+        'launch_pacing', 'launch_deadline_ms', 'launch_leash_rpm'];
+      return !newKeys.includes(key) || Object.prototype.hasOwnProperty.call(boardSettingsSnapshot, key);
+    }
+
     async function writeBlasterSettings() {
       if (!port || !port.writable) {
         logToConsole("Cannot write: serial disconnected. Connect your blaster first.", true);
@@ -5813,7 +6171,8 @@ function updateWriteButtonText() {
         'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
-        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv',
+        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv', 'current_limit_a', 'current_model_mohm', 'launch_clock',
+          'launch_accel', 'launch_accel2', 'launch_knee_rpm', 'launch_landing_ms', 'launch_pacing', 'launch_deadline_ms', 'launch_leash_rpm',
         'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
         'glide_rpm_per_s', 'glide_step_down_x10', 'freewheel', 'lifetime_counter',
@@ -5837,6 +6196,15 @@ function updateWriteButtonText() {
         if (!el) return null;
         return { key, el, value: el.type === 'checkbox' ? (el.checked ? '1' : '0') : String(el.value) };
       }).filter(Boolean);
+      if (plannedWrites.some(({ key, value }) => key === 'launch_trajectory' && Number(value) === 3) &&
+          !blasterSupportsSetting('launch_accel')) {
+        alert('Phased launch requires v1.1.29 or newer firmware. Flash the blaster first. Settings remain pending.');
+        return;
+      }
+      const skippedKeys = plannedWrites.filter(({ key }) => !blasterSupportsSetting(key)).map(({ key }) => key);
+      if (skippedKeys.length) {
+        logToConsole(`Skipped unsupported settings: ${skippedKeys.join(', ')}. Update firmware to use them; edits remain pending.`);
+      }
       // Capture one batch before awaiting USB, and preserve unwritten values if
       // rewriting all settings fails or the user edits a control during a write.
       plannedWrites.forEach(({ key }) => dirtySettings.add(key));
@@ -5846,6 +6214,7 @@ function updateWriteButtonText() {
       logToConsole(`Writing ${keysToWrite.length} configuration settings to physical blaster EEPROM...`);
       
       for (const { key, el, value: val } of plannedWrites) {
+        if (skippedKeys.includes(key)) continue;
         try {
           assertSerialConnection(connectionPort, connectionGeneration);
           await sendAcknowledgedSetting(key, val);
@@ -5868,7 +6237,8 @@ function updateWriteButtonText() {
       }
       if (dirtySettings.size > 0) {
         logToConsole('Write sequence finished; newer or unwritten edits remain pending.');
-        alert('Write sequence finished. Newer or unwritten edits remain pending; write again to apply them.');
+        alert(skippedKeys.length ? `Supported settings saved. Unsupported settings remain pending: ${skippedKeys.join(', ')}. Update firmware to apply them.` :
+          'Write sequence finished. Newer or unwritten edits remain pending; write again to apply them.');
         return;
       }
       logToConsole("Settings write sequence completed. Configuration saved to board EEPROM!");
@@ -5877,6 +6247,7 @@ function updateWriteButtonText() {
 
     function handleIncomingBlasterSetting(key, val) {
       boardSettingsSnapshot[key] = val;
+      if (typeof lpOnBlasterSetting === 'function') lpOnBlasterSetting(key, val);
       if (key === 'ctrl_algo') updateLaunchModeHelp(val);
       if (key === 'firmware_version') {
         connectedBlasterVersion = String(val).trim();
@@ -6046,6 +6417,7 @@ function updateWriteButtonText() {
     };
 
     let launchCurveChart = null;
+    let lastTelemetryPackVoltage = null;
     let activeLaunchCurveData = JSON.parse(JSON.stringify(DEFAULT_LAUNCH_CURVE_DATA));
 
     function renderLaunchCurveChart() {
@@ -6060,7 +6432,12 @@ function updateWriteButtonText() {
       const actualMs = Math.round(data.launchDurationMs ?? data.simulatedSpinupMs ?? data.targetDeadlineMs ?? 150);
 
       // Extract RPM points
-      const rpmPoints = data.normalizedRpmTable16.map((fraction, i) => ({ x: i / 15 * actualMs, y: Math.round(fraction * targetRpm) }));
+      // Drawn the way the firmware plays it: monotone cubic through the 16 knots.
+      const rpmPoints = [];
+      for (let i = 0; i <= 60; i++) {
+        const u = i / 60;
+        rpmPoints.push({ x: Number((u * actualMs).toFixed(1)), y: Math.round(launchCurveProgress(data.normalizedRpmTable16, u) * targetRpm) });
+      }
 
       // Build Analytical S-Curve Comparison
       const scurvePoints = [];
@@ -6301,6 +6678,10 @@ function updateWriteButtonText() {
         waiter.resolve(line);
         return true;
       }
+      if (waiter.kind === 'profile' && line.startsWith('launch_profile mode=')) {
+        waiter.resolve(line);
+        return true;
+      }
       return false;
     }
 
@@ -6377,7 +6758,7 @@ function updateWriteButtonText() {
         setLaunchCurveImportStatus(`Uploading ${durationMs} ms curve; awaiting blaster verification...`);
         await requestLaunchCurveResponse(`launch_curve set ${knotsX10000.join(' ')} ${durationMs}`, 'ack');
         const readback = await requestLaunchCurveResponse('launch_curve', 'readback');
-        const match = /^launch_curve mode=(\d+) time_ms=(\d+) accel_ff=(\d+) knots=([\d ]+)$/.exec(readback);
+        const match = /^launch_curve mode=(\d+) time_ms=(\d+) accel_ff=(\d+)(?: interp=[a-z]+)? knots=([\d ]+)$/.exec(readback);
         const storedKnots = match ? match[4].trim().split(/\s+/).map(Number) : [];
         if (!match || Number(match[1]) !== 2 || Number(match[2]) !== durationMs ||
             storedKnots.length !== 16 || storedKnots.some((v, i) => v !== knotsX10000[i])) {
@@ -6391,7 +6772,19 @@ function updateWriteButtonText() {
           syncBlasterField('launch_trajectory', "2", 'select');
         }
         
-        setLaunchCurveImportStatus(`Verified on blaster: ${durationMs} ms | 16 knots | Optimizer LUT`);
+        // Launch curve start follows the curve type: after-lock exports (curve tool v5) play from BEMF lock,
+        // everything else keeps the request timing it was designed for.
+        const wantClock = activeLaunchCurveData?.curveStartsAtLock === true ? 1 : 0;
+        let clockNote = wantClock ? ' | starts at BEMF lock' : '';
+        if (typeof sendAcknowledgedSetting === 'function') {
+          try {
+            await sendAcknowledgedSetting('launch_clock', wantClock);
+            updateBlasterSettingControl('launch_clock', wantClock);
+          } catch (clockError) {
+            clockNote = wantClock ? ' | firmware has no launch_clock setting: this after-lock curve will run from the trigger' : '';
+          }
+        }
+        setLaunchCurveImportStatus(`Verified on blaster: ${durationMs} ms | 16 knots | Optimizer LUT${clockNote}`);
         logToConsole(`Verified ${durationMs} ms curve and all 16 knots on blaster in Optimizer LUT mode.`);
         if (showAlert) alert(`Launch curve verified on blaster: ${durationMs} ms, 16 knots, Optimizer LUT mode.`);
         return true;
@@ -7164,21 +7557,53 @@ function updateWriteButtonText() {
       return comparisonSimulation ? JSON.parse(JSON.stringify(comparisonSimulation)) : null;
     }
     function comparisonElapsed(now, start) { return (Number(now) - Number(start)) >>> 0; }
-    function comparisonCurvePoints(simulation, target, startRpm = 0, endMs = 320) {
+    // Mirrors the firmware's launch reference (Tuning_Math.h): monotone cubic (PCHIP, Fritsch-Carlson)
+    // through 16 evenly spaced knots. values: 16 fractions 0..1. Returns progress at u = 0..1.
+    function launchCurveKnotSlope(values, k) {
+      const n = values.length, h = 1 / (n - 1), delta = i => (values[i + 1] - values[i]) / h;
+      if (n === 2) return delta(0);
+      if (k === 0 || k === n - 1) {
+        const d0 = k === 0 ? delta(0) : delta(n - 2), d1 = k === 0 ? delta(1) : delta(n - 3);
+        let m = (3 * d0 - d1) / 2;
+        if (m * d0 <= 0) m = 0; else if (d0 * d1 < 0 && Math.abs(m) > Math.abs(3 * d0)) m = 3 * d0;
+        return m;
+      }
+      const a = delta(k - 1), b = delta(k);
+      return a * b <= 0 ? 0 : 2 / (1 / a + 1 / b);
+    }
+    function launchCurveProgress(values, u) {
+      const n = values.length;
+      if (!(n >= 2)) return Math.min(1, Math.max(0, u));
+      if (u >= 1) return values[n - 1];
+      if (!(u > 0)) u = 0;
+      const pos = u * (n - 1), i = Math.min(n - 2, Math.floor(pos)), t = pos - i, h = 1 / (n - 1);
+      const y0 = values[i], y1 = values[i + 1], m0 = launchCurveKnotSlope(values, i), m1 = launchCurveKnotSlope(values, i + 1);
+      const t2 = t * t, t3 = t2 * t;
+      const p = (2*t3 - 3*t2 + 1) * y0 + (t3 - 2*t2 + t) * h * m0 + (-2*t3 + 3*t2) * y1 + (t3 - t2) * h * m1;
+      return Math.min(Math.max(p, Math.min(y0, y1)), Math.max(y0, y1));
+    }
+    function comparisonCurvePoints(simulation, target, startRpm = 0, endMs = 320, clockMs = 0) {
       if (!simulation || !(target > startRpm)) return [];
       const curve = validateLaunchCurve(simulation);
       const dense = simulation.simulationTrace;
       const useDense = Array.isArray(dense) && dense.length > 1 && dense.length <= 4097 && dense.every((p,i)=>
         Number.isFinite(p.timeMs)&&p.timeMs>=0&&Number.isFinite(p.rpm)&&p.rpm>=0&&(!i||p.timeMs>=dense[i-1].timeMs)) &&
-        Number(simulation.targetRpm) === target && startRpm === 0;
+        Number(simulation.targetRpm) === target && startRpm === 0 && !(clockMs > 0);
       if (useDense) {
         const points=dense.filter(p=>p.timeMs<=endMs).map(p=>({x:p.timeMs,y:p.rpm}));
         const last=points.at(-1), next=dense.find(p=>p.timeMs>endMs);
         if(last && last.x<endMs) points.push({x:endMs,y:next?last.y+(next.rpm-last.y)*(endMs-last.x)/(next.timeMs-last.x):last.y});
         return points;
       }
-      const points = curve.knots.map((k, i) => ({ x:i * curve.durationMs / 15, y:startRpm + (target-startRpm)*k/10000 }));
-      if (endMs > curve.durationMs) points.push({ x:endMs, y:target });
+      // Firmware v5 launch policy: from a stop the curve clock starts at BEMF lock (clockMs after the request).
+      const offset = Number.isFinite(clockMs) && clockMs > 0 && clockMs < 65535 ? clockMs : 0;
+      const fractions = curve.knots.map(k => k / 10000);
+      const points = offset ? [{ x:0, y:startRpm }] : [];
+      for (let i = 0; i <= 60; i++) {
+        const u = i / 60;
+        points.push({ x:offset + u * curve.durationMs, y:startRpm + (target-startRpm)*launchCurveProgress(fractions, u) });
+      }
+      if (endMs > offset + curve.durationMs) points.push({ x:endMs, y:target });
       return points;
     }
     function comparisonCrossing(samples, key, threshold) {
@@ -7200,6 +7625,14 @@ function updateWriteButtonText() {
       const launchRows = shot ? rows.filter(s => s.ms < shot.ms) : rows;
       const result = { target, motors:[], messages:[], currentSource:'model_estimate' };
       result.reference95Ms = comparisonCrossing(launchRows,'ref',target*.95);
+      // Startup power / BEMF lock (firmware launch policy v5).
+      const locks = Array.isArray(config.lockMs) ? config.lockMs : null;
+      result.lockMs = locks; result.clockMs = Number.isFinite(config.clockMs) && config.clockMs < 65535 ? config.clockMs : null;
+      if (locks) {
+        const shown = locks.map((v,i)=>`M${i+1} ${Number.isFinite(v)?v+' ms':'no lock'}`).join(' · ');
+        const gap = locks.every(Number.isFinite) ? ` · gap ${Math.abs(locks[0]-locks[1])} ms` : '';
+        result.messages.push(`BEMF lock (startup power ${config.startupDriveMv?(config.startupDriveMv/1000).toFixed(2)+' V':'?'}): ${shown}${gap}${result.clockMs!==null?` · curve clock started at ${result.clockMs} ms${config.clock?` (${config.clock==='lock'?'at BEMF lock':'at request'})`:''}`:''}.`);
+      }
       if (shot) result.messages.push(`Solenoid fired at ${shot.ms} ms; timing analysis uses samples before that shot.`);
       if (run.simulation) {
         const sim = validateLaunchCurve(run.simulation);
@@ -7226,6 +7659,8 @@ function updateWriteButtonText() {
         const negativeFeedback = comparisonWindow(lagRows.filter(s=>['p','i','d','boost'].every(k=>Number.isFinite(s[`${k}${m}`])) &&
           ['p','i','d','boost'].reduce((sum,k)=>sum+s[`${k}${m}`],0)<-10));
         const startupCap = comparisonWindow(acceleration.filter(s=>(s[`lim${m}`]||0)&(1<<3)));
+        const currentCap = comparisonWindow(launchRows.filter(s=>(s[`lim${m}`]||0)&(1<<18)));
+        if (currentCap) result.messages.push(`M${m}: estimated current cap${config.currentLimitA?` (${config.currentLimitA} A @ ${config.currentModelMohm||'?'} mΩ model)`:''} held the command at ${currentCap.samples} samples between ${currentCap.firstMs} and ${currentCap.lastMs} ms.`);
         const peer=m===1?2:1;
         const syncCatchup = comparisonWindow(lagRows.filter(s=> {
           if (!(s[`lim${m}`] & (1<<15)) || !(s[`req${m}`]>s[`thr${m}`]+2) || s[`age${peer}`]===65535 || (s[`lim${peer}`]&(1<<11))) return false;
@@ -7260,7 +7695,7 @@ function updateWriteButtonText() {
       const canvas=document.getElementById('launch_comparison_canvas'); if (!canvas) return;
       const run=launchComparison, rows=run.samples, target=run.config?.target||rows.at(-1)?.target||32000;
       const end=Math.max(320,rows.at(-1)?.ms||0);
-      const data=[comparisonCurvePoints(run.simulation,target,run.config?.startRpm||0,end),
+      const data=[comparisonCurvePoints(run.simulation,target,run.config?.startRpm||0,end,run.config?.clockMs),
         rows.map(s=>({x:s.ms,y:s.ref})),rows.map(s=>({x:s.ms,y:s.rpm1})),rows.map(s=>({x:s.ms,y:s.rpm2}))];
       if (!comparisonChart) comparisonChart=new Chart(canvas.getContext('2d'),{type:'line',data:{datasets:
         ['Loaded optimizer model / reference','Recorded firmware reference','Measured M1 RPM','Measured M2 RPM'].map((label,i)=>({label,data:[],borderColor:['#22c55e','#fbbf24','#22d3ee','#a78bfa'][i],borderDash:i<2?[6,3]:[],pointRadius:0,borderWidth:2}))},
@@ -7320,10 +7755,24 @@ function updateWriteButtonText() {
       return false;
     }
     function validateBoardLaunchConfiguration(data) {
-      if ((data.startupDriveMv !== undefined && (!Number.isInteger(data.startupDriveMv) || data.startupDriveMv<3000 || data.startupDriveMv>5000)) ||
+      const u16OrNull = v => v === null || (Number.isInteger(v) && v >= 0 && v <= 65535);
+      if ((data.startupDriveMv !== undefined && (!Number.isInteger(data.startupDriveMv) || data.startupDriveMv<1000 || data.startupDriveMv>5000)) ||
           (data.skewLimit !== undefined && (!Number.isInteger(data.skewLimit) || data.skewLimit<0 || data.skewLimit>500)) ||
-          (data.startupPolicy !== undefined && data.startupPolicy !== 'bemf_compensated_shared_v1')) throw new Error('Invalid board startup configuration');
-      if (data?.v!==1 || ![0,1,2].includes(data.mode) || !Number.isInteger(data.durationMs) || data.durationMs<60 || data.durationMs>300 ||
+          (data.startupPolicy !== undefined && !['bemf_compensated_shared_v1','open_loop_until_lock_v2'].includes(data.startupPolicy)) ||
+          (data.currentLimitA !== undefined && (!Number.isInteger(data.currentLimitA) || (data.currentLimitA !== 0 && (data.currentLimitA<10 || data.currentLimitA>150)))) ||
+          (data.currentModelMohm !== undefined && (!Number.isInteger(data.currentModelMohm) || data.currentModelMohm<20 || data.currentModelMohm>400)) ||
+          (data.clockMs !== undefined && !u16OrNull(data.clockMs)) ||
+          (data.lockMs !== undefined && (!Array.isArray(data.lockMs) || data.lockMs.length !== 2 || !data.lockMs.every(u16OrNull))) ||
+          (data.interp !== undefined && !['linear','pchip'].includes(data.interp)) ||
+          (data.clock !== undefined && !['request','lock'].includes(data.clock))) throw new Error('Invalid board startup configuration');
+      if (data.phased !== undefined) {
+        const ph = data.phased, intIn = (v, a, b) => Number.isInteger(v) && v >= a && v <= b;
+        if (!ph || typeof ph !== 'object' || !intIn(ph.accel, 40, 1500) || !intIn(ph.accel2, 40, 1500) || !(ph.kneeRpm === 0 || intIn(ph.kneeRpm, 2000, 60000)) ||
+            !intIn(ph.landingMs, 0, 60) || !['accel', 'deadline'].includes(ph.pacing) || !intIn(ph.deadlineMs, 60, 400) ||
+            !(ph.leashRpm === 0 || intIn(ph.leashRpm, 1500, 15000)) || !(Number.isFinite(ph.scale) && ph.scale >= 1 && ph.scale <= 2.001) ||
+            !(ph.rampMs === null || intIn(ph.rampMs, 0, 65535)) || !intIn(ph.leashHoldMs, 0, 65535)) throw new Error('Invalid board phased launch profile');
+      }
+      if (data?.v!==1 || ![0,1,2,3].includes(data.mode) || !Number.isInteger(data.durationMs) || data.durationMs<60 || data.durationMs>300 ||
           !Array.isArray(data.knots)||data.knots.length!==16||data.knots.some((v,i)=>!Number.isInteger(v)||v<0||v>10000||(i&&v<data.knots[i-1]))||data.knots[15]!==10000) throw new Error('Invalid board launch configuration');
       if (!Number.isInteger(data.startMs)||data.startMs<0||data.startMs>0xffffffff||!Number.isInteger(data.target)||data.target<0||data.target>65535||
           !Number.isInteger(data.startRpm)||data.startRpm<0||data.startRpm>65535||![0,1,2,3].includes(data.algorithm)||![3,4,5,6].includes(data.cells)||
@@ -7340,7 +7789,7 @@ function updateWriteButtonText() {
         launchReadPending={resolve,reject,run:{samples:[],config:null,source:'recorder',connectionGeneration:generation,firmware:connectedBlasterVersion,simulation:copyComparisonSimulation()}};});
       try {comparisonStatus('Reading recorder. Release rev/fire and wait for the motors to stop.');
         const [,run]=await Promise.all([sendSerialCommand('launchtrace',{requireSuccess:true}),response]);assertSerialConnection(connectionPort,generation);
-        launchComparison=run;renderLaunchComparison();comparisonStatus(`${run.samples.length} recorded samples · ${run.config?.durationMs||'unknown'} ms firmware reference · loaded simulation ${run.simulation?validateLaunchCurve(run.simulation).durationMs+' ms':'none'}`);
+        launchComparison=run;renderLaunchComparison();if(typeof lpIngestLaunch==='function')lpIngestLaunch();comparisonStatus(`${run.samples.length} recorded samples · ${run.config?.durationMs||'unknown'} ms firmware reference · loaded simulation ${run.simulation?validateLaunchCurve(run.simulation).durationMs+' ms':'none'}`);
       }catch(error){comparisonStatus(`Launch read failed: ${error.message}`);}finally{clearTimeout(timer);launchReadPending=null;}
     }
     async function requestBoardLaunchConfiguration() {
@@ -7716,6 +8165,7 @@ function updateWriteButtonText() {
       }
       
       try {
+        boardSettingsSnapshot = {};
         if (existingPort) {
           logToConsole("Auto-connecting to previously paired blaster...");
           port = existingPort;
@@ -8515,6 +8965,7 @@ function updateWriteButtonText() {
         const targetCurrent2 = match[9] ? parseFloat(match[9]) : null;
         const estimatedCurrent2 = match[10] ? parseFloat(match[10]) : null;
         const voltage = match[11] ? parseFloat(match[11]) : null;
+        if (Number.isFinite(voltage) && voltage > 0) lastTelemetryPackVoltage = voltage;
         const fault = match[12] ? match[12].toUpperCase() : 'NONE';
         const mode = match[13] ? match[13].toUpperCase() : 'STOP';
         const sol = match[14] ? parseInt(match[14]) : 0;
@@ -10755,7 +11206,7 @@ function updateWriteButtonText() {
       if (last) return last.x;
       return guidedTuning.origin === null ? 0 : (Date.now() - guidedTuning.origin) / 1000;
     }
-    const guidedLimiterNames = ['PID tracking', 'Launch ramp', 'P clamp', 'Startup drive cap', '+7 V headroom cap', 'Max throttle cap', 'Launch floor', 'Throttle step limit', 'Motor sync', 'Other'];
+    const guidedLimiterNames = ['PID tracking', 'Launch ramp', 'P clamp', 'Startup drive cap', '+7 V headroom cap', 'Max throttle cap', 'Launch floor', 'Throttle step limit', 'Motor sync', 'Other', 'Current cap', 'Startup power'];
     function guidedLimiterSummary(lim) {
       if (!Array.isArray(lim) || !lim.length) return '—';
       let best = 0; lim.forEach((v, i) => { if (v > lim[best]) best = i; });
@@ -10860,7 +11311,7 @@ function updateWriteButtonText() {
         if (['running','gliding'].includes(previous.state)) { await sendSerialCommand('stream fast'); return; }
         if (previous.algo !== 1) throw new Error('Select RPM PID (controller algorithm 1) in settings before tuning.');
         if (typeof dirtySettings !== 'undefined' && [...dirtySettings].some(key =>
-          ['step_up','launch_trajectory','launch_time_ms','accel_ff','ctrl_algo','startup_rpm','startup_drive_mv','spinup_skew_limit','cells','motor_kv','always_on_rpm','glide_rpm_per_s','glide_step_down_x10'].includes(key) || /^pid[12]_/.test(key))) {
+          ['step_up','launch_trajectory','launch_time_ms','accel_ff','ctrl_algo','startup_rpm','startup_drive_mv','current_limit_a','current_model_mohm','launch_clock','launch_accel','launch_accel2','launch_knee_rpm','launch_landing_ms','launch_pacing','launch_deadline_ms','launch_leash_rpm','spinup_skew_limit','cells','motor_kv','always_on_rpm','glide_rpm_per_s','glide_step_down_x10'].includes(key) || /^pid[12]_/.test(key))) {
           throw new Error('Write your pending motor and launch settings to the blaster before tuning.');
         }
         const passes=Number(guidedElement('guided_passes').value), baseline=guidedElement('guided_baseline').value;
@@ -16425,6 +16876,796 @@ function updateWriteButtonText() {
       };
       reader.readAsDataURL(file);
     }
+
+    // ============================== LAUNCH PLANNER ==============================
+    // Phased launch profile (launch_trajectory 3): startup -> constant-acceleration ramp -> landing.
+    // lpPlan / lpRef / lpDeadlineScale mirror Launch_Profile.h line for line (tests/launch_planner_ui_tests.js
+    // checks them against the firmware). The motor model below is the planner's prediction, not firmware.
+    const LP_SETTINGS = ['startup_drive_mv', 'launch_accel', 'launch_accel2', 'launch_knee_rpm', 'launch_landing_ms',
+      'launch_pacing', 'launch_deadline_ms', 'launch_leash_rpm', 'current_limit_a', 'current_model_mohm'];
+    const LP_DEFAULTS = { startup_drive_mv: 4000, launch_accel: 280, launch_accel2: 280, launch_knee_rpm: 0, launch_landing_ms: 10,
+      launch_pacing: 0, launch_deadline_ms: 145, launch_leash_rpm: 0, current_limit_a: 60, current_model_mohm: 125 };
+    const LP_MODEL_DEFAULTS = { targetRpm: 32000, lockMs: 45, lockSpread: 12, lockRpm: 1200, cellV: 3.9, cells: 5, kv: 3200,
+      jGcm2: 39, rCuMohm: 31, rPackMohm: 46, am32Low: true, dragA: 1.5 };
+    const LP_GOAL_MS = 150;
+    const LP_STORE = 'byteBlaster.launchPlanner.v1';
+    const LP_SVG = 'http://www.w3.org/2000/svg';
+    const LP_MAIN = { w: 900, h: 380, l: 58, r: 18, t: 28, b: 36 };
+    const LP_CUR = { w: 900, h: 170, l: 58, r: 18, t: 14, b: 30 };
+    const lp = { s: { ...LP_DEFAULTS }, board: {}, boardMode: null, m: { ...LP_MODEL_DEFAULTS }, locks: [], fit: null,
+      drag: null, domain: null, hoverT: null, raf: 0, presets: [], last: null, view: null, status: null };
+    try {
+      const saved = JSON.parse(localStorage.getItem(LP_STORE) || 'null');
+      if (saved && typeof saved === 'object') {
+        for (const k of Object.keys(LP_MODEL_DEFAULTS)) if (typeof saved.m?.[k] === typeof LP_MODEL_DEFAULTS[k]) lp.m[k] = saved.m[k];
+        if (Array.isArray(saved.locks)) lp.locks = saved.locks.filter(v => Number.isFinite(v.ms) && v.ms > 0 && v.ms < 400).slice(-40);
+      }
+    } catch (_) { /* per-viewer convenience only */ }
+    function lpSave() { try { localStorage.setItem(LP_STORE, JSON.stringify({ m: lp.m, locks: lp.locks })); } catch (_) {} }
+
+    const lpClamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    function lpSanitize(key, value) {
+      let v = Math.round(Number(value));
+      if (!Number.isFinite(v)) v = LP_DEFAULTS[key];
+      switch (key) {
+        case 'startup_drive_mv': return lpClamp(Math.round(v / 100) * 100, 1000, 5000);
+        case 'launch_accel': case 'launch_accel2': return lpClamp(v, 40, 1500);
+        case 'launch_knee_rpm': return v <= 0 ? 0 : lpClamp(v, 2000, 60000);
+        case 'launch_landing_ms': return lpClamp(v, 0, 60);
+        case 'launch_pacing': return v === 1 ? 1 : 0;
+        case 'launch_deadline_ms': return lpClamp(v, 60, 400);
+        case 'launch_leash_rpm': return v <= 0 ? 0 : lpClamp(v, 1500, 15000);
+        case 'current_limit_a': return v <= 0 ? 0 : lpClamp(v, 10, 150);
+        case 'current_model_mohm': return lpClamp(v, 20, 400);
+      }
+      return v;
+    }
+
+    // ---- Profile math (mirror of Launch_Profile.h) ----
+    function lpPlan(r0, target, a1, a2, knee, landMs) {
+      const p = { r0, target, a1: 0, a2: 0, s1: target, t1: 0, rLand: target, tLand: 0, aLand: 0, landMs: 0, tEnd: 0 };
+      if (!(target > r0) || !(a1 > 0)) return p;
+      if (!(a2 > 0)) a2 = a1;
+      let aLo = a1, aHi = a2, k;
+      if (!(knee > 0)) { aHi = a1; k = target; }
+      else if (knee <= r0) { aLo = a2; k = r0; }
+      else k = Math.min(knee, target);
+      let L = Math.max(0, landMs);
+      const oneSlope = k >= target || k <= r0, aL = oneSlope ? (k <= r0 ? aHi : aLo) : aHi;
+      let rLand = target - aL * L * 0.5;
+      if (!oneSlope && rLand < k) { rLand = k; L = 2 * (target - k) / aHi; }
+      if (rLand < r0) { rLand = r0; L = 2 * (target - r0) / aL; }
+      p.a1 = aLo; p.a2 = aHi;
+      p.s1 = Math.max(r0, Math.min(k, rLand));
+      p.t1 = (p.s1 - r0) / aLo;
+      p.rLand = rLand; p.tLand = p.t1 + (rLand - p.s1) / aHi; p.aLand = aL; p.landMs = L; p.tEnd = p.tLand + L;
+      return p;
+    }
+    function lpRef(p, tMs) {
+      const t = Math.max(0, tMs);
+      let r, s;
+      if (!(p.tEnd > 0) || t >= p.tEnd) { r = p.target; s = 0; }
+      else if (t < p.t1) { r = p.r0 + p.a1 * t; s = p.a1; }
+      else if (t < p.tLand) { r = p.s1 + p.a2 * (t - p.t1); s = p.a2; }
+      else { const u = t - p.tLand; s = p.aLand * (1 - u / p.landMs); r = p.rLand + p.aLand * (u - u * u / (2 * p.landMs)); }
+      return { r: lpClamp(r, Math.min(p.r0, p.target), p.target), s: Math.max(0, s) };
+    }
+    function lpDeadlineScale(r0, target, a1, a2, knee, landMs, remainingMs, maxScale = 2) {
+      if (!(target > r0)) return 1;
+      if (lpPlan(r0, target, a1, a2, knee, landMs).tEnd <= remainingMs) return 1;
+      if (!(remainingMs > 0) || lpPlan(r0, target, a1 * maxScale, a2 * maxScale, knee, landMs).tEnd > remainingMs) return maxScale;
+      let lo = 1, hi = maxScale;
+      for (let i = 0; i < 14; i++) { const mid = 0.5 * (lo + hi); if (lpPlan(r0, target, a1 * mid, a2 * mid, knee, landMs).tEnd <= remainingMs) hi = mid; else lo = mid; }
+      return hi;
+    }
+    function lpSlopes(s = lp.s) { return { a1: s.launch_accel, a2: s.launch_knee_rpm > 0 ? s.launch_accel2 : s.launch_accel }; }
+    // The plan the blaster would run for a given lock: nominal slopes, scaled by deadline pacing.
+    function lpPlanFor(m = lp.m, s = lp.s) {
+      const { a1, a2 } = lpSlopes(s);
+      const scale = s.launch_pacing === 1
+        ? lpDeadlineScale(m.lockRpm, m.targetRpm, a1, a2, s.launch_knee_rpm, s.launch_landing_ms, s.launch_deadline_ms - m.lockMs) : 1;
+      return { plan: lpPlan(m.lockRpm, m.targetRpm, a1 * scale, a2 * scale, s.launch_knee_rpm, s.launch_landing_ms), scale,
+               nominal: lpPlan(m.lockRpm, m.targetRpm, a1, a2, s.launch_knee_rpm, s.launch_landing_ms) };
+    }
+
+    // ---- Motor model (prediction) ----
+    // Both motors identical. Startup: open-loop startup power until lockMs, the rotor reaching lockRpm. After lock the
+    // motor follows the reference with its slope as feed-forward plus a 4 ms catch-up, limited by the current cap,
+    // the available voltage (pack sag from both motors, AM32 low-RPM duty limit) and never braking.
+    function lpSimulate(over = {}) {
+      const s = lp.s, m = { ...lp.m, ...over }, dt = over.dt || 0.1;
+      const { plan, scale } = lpPlanFor(m, s);
+      const tMax = over.tMax || Math.max(400, m.lockMs + plan.tEnd + 80);
+      const Kt = 60 / (2 * Math.PI * m.kv), J = m.jGcm2 * 1e-7, k = 2 * Math.PI / 60;
+      const Reff = s.current_model_mohm / 1000, Rcu = m.rCuMohm / 1000, Rp = m.rPackMohm / 1000, Voc = m.cells * m.cellV;
+      const cap = s.current_limit_a > 0 ? s.current_limit_a : Infinity;
+      const dutyMax = rpm => m.am32Low ? lpClamp(0.2 + 0.8 * (rpm - 2300) / (19000 - 2300), 0.2, 1) : 1;
+      const drag = rpm => m.dragA * Math.pow(Math.max(rpm, 0) / 32000, 2);
+      const solveVoltage = (rpm, want) => { // current limited by the voltage the ESC can apply after pack sag
+        const bemf = rpm / m.kv; let vbus = Voc, I = want;
+        for (let i = 0; i < 4; i++) {
+          const imax = Math.max(0, (dutyMax(rpm) * vbus - bemf) / Reff);
+          I = Math.min(want, imax);
+          const D = lpClamp((bemf + I * Reff) / vbus, 0, 1);
+          vbus = Voc - 2 * D * I * Rp;
+        }
+        return { I, limited: I < want - 1e-6, vbus, am32: m.am32Low && dutyMax(rpm) < 1 && I < want - 1e-6 };
+      };
+      const out = { t: [], ref: [], rpm: [], amps: [], lim: [], plan, scale, m };
+      let rpm = 0, heat = 0, startupHeat = 0, peak = 0, t90 = null, tHit = null, maxLag = 0, lagAt = null, capMs = 0, voltMs = 0, am32Ms = 0, minBus = Voc;
+      let lagTop = 0, lagTopAt = null, lagLow = 0, lagLowAt = null;
+      const every = Math.max(1, Math.round(0.5 / dt));
+      for (let i = 0, t = 0; t <= tMax; i++, t = i * dt) {
+        let I, lim = 0, ref = null;
+        if (t < m.lockMs) {
+          const vk = s.startup_drive_mv / 1000;
+          const r = solveVoltage(rpm, Math.max(0, (vk - rpm / m.kv) / Reff));
+          I = r.I;
+          rpm = m.lockRpm * Math.pow(Math.min(1, (t + dt) / m.lockMs), 2);  // the ESC's own startup, shape only
+          startupHeat += I * I * Rcu * dt / 1000;
+        } else {
+          const tau = t - m.lockMs, a = lpRef(plan, tau), b = lpRef(plan, tau + dt);
+          ref = a.r;
+          const want = (b.r - a.r) / dt + (a.r - rpm) / 4;                      // RPM per ms
+          let Iacc = J * want * 1000 * k / Kt;
+          if (Iacc > cap) { Iacc = cap; lim = 1; }
+          const v = solveVoltage(rpm, Math.max(0, drag(rpm) + Iacc));
+          if (v.limited) lim = v.am32 ? 3 : 2;
+          I = v.I; minBus = Math.min(minBus, v.vbus);
+          rpm = Math.max(0, rpm + (Kt * (I - drag(rpm)) / J) / k * dt / 1000);
+          if (tau < plan.tEnd && a.r - rpm > maxLag) { maxLag = a.r - rpm; lagAt = t; }
+          if (tau < plan.tEnd && lim === 2 && a.r - rpm > lagTop) { lagTop = a.r - rpm; lagTopAt = t; }
+          if (tau < plan.tEnd && lim === 3 && a.r - rpm > lagLow) { lagLow = a.r - rpm; lagLowAt = t; }
+          peak = Math.max(peak, I);
+          if (lim === 1) capMs += dt; if (lim === 2) voltMs += dt; if (lim === 3) am32Ms += dt;
+        }
+        heat += I * I * Rcu * dt / 1000;
+        if (t90 === null && rpm >= 0.9 * m.targetRpm) t90 = t;
+        if (tHit === null && rpm >= 0.99 * m.targetRpm) tHit = t;
+        if (i % every === 0) { out.t.push(t); out.ref.push(ref); out.rpm.push(rpm); out.amps.push(I); out.lim.push(lim); }
+      }
+      Object.assign(out, { heat, startupHeat, peak, t90, tHit, maxLag, lagAt, capMs, voltMs, am32Ms, lagTop, lagTopAt, lagLow, lagLowAt, minBus,
+        followable: maxLag < 600 && t90 !== null, ke: 0.5 * J * Math.pow(m.targetRpm * k, 2) });
+      return out;
+    }
+    // Lowest resting cell voltage at which the predicted 90 % time still meets the 150 ms goal.
+    function lpMinCellVoltage() {
+      const ok = v => { const r = lpSimulate({ cellV: v, dt: 0.25, tMax: lp.m.lockMs + 400 }); return r.t90 !== null && r.t90 <= LP_GOAL_MS; };
+      if (!ok(4.35)) return null;
+      if (ok(3.0)) return 3.0;
+      let lo = 3.0, hi = 4.35;
+      for (let i = 0; i < 9; i++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
+      return hi;
+    }
+
+    // ---- State changes ----
+    function lpMirrorSetting(key, v) {
+      const el = document.getElementById('set_' + key);
+      if (el) { el.value = v; if (typeof syncBlasterField === 'function') syncBlasterField(key, String(v), 'range'); }
+    }
+    function lpSetSetting(key, value, { mirror = true } = {}) {
+      const v = lpSanitize(key, value);
+      lp.s[key] = v; lp.status = null;
+      if (key === 'launch_accel' && !(lp.s.launch_knee_rpm > 0)) { lp.s.launch_accel2 = v; if (mirror) lpMirrorSetting('launch_accel2', v); }
+      if (mirror) lpMirrorSetting(key, v);
+      lpSyncControls(); lpScheduleRender();
+    }
+    function lpSetKneeEnabled(on) {
+      if (on && !(lp.s.launch_knee_rpm > 0)) {
+        const { plan } = lpPlanFor();
+        const mid = lpRef(plan, plan.tLand * 0.5).r;
+        lpSetSetting('launch_accel2', lp.s.launch_accel);
+        lpSetSetting('launch_knee_rpm', Math.round(lpClamp(mid, 2500, lp.m.targetRpm - 2000) / 250) * 250);
+      } else if (!on && lp.s.launch_knee_rpm > 0) {
+        lpSetSetting('launch_knee_rpm', 0);
+        lpSetSetting('launch_accel2', lp.s.launch_accel);
+      }
+    }
+    function lpSetModel(key, value) {
+      if (key === 'lockSpread') lp.m.lockSpread = lpClamp(Number(value), 0, 60);
+      else lp.m[key] = value;
+      if (key !== 'targetRpm' || !lp.drag) lp.domain = null;
+      lpSave(); lpSyncControls(); lpScheduleRender();
+    }
+    function lpResetDefaults() {
+      for (const k of LP_SETTINGS) if (!['current_limit_a', 'current_model_mohm'].includes(k)) lpSetSetting(k, LP_DEFAULTS[k]);
+      lp.m = { ...LP_MODEL_DEFAULTS, cells: lp.m.cells, kv: lp.m.kv, targetRpm: lp.m.targetRpm, lockMs: lp.m.lockMs, lockSpread: lp.m.lockSpread, jGcm2: lp.m.jGcm2 };
+      lp.domain = null; lpSave(); lpSyncControls(); lpScheduleRender();
+    }
+    // Readback from the blaster ("settings show" lines, via handleIncomingBlasterSetting).
+    function lpOnBlasterSetting(key, val) {
+      const n = Number(val);
+      if (LP_SETTINGS.includes(key) && Number.isFinite(n)) { lp.board[key] = n; lp.s[key] = lpSanitize(key, n); }
+      else if (key === 'launch_trajectory' && Number.isFinite(n)) lp.boardMode = Math.round(n);
+      else if (key === 'cells' && [3, 4, 5, 6].includes(Math.round(n))) lp.m.cells = Math.round(n);
+      else if (key === 'motor_kv' && n > 100) lp.m.kv = n;
+      else if (/^rpm[012]$/.test(key) && n > 0) { lp.presets[Number(key[3])] = Math.round(n); lpBuildTargetSelect(); }
+      else return;
+      lp.domain = null; lpSyncControls(); lpScheduleRender();
+    }
+    function lpClearDirty(key) {
+      if (typeof dirtySettings !== 'undefined') dirtySettings.delete(key);
+      document.getElementById('set_' + key)?.closest('.settings-row')?.classList.remove('setting-dirty');
+      if (typeof updateWriteButtonText === 'function') updateWriteButtonText();
+    }
+    function lpSetStatus(text, kind) { lp.status = { text, kind }; lpRenderStatus(); }
+
+    // ---- Blaster I/O ----
+    async function lpReadFromBlaster() {
+      if (!port || !port.writable) { lpSetStatus('Connect the blaster to read it.', 'pending'); return; }
+      await sendSerialCommand('settings show');
+      lpSetStatus(null);
+    }
+    async function lpApplyToBlaster() {
+      const btn = document.getElementById('lp_apply_btn');
+      if (!port || !port.writable) { lpSetStatus('Connect the blaster to apply the profile.', 'pending'); return; }
+      btn.disabled = true;
+      try {
+        if (!LP_SETTINGS.every(blasterSupportsSetting)) {
+          throw new Error('This firmware has no phased launch mode: update the blaster to v1.1.29 or newer first.');
+        }
+        lpSetStatus('Writing profile…', 'pending');
+        for (const key of LP_SETTINGS) {
+          await sendAcknowledgedSetting(key, lp.s[key]);
+          lp.board[key] = lp.s[key]; lpClearDirty(key);
+        }
+        await sendAcknowledgedSetting('launch_trajectory', 3);
+        lp.boardMode = 3; lpClearDirty('launch_trajectory');
+        if (typeof updateBlasterSettingControl === 'function') updateBlasterSettingControl('launch_trajectory', 3);
+        const line = await requestLaunchCurveResponse('launch_profile', 'profile');
+        const m = /^launch_profile mode=(\d+) accel=(\d+) accel2=(\d+) knee_rpm=(\d+) landing_ms=(\d+) pacing=(\d+) deadline_ms=(\d+) leash_rpm=(\d+) startup_drive_mv=(\d+)$/.exec(line.trim());
+        const want = [3, lp.s.launch_accel, lp.s.launch_accel2, lp.s.launch_knee_rpm, lp.s.launch_landing_ms, lp.s.launch_pacing,
+          lp.s.launch_deadline_ms, lp.s.launch_leash_rpm, lp.s.startup_drive_mv];
+        if (!m || want.some((v, i) => Number(m[i + 1]) !== v)) throw new Error('Blaster readback does not match the profile that was sent');
+        lpSetStatus('Verified on blaster', 'on');
+        logToConsole(`Launch profile verified: ${lp.s.launch_accel} RPM/ms, landing ${lp.s.launch_landing_ms} ms, ${lp.s.launch_pacing ? 'deadline ' + lp.s.launch_deadline_ms + ' ms' : 'fixed acceleration'}.`);
+      } catch (e) {
+        const msg = /unknown key launch_/.test(e.message) ? 'This firmware has no phased launch mode: update the blaster firmware first.' : e.message;
+        lpSetStatus('Apply failed: ' + msg, 'crit');
+        logToConsole('Launch profile apply failed: ' + e.message, true);
+      } finally { btn.disabled = false; lpScheduleRender(); }
+    }
+    async function lpReadLastLaunch() {
+      if (!port || !port.writable) { lpSetStatus('Connect the blaster to read its last launch.', 'pending'); return; }
+      await readLaunchComparison();
+      lpIngestLaunch();
+    }
+    // Called after any launch read (launch comparison card or planner).
+    function lpIngestLaunch() {
+      const run = typeof launchComparison !== 'undefined' ? launchComparison : null;
+      if (!run || !Array.isArray(run.samples) || run.samples.length < 5) return;
+      lp.last = { samples: run.samples.map(s => ({ ms: s.ms, rpm1: s.rpm1, rpm2: s.rpm2, thr1: s.thr1, thr2: s.thr2, volts: s.volts, ref: s.ref })),
+                  config: run.config || null };
+      const cfg = run.config;
+      if (cfg && Array.isArray(cfg.lockMs) && Number.isFinite(cfg.startMs) && !lp.locks.some(v => v.start === cfg.startMs)) {
+        cfg.lockMs.forEach((ms, i) => { if (Number.isFinite(ms) && ms > 0 && ms < 400) lp.locks.push({ start: cfg.startMs, motor: i + 1, ms }); });
+        lp.locks = lp.locks.slice(-40); lpSave();
+      }
+      lp.fit = null; lp.domain = null; lpSyncControls(); lpScheduleRender();
+    }
+    function lpLockStats() {
+      const v = lp.locks.map(x => x.ms).sort((a, b) => a - b);
+      if (!v.length) return null;
+      return { n: v.length, min: v[0], max: v[v.length - 1], median: v[Math.floor(v.length / 2)] };
+    }
+    function lpUseMeasuredLocks() {
+      const st = lpLockStats(); if (!st) return;
+      lp.m.lockMs = st.median; lp.m.lockSpread = Math.max(1, Math.round((st.max - st.min) / 2));
+      lp.domain = null; lpSave(); lpSyncControls(); lpScheduleRender();
+    }
+    // Acceleration per volt of headroom from the recorded launch: alpha = headroom * Kt / (J * R). The fit fixes R/J
+    // (what is followable); R alone needs J.
+    function lpFitFromLaunch() {
+      const box = document.getElementById('lp_fit_result');
+      const S = lp.last?.samples;
+      if (!S || S.length < 12) { box.textContent = 'Read a launch first (Read last launch), with the blaster on this firmware.'; return; }
+      const m = lp.m, k = 2 * Math.PI / 60, Kt = 60 / (2 * Math.PI * m.kv), target = lp.last.config?.target || m.targetRpm;
+      const dutyMax = rpm => m.am32Low ? lpClamp(0.2 + 0.8 * (rpm - 2300) / (19000 - 2300), 0.2, 1) : 1;
+      let num = 0, den = 0, n = 0;
+      for (const motor of [1, 2]) for (let i = 2; i < S.length - 2; i++) {
+        const a = S[i - 2], b = S[i + 2], c = S[i];
+        const rpm = c['rpm' + motor], thr = c['thr' + motor], dtMs = b.ms - a.ms;
+        if (!(dtMs > 0) || !(rpm > 3000) || rpm > 0.85 * target || !(thr > 60) || !(c.volts > 5)) continue;
+        const slope = (b['rpm' + motor] - a['rpm' + motor]) / dtMs;
+        if (!(slope > 20)) continue;
+        const duty = Math.min((thr - 48) / 1999, dutyMax(rpm));
+        const head = duty * c.volts - rpm / m.kv;
+        if (!(head > 0.8)) continue;
+        const alpha = slope * 1000 * k;
+        num += alpha * head; den += head * head; n++;
+      }
+      if (n < 8 || !(den > 0)) { box.textContent = `Not enough clean ramp samples (${n}). Use a launch from a stop to a high preset.`; return; }
+      const perVolt = num / den, rOhm = Kt / (m.jGcm2 * 1e-7 * perVolt), mohm = Math.round(rOhm * 1000);
+      lp.fit = { perVolt, mohm, n };
+      box.replaceChildren();
+      const p = document.createElement('div');
+      p.append('From ', Object.assign(document.createElement('b'), { textContent: String(n) }), ' ramp samples: ',
+        Object.assign(document.createElement('b'), { textContent: `${Math.round(perVolt).toLocaleString()} rad/s² per volt` }),
+        ' of headroom → ', Object.assign(document.createElement('b'), { textContent: `${mohm} mΩ` }), ` at ${m.jGcm2} g·cm².`);
+      box.append(p);
+      if (mohm >= 20 && mohm <= 400) {
+        const use = Object.assign(document.createElement('button'), { type: 'button', className: 'lp-mini-btn', textContent: `Use ${mohm} mΩ` });
+        use.onclick = () => lpSetSetting('current_model_mohm', mohm);
+        box.append(use);
+      }
+    }
+
+    // ---- Controls ----
+    function lpBuildTargetSelect() {
+      const sel = document.getElementById('lp_target_select'); if (!sel) return;
+      const values = [...new Set([...lp.presets.filter(v => v > 0), lp.m.targetRpm, 20000, 25000, 32000, 36000])].sort((a, b) => a - b);
+      sel.replaceChildren(...values.map(v => {
+        const o = document.createElement('option'); o.value = String(v);
+        const idx = lp.presets.indexOf(v);
+        o.textContent = `${v.toLocaleString()} RPM${idx >= 0 ? ` · preset ${idx + 1}` : ''}`;
+        return o;
+      }));
+      sel.value = String(lp.m.targetRpm);
+    }
+    function lpSetText(id, text) { const e = document.getElementById(id); if (e && e.textContent !== text) e.textContent = text; }
+    function lpSyncControls() {
+      const s = lp.s, m = lp.m;
+      const setVal = (id, v) => { const e = document.getElementById(id); if (e && document.activeElement !== e && String(e.value) !== String(v)) e.value = v; };
+      setVal('lp_startup_drive_mv', s.startup_drive_mv); setVal('lp_launch_accel', s.launch_accel); setVal('lp_launch_accel2', s.launch_accel2);
+      setVal('lp_launch_knee_rpm', s.launch_knee_rpm || 16000); setVal('lp_launch_landing_ms', s.launch_landing_ms);
+      setVal('lp_launch_deadline_ms', s.launch_deadline_ms); setVal('lp_launch_leash_rpm', s.launch_leash_rpm || 3000);
+      setVal('lp_current_limit_a', s.current_limit_a); setVal('lp_current_model_mohm', s.current_model_mohm);
+      for (const k of ['lockMs', 'lockSpread', 'lockRpm', 'cellV', 'jGcm2', 'rCuMohm', 'rPackMohm']) setVal('lp_m_' + k, m[k]);
+      setVal('lp_m_cells', m.cells);
+      const am = document.getElementById('lp_m_am32Low'); if (am) am.checked = !!m.am32Low;
+      const leashOn = document.getElementById('lp_leash_on'); if (leashOn) leashOn.checked = s.launch_leash_rpm > 0;
+      const knee = s.launch_knee_rpm > 0;
+      document.getElementById('lp_row_knee').hidden = !knee;
+      document.getElementById('lp_row_accel2').hidden = !knee;
+      document.getElementById('lp_row_deadline').hidden = s.launch_pacing !== 1;
+      document.getElementById('lp_leash_body').hidden = !(s.launch_leash_rpm > 0);
+      document.getElementById('lp_launch_knee_rpm').max = String(Math.max(2500, m.targetRpm - 1000));
+      lpSetText('lp_accel_label', knee ? 'Lower acceleration' : 'Acceleration');
+      for (const [id, on] of [['lp_pacing_accel', s.launch_pacing === 0], ['lp_pacing_deadline', s.launch_pacing === 1], ['lp_shape_one', !knee], ['lp_shape_two', knee]])
+        document.getElementById(id)?.setAttribute('aria-pressed', String(on));
+      const pack = m.cells * m.cellV, duty = s.startup_drive_mv / 1000 / pack * 100;
+      lpSetText('lp_o_startup', `${(s.startup_drive_mv / 1000).toFixed(1)} V · ${duty.toFixed(0)} %${m.am32Low && duty > 20.5 ? ' (ESC clips at 20 %)' : ''}`);
+      lpSetText('lp_o_accel', `${s.launch_accel} RPM/ms`); lpSetText('lp_o_accel2', `${s.launch_accel2} RPM/ms`);
+      lpSetText('lp_o_knee', `${s.launch_knee_rpm.toLocaleString()} RPM`); lpSetText('lp_o_landing', `${s.launch_landing_ms} ms`);
+      lpSetText('lp_o_deadline', `${s.launch_deadline_ms} ms after trigger`); lpSetText('lp_o_leash', `${s.launch_leash_rpm.toLocaleString()} RPM`);
+      lpSetText('lp_o_lock', `${m.lockMs} ms`); lpSetText('lp_o_spread', `± ${m.lockSpread} ms (${Math.max(5, m.lockMs - m.lockSpread)}–${m.lockMs + m.lockSpread} ms)`);
+      lpSetText('lp_o_lockrpm', `${m.lockRpm.toLocaleString()} RPM`);
+      lpSetText('lp_o_cell', `${m.cellV.toFixed(2)} V/cell · ${pack.toFixed(1)} V`);
+      lpSetText('lp_pack_readout', `${m.cells}S · ${m.cellV.toFixed(2)} V/cell`);
+      lpSetText('lp_o_j', `${m.jGcm2} g·cm²`); lpSetText('lp_o_reff', `${s.current_model_mohm} mΩ`);
+      lpSetText('lp_o_cap', s.current_limit_a ? `${s.current_limit_a} A per motor` : 'Off');
+      lpSetText('lp_o_rcu', `${m.rCuMohm} mΩ`); lpSetText('lp_o_rpack', `${m.rPackMohm} mΩ`);
+      const st = lpLockStats();
+      lpSetText('lp_lock_hist_note', st ? `Measured: ${st.n} lock${st.n > 1 ? 's' : ''}, ${st.min}–${st.max} ms (median ${st.median} ms).` : 'Measured lock times appear here after you read launches.');
+      const useBtn = document.getElementById('lp_use_measured_lock'); if (useBtn) useBtn.hidden = !st;
+      const sel = document.getElementById('lp_target_select'); if (sel && sel.value !== String(m.targetRpm)) lpBuildTargetSelect();
+      for (const k of LP_SETTINGS) {
+        const d = document.getElementById('lp_d_' + k); if (!d) continue;
+        const dirty = k in lp.board && lp.board[k] !== lp.s[k];
+        d.className = dirty ? 'lp-dirty-dot' : ''; d.title = dirty ? `Not on the blaster yet (blaster: ${lp.board[k]})` : '';
+      }
+    }
+    function lpRenderStatus() {
+      const b = document.getElementById('lp_status_badge'); if (!b) return;
+      let text, kind = '';
+      const known = LP_SETTINGS.every(k => k in lp.board);
+      const same = known && LP_SETTINGS.every(k => lp.board[k] === lp.s[k]);
+      if (lp.status?.text) { text = lp.status.text; kind = lp.status.kind || ''; }
+      else if (!known) text = 'Not read from blaster';
+      else if (lp.boardMode !== 3) { text = 'Blaster uses the 16-knot curve'; kind = 'pending'; }
+      else if (same) { text = 'Active on blaster'; kind = 'on'; }
+      else { text = 'Changes not applied'; kind = 'pending'; }
+      b.textContent = text; b.className = 'lp-badge' + (kind === 'on' ? ' on' : kind ? ' pending' : '');
+      if (kind === 'crit') b.style.color = '#fca5a5'; else b.style.color = '';
+    }
+
+    // ---- Rendering ----
+    function lpScheduleRender() { if (!lp.raf) lp.raf = requestAnimationFrame(() => { lp.raf = 0; lpRender(); }); }
+    function lpNode(tag, attrs, parent, text) {
+      const n = document.createElementNS(LP_SVG, tag);
+      for (const [k, v] of Object.entries(attrs || {})) if (v !== undefined && v !== null) n.setAttribute(k, String(v));
+      if (text !== undefined) n.textContent = text;
+      if (parent) parent.appendChild(n);
+      return n;
+    }
+    function lpPath(xs, ys, sx, sy) {
+      let d = '', pen = false;
+      for (let i = 0; i < xs.length; i++) {
+        if (ys[i] === null || !Number.isFinite(ys[i])) { pen = false; continue; }
+        d += (pen ? 'L' : 'M') + sx(xs[i]).toFixed(1) + ' ' + sy(ys[i]).toFixed(1); pen = true;
+      }
+      return d;
+    }
+    function lpNice(v, step) { return Math.ceil(v / step) * step; }
+    function lpRender() {
+      const root = document.getElementById('tab_content_launch');
+      if (!root || root.style.display === 'none') return;
+      const s = lp.s, m = lp.m;
+      const lockLo = Math.max(5, m.lockMs - m.lockSpread), lockHi = m.lockMs + m.lockSpread;
+      // The model runs only when an input changed (hover redraws reuse it).
+      const cacheKey = JSON.stringify([s, m]);
+      if (lp.cache?.key !== cacheKey) {
+        lp.cache = { key: cacheKey, sim: lpSimulate(), simLo: lpSimulate({ lockMs: lockLo, dt: 0.25 }), simHi: lpSimulate({ lockMs: lockHi, dt: 0.25 }), minV: undefined };
+      }
+      const { sim, simLo, simHi } = lp.cache;
+      const { plan, nominal, scale } = lpPlanFor();
+      const lastEnd = lp.last ? Math.min(320, lp.last.samples[lp.last.samples.length - 1].ms) : 0;
+      if (!lp.domain || !lp.drag) {
+        const want = Math.max(200, lockHi + lpPlanFor({ ...m, lockMs: lockHi }).plan.tEnd + 25, s.launch_pacing ? s.launch_deadline_ms + 25 : 0,
+                              (sim.tHit || 0) + 20, lastEnd, LP_GOAL_MS + 25);
+        lp.domain = { x: Math.min(400, lpNice(want, 25)), y: lpNice(Math.max(m.targetRpm * 1.08, 10000), 5000) };
+      }
+      const D = lp.domain, G = LP_MAIN;
+      const sx = t => G.l + (t / D.x) * (G.w - G.l - G.r), sy = r => G.h - G.b - (r / D.y) * (G.h - G.t - G.b);
+      lp.view = { sx, sy, D, G, plan, nominal, sim };
+      const svg = document.getElementById('lp_svg');
+      [...svg.querySelectorAll(':scope > :not(title):not(desc)')].forEach(n => n.remove());
+      const defs = lpNode('defs', {}, svg);
+      const pat = lpNode('pattern', { id: 'lp_hatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+      lpNode('line', { x1: 0, y1: 0, x2: 0, y2: 6, stroke: 'rgba(148,163,184,0.18)', 'stroke-width': 2 }, pat);
+      const grad = lpNode('linearGradient', { id: 'lp_ref_glow', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+      lpNode('stop', { offset: '0%', 'stop-color': '#0b9ab8', 'stop-opacity': 0.22 }, grad);
+      lpNode('stop', { offset: '100%', 'stop-color': '#0b9ab8', 'stop-opacity': 0 }, grad);
+      // grid + axes
+      const grid = lpNode('g', {}, svg);
+      for (let r = 0; r <= D.y; r += 5000) {
+        lpNode('line', { x1: G.l, x2: G.w - G.r, y1: sy(r), y2: sy(r), stroke: r ? 'var(--lp-grid)' : 'var(--lp-axis)' }, grid);
+        lpNode('text', { x: G.l - 8, y: sy(r) + 4, 'text-anchor': 'end' }, grid, r ? `${r / 1000}k` : '0');
+      }
+      const xStep = D.x > 250 ? 50 : 25;
+      for (let t = 0; t <= D.x; t += xStep) {
+        lpNode('line', { x1: sx(t), x2: sx(t), y1: G.t, y2: G.h - G.b, stroke: t ? 'var(--lp-grid)' : 'var(--lp-axis)' }, grid);
+        lpNode('text', { x: sx(t), y: G.h - G.b + 16, 'text-anchor': 'middle' }, grid, String(t));
+      }
+      lpNode('text', { x: G.w - G.r, y: G.h - 4, 'text-anchor': 'end', class: 'lp-axis-label' }, grid, 'ms from trigger');
+      lpNode('text', { x: 10, y: G.t - 10, class: 'lp-axis-label' }, grid, 'RPM');
+      // phase bands: startup (with lock spread), landing
+      const bands = lpNode('g', {}, svg);
+      lpNode('rect', { x: sx(0), y: G.t, width: sx(m.lockMs) - sx(0), height: G.h - G.t - G.b, fill: 'rgba(148,163,184,0.06)' }, bands);
+      lpNode('rect', { x: sx(lockLo), y: G.t, width: Math.max(0, sx(lockHi) - sx(lockLo)), height: G.h - G.t - G.b, fill: 'url(#lp_hatch)' }, bands);
+      const landX0 = sx(m.lockMs + plan.tLand), landX1 = sx(m.lockMs + plan.tEnd);
+      if (plan.landMs > 0) lpNode('rect', { x: landX0, y: G.t, width: Math.max(0, landX1 - landX0), height: G.h - G.t - G.b, fill: 'rgba(34,211,238,0.05)' }, bands);
+      const bandLbl = (x0, x1, txt) => { if (x1 - x0 > 46) lpNode('text', { x: (x0 + x1) / 2, y: G.t + 12, 'text-anchor': 'middle', class: 'lp-band-label' }, bands, txt); };
+      bandLbl(sx(0), sx(m.lockMs), 'Startup');
+      bandLbl(sx(m.lockMs), landX0, plan.t1 > 0 && plan.tLand > plan.t1 + 1 ? 'Ramp · two slopes' : 'Ramp');
+      bandLbl(landX0, landX1, 'Land');
+      // goal + 90 % lines
+      const ref = lpNode('g', {}, svg);
+      lpNode('line', { x1: G.l, x2: G.w - G.r, y1: sy(0.9 * m.targetRpm), y2: sy(0.9 * m.targetRpm), stroke: 'rgba(148,163,184,0.35)', 'stroke-dasharray': '2 4' }, ref);
+      lpNode('text', { x: G.w - G.r - 4, y: sy(0.9 * m.targetRpm) - 5, 'text-anchor': 'end', class: 'lp-axis-label' }, ref, '90 %');
+      if (LP_GOAL_MS < D.x) {
+        lpNode('line', { x1: sx(LP_GOAL_MS), x2: sx(LP_GOAL_MS), y1: G.t, y2: G.h - G.b, stroke: 'rgba(229,231,235,0.35)', 'stroke-dasharray': '5 4' }, ref);
+        lpNode('text', { x: sx(LP_GOAL_MS) + 5, y: G.h - G.b - 6, class: 'lp-axis-label' }, ref, `${LP_GOAL_MS} ms goal`);
+      }
+      // limited stretches (status colour, labelled)
+      const limG = lpNode('g', {}, svg);
+      const runs = []; let cur = null;
+      sim.lim.forEach((l, i) => { if (l && (!cur || cur.l !== l)) { cur = { l, a: sim.t[i], b: sim.t[i] }; runs.push(cur); } else if (l && cur) cur.b = sim.t[i]; else cur = null; });
+      for (const r of runs) {
+        if (r.b - r.a < 1) continue;
+        lpNode('rect', { x: sx(r.a), y: G.h - G.b - 5, width: Math.max(2, sx(r.b) - sx(r.a)), height: 5, rx: 2, fill: r.l === 2 ? 'var(--lp-crit)' : r.l === 3 ? 'var(--lp-serious)' : 'var(--lp-warn)', opacity: 0.85 }, limG);
+      }
+      // last launch (measured)
+      if (lp.last) {
+        const S = lp.last.samples, xs = S.map(p => p.ms);
+        lpNode('path', { d: lpPath(xs, S.map(p => p.rpm1), sx, sy), fill: 'none', stroke: 'var(--lp-m1)', 'stroke-width': 1.6, opacity: 0.9 }, svg);
+        lpNode('path', { d: lpPath(xs, S.map(p => p.rpm2), sx, sy), fill: 'none', stroke: 'var(--lp-m2)', 'stroke-width': 1.6, opacity: 0.9 }, svg);
+      }
+      // lock-spread ghost references
+      for (const g of [simLo, simHi]) lpNode('path', { d: lpPath(g.t, g.ref, sx, sy), fill: 'none', stroke: 'var(--lp-ref-hi)', 'stroke-width': 1, opacity: 0.25 }, svg);
+      if (s.launch_pacing === 1 && scale > 1.001) { // the set slope, before deadline steepening
+        const xs = [], ys = []; for (let t = 0; t <= nominal.tEnd; t += 0.5) { xs.push(m.lockMs + t); ys.push(lpRef(nominal, t).r); }
+        lpNode('path', { d: lpPath(xs, ys, sx, sy), fill: 'none', stroke: 'var(--lp-ref-hi)', 'stroke-width': 1.2, 'stroke-dasharray': '3 4', opacity: 0.55 }, svg);
+      }
+      // predicted motor
+      lpNode('path', { d: lpPath(sim.t, sim.rpm, sx, sy), fill: 'none', stroke: 'var(--lp-pred)', 'stroke-width': 2, 'stroke-dasharray': '6 4', class: 'lp-pred-line' }, svg);
+      // reference: area glow, startup stub, main line
+      const rx = [m.lockMs], ry = [plan.r0];
+      for (let t = 0.5; t <= plan.tEnd + 0.5; t += 0.5) { rx.push(m.lockMs + Math.min(t, plan.tEnd)); ry.push(lpRef(plan, t).r); }
+      rx.push(D.x); ry.push(m.targetRpm);
+      const area = lpPath(rx, ry, sx, sy) + `L${sx(D.x).toFixed(1)} ${sy(0)}L${sx(m.lockMs).toFixed(1)} ${sy(0)}Z`;
+      lpNode('path', { d: area, fill: 'url(#lp_ref_glow)' }, svg);
+      lpNode('path', { d: `M${sx(0)} ${sy(0)}L${sx(m.lockMs)} ${sy(0)}`, stroke: 'var(--lp-ref-hi)', 'stroke-width': 2, 'stroke-dasharray': '2 4', opacity: 0.6 }, svg);
+      lpNode('path', { d: lpPath(rx, ry, sx, sy), fill: 'none', stroke: 'var(--lp-ref-hi)', 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', class: 'lp-ref-line' }, svg);
+      // t90 marker on the predicted motor
+      if (sim.t90 !== null && sim.t90 < D.x) {
+        const x = sx(sim.t90), y = sy(0.9 * m.targetRpm);
+        lpNode('circle', { cx: x, cy: y, r: 4.5, fill: 'var(--lp-pred)', stroke: 'var(--lp-surface)', 'stroke-width': 2 }, svg);
+        lpNode('text', { x: x - 8, y: y - 10, 'text-anchor': 'end', class: 'lp-anno' }, svg, `90 % at ${Math.round(sim.t90)} ms`);
+      }
+      // deadline line (draggable)
+      if (s.launch_pacing === 1) {
+        const x = sx(s.launch_deadline_ms);
+        const h = lpNode('g', { class: 'lp-handle lp-handle-x', 'data-handle': 'deadline', tabindex: 0, role: 'slider', 'aria-label': 'Deadline',
+          'aria-valuemin': 60, 'aria-valuemax': 400, 'aria-valuenow': s.launch_deadline_ms, 'aria-valuetext': `${s.launch_deadline_ms} ms after the trigger` }, svg);
+        lpNode('rect', { x: x - 9, y: G.t, width: 18, height: G.h - G.t - G.b, fill: 'transparent', class: 'lp-halo' }, h);
+        lpNode('line', { x1: x, x2: x, y1: G.t, y2: G.h - G.b, stroke: 'var(--lp-ref-hi)', 'stroke-width': 1.5, 'stroke-dasharray': '1 3' }, h);
+        lpNode('rect', { x: x - 30, y: G.t - 22, width: 60, height: 18, rx: 9, fill: 'rgba(8,145,178,0.9)', class: 'lp-dot' }, h);
+        lpNode('text', { x, y: G.t - 9, 'text-anchor': 'middle', style: 'fill:#ecfeff;font-weight:700;font-size:10.5px' }, h, `${s.launch_deadline_ms} ms`);
+      }
+      // handles
+      const handle = (id, x, y, label, valuetext, shape = 'dot', extra = {}) => {
+        const g = lpNode('g', { class: 'lp-handle' + (extra.ghost ? ' ghost' : '') + (extra.axis ? ' lp-handle-' + extra.axis : '') + (lp.drag?.id === id ? ' dragging' : ''),
+          'data-handle': id, tabindex: 0, role: 'slider', 'aria-label': label, 'aria-valuetext': valuetext }, svg);
+        lpNode('circle', { cx: x, cy: y, r: 16, class: 'lp-halo' }, g);
+        if (shape === 'diamond') lpNode('rect', { x: x - 6, y: y - 6, width: 12, height: 12, rx: 2, transform: `rotate(45 ${x} ${y})`, fill: 'var(--lp-ref-hi)', stroke: 'var(--lp-surface)', 'stroke-width': 2, class: 'lp-dot' }, g);
+        else if (shape === 'ring') lpNode('circle', { cx: x, cy: y, r: 6.5, fill: 'var(--lp-surface)', stroke: 'var(--lp-ref-hi)', 'stroke-width': 2.5, class: 'lp-dot' }, g);
+        else lpNode('circle', { cx: x, cy: y, r: extra.r || 7, fill: 'var(--lp-ref-hi)', stroke: 'var(--lp-surface)', 'stroke-width': 2.5, class: 'lp-dot' }, g);
+        if (extra.plus) { lpNode('path', { d: `M${x - 3} ${y}H${x + 3}M${x} ${y - 3}V${y + 3}`, stroke: 'var(--lp-ref-hi)', 'stroke-width': 1.5, 'pointer-events': 'none' }, g); }
+        if (extra.tag) lpNode('text', { x: x + (extra.tagDx || 10), y: y + (extra.tagDy || -10), 'text-anchor': extra.tagAnchor || 'start', class: 'lp-anno', 'pointer-events': 'none' }, g, extra.tag);
+        return g;
+      };
+      // startup power pill on its own short track inside the startup band
+      const bandW = sx(m.lockMs) - sx(0), px = sx(0) + Math.max(20, Math.min(bandW / 2, 60));
+      const trackTop = sy(D.y * 0.62), trackBot = sy(D.y * 0.22);
+      const py = trackBot - (s.startup_drive_mv - 1000) / 4000 * (trackBot - trackTop);
+      const sg = lpNode('g', { class: 'lp-handle lp-handle-y' + (lp.drag?.id === 'startup' ? ' dragging' : ''), 'data-handle': 'startup', tabindex: 0, role: 'slider',
+        'aria-label': 'Startup power', 'aria-valuemin': 1000, 'aria-valuemax': 5000, 'aria-valuenow': s.startup_drive_mv,
+        'aria-valuetext': `${(s.startup_drive_mv / 1000).toFixed(1)} volts` }, svg);
+      lpNode('rect', { x: px - 14, y: trackTop - 10, width: 28, height: trackBot - trackTop + 20, fill: 'transparent', class: 'lp-halo', rx: 8 }, sg);
+      lpNode('line', { x1: px, x2: px, y1: trackTop, y2: trackBot, stroke: 'rgba(148,163,184,0.35)', 'stroke-width': 3, 'stroke-linecap': 'round' }, sg);
+      if (m.am32Low) { // where the ESC starts clipping (20 % duty at this pack voltage)
+        const clipMv = 0.2 * m.cells * m.cellV * 1000;
+        if (clipMv > 1000 && clipMv < 5000) {
+          const cy = trackBot - (clipMv - 1000) / 4000 * (trackBot - trackTop);
+          lpNode('line', { x1: px - 7, x2: px + 7, y1: cy, y2: cy, stroke: 'var(--lp-warn)', 'stroke-width': 1.5 }, sg);
+        }
+      }
+      lpNode('rect', { x: px - 8, y: py - 8, width: 16, height: 16, rx: 8, fill: 'var(--lp-ref-hi)', stroke: 'var(--lp-surface)', 'stroke-width': 2.5, class: 'lp-dot' }, sg);
+      lpNode('text', { x: px, y: trackTop - 16, 'text-anchor': 'middle', class: 'lp-anno', 'pointer-events': 'none' }, sg, `${(s.startup_drive_mv / 1000).toFixed(1)} V`);
+      lpNode('text', { x: px, y: trackBot + 18, 'text-anchor': 'middle', class: 'lp-axis-label', 'pointer-events': 'none' }, sg, 'power');
+      // lock, knee, landing, end
+      handle('lock', sx(m.lockMs), sy(plan.r0), 'BEMF lock time (what-if)', `${m.lockMs} milliseconds`, 'ring',
+             { axis: 'x', tag: `lock ${m.lockMs} ms`, tagDx: -10, tagDy: -12, tagAnchor: 'end' });
+      if (s.launch_knee_rpm > 0 && plan.t1 > 0.5 && plan.tLand - plan.t1 > 0.5)
+        handle('knee', sx(m.lockMs + nominal.t1), sy(nominal.s1), 'Knee', `${s.launch_knee_rpm} RPM, ${s.launch_accel} then ${s.launch_accel2} RPM per millisecond`,
+               'dot', { tag: `${s.launch_accel} → ${s.launch_accel2} RPM/ms`, tagDx: -12, tagAnchor: 'end', tagDy: -12 });
+      else if (!(s.launch_knee_rpm > 0) && nominal.tLand > 12) {
+        const tm = nominal.tLand * 0.5;
+        handle('knee', sx(m.lockMs + tm), sy(lpRef(nominal, tm).r), 'Add a knee (drag to bend the ramp)', 'no knee', 'dot', { ghost: true, plus: true, r: 6,
+               tag: `${s.launch_accel} RPM/ms`, tagDx: -12, tagAnchor: 'end', tagDy: -12 });
+      }
+      if (nominal.landMs > 0.5) handle('land', sx(m.lockMs + nominal.tLand), sy(nominal.rLand), 'Landing start', `${s.launch_landing_ms} milliseconds of landing`, 'diamond', { axis: 'x' });
+      handle('end', sx(m.lockMs + nominal.tEnd), sy(m.targetRpm), 'Ramp end', `${Math.round(m.lockMs + nominal.tEnd)} milliseconds after the trigger`, 'dot',
+             { axis: 'x', r: 8, tag: `${Math.round(m.lockMs + nominal.tEnd)} ms`, tagDx: 0, tagDy: -16, tagAnchor: 'middle' });
+      // hover crosshair (drawn last, under the tooltip)
+      if (lp.hoverT !== null && !lp.drag) lpNode('line', { x1: sx(lp.hoverT), x2: sx(lp.hoverT), y1: G.t, y2: G.h - G.b, stroke: 'rgba(229,231,235,0.4)', 'pointer-events': 'none' }, svg);
+      lpRenderCurrent(sim);
+      lpRenderLegend();
+      lpRenderKpis(sim, simLo, simHi);
+      lpRenderAlerts(sim);
+      lpRenderTable(sim);
+      lpRenderStatus();
+    }
+    function lpRenderCurrent(sim) {
+      const svg = document.getElementById('lp_svg_current'), D = lp.domain, G = LP_CUR, s = lp.s;
+      [...svg.querySelectorAll(':scope > :not(title)')].forEach(n => n.remove());
+      const top = lpNice(Math.max(s.current_limit_a || 0, sim.peak, 20) * 1.15, 10);
+      const sx = t => G.l + (t / D.x) * (G.w - G.l - G.r), sy = a => G.h - G.b - (a / top) * (G.h - G.t - G.b);
+      const step = top > 100 ? 25 : top > 50 ? 20 : 10;
+      for (let a = 0; a <= top; a += step) {
+        lpNode('line', { x1: G.l, x2: G.w - G.r, y1: sy(a), y2: sy(a), stroke: a ? 'var(--lp-grid)' : 'var(--lp-axis)' }, svg);
+        lpNode('text', { x: G.l - 8, y: sy(a) + 4, 'text-anchor': 'end' }, svg, `${a}`);
+      }
+      const xStep = D.x > 250 ? 50 : 25;
+      for (let t = 0; t <= D.x; t += xStep) lpNode('text', { x: sx(t), y: G.h - G.b + 16, 'text-anchor': 'middle' }, svg, String(t));
+      lpNode('text', { x: 10, y: G.t + 2, class: 'lp-axis-label' }, svg, 'A / motor');
+      const lockIdx = sim.t.findIndex(t => t >= lp.m.lockMs);
+      const pre = sim.t.slice(0, lockIdx + 1), post = sim.t.slice(lockIdx);
+      const ampPre = sim.amps.slice(0, lockIdx + 1), ampPost = sim.amps.slice(lockIdx);
+      const area = lpPath(post, ampPost, sx, sy) + `L${sx(post[post.length - 1]).toFixed(1)} ${sy(0)}L${sx(post[0]).toFixed(1)} ${sy(0)}Z`;
+      lpNode('path', { d: area, fill: 'rgba(139,92,246,0.16)' }, svg);
+      lpNode('path', { d: lpPath(post, ampPost, sx, sy), fill: 'none', stroke: 'var(--lp-pred)', 'stroke-width': 2 }, svg);
+      lpNode('path', { d: lpPath(pre, ampPre, sx, sy), fill: 'none', stroke: 'var(--lp-pred)', 'stroke-width': 1.5, 'stroke-dasharray': '2 3', opacity: 0.7 }, svg);
+      if (lockIdx > 4) lpNode('text', { x: sx(pre[Math.floor(pre.length / 2)]), y: G.t + 10, 'text-anchor': 'middle', class: 'lp-band-label' }, svg, 'startup ≈');
+      if (s.current_limit_a > 0) {
+        lpNode('line', { x1: G.l, x2: G.w - G.r, y1: sy(s.current_limit_a), y2: sy(s.current_limit_a), stroke: 'var(--lp-warn)', 'stroke-dasharray': '5 4', opacity: 0.8 }, svg);
+        lpNode('text', { x: G.w - G.r - 4, y: sy(s.current_limit_a) - 5, 'text-anchor': 'end', class: 'lp-axis-label' }, svg, `cap ${s.current_limit_a} A`);
+      }
+      if (lp.hoverT !== null && !lp.drag) lpNode('line', { x1: sx(lp.hoverT), x2: sx(lp.hoverT), y1: G.t, y2: G.h - G.b, stroke: 'rgba(229,231,235,0.4)' }, svg);
+    }
+    function lpRenderLegend() {
+      const el = document.getElementById('lp_legend'); if (!el) return;
+      const items = [['Reference (what the blaster commands)', 'var(--lp-ref-hi)', false], ['Predicted motor (model)', 'var(--lp-pred)', true]];
+      if (lp.last) items.push(['Last launch · motor 1', 'var(--lp-m1)', false], ['Last launch · motor 2', 'var(--lp-m2)', false]);
+      el.replaceChildren(...items.map(([name, color, dash]) => {
+        const span = document.createElement('span'); const i = document.createElement('i');
+        i.style.borderTopColor = color; if (dash) i.className = 'dash'; span.append(i, name); return span;
+      }));
+      const marks = document.createElement('span');
+      marks.style.color = 'var(--lp-ink-3)';
+      marks.textContent = 'Bars on the time axis: yellow = current cap holding · orange = AM32 low-RPM duty limit · red = out of pack voltage';
+      el.append(marks);
+    }
+    function lpKpi(id, value, unit, chip) {
+      const e = document.getElementById(id); if (!e) return;
+      e.replaceChildren(document.createTextNode(value));
+      if (unit) { const sm = document.createElement('small'); sm.textContent = unit; e.append(sm); }
+      if (chip) { const c = document.createElement('span'); c.className = 'lp-chip ' + chip[0]; c.textContent = chip[1]; e.append(c); }
+    }
+    function lpRenderKpis(sim, simLo, simHi) {
+      const s = lp.s, m = lp.m;
+      if (sim.t90 === null) lpKpi('lp_kpi_t90', 'Never', '', ['crit', '✕ misses 90 %']);
+      else lpKpi('lp_kpi_t90', String(Math.round(sim.t90)), 'ms', sim.t90 <= LP_GOAL_MS ? ['good', '✓ goal'] : ['warn', `▲ ${Math.round(sim.t90 - LP_GOAL_MS)} ms over`]);
+      const range = [simLo.t90, simHi.t90].every(v => v !== null) ? `${Math.round(simLo.t90)}–${Math.round(simHi.t90)} ms over locks ${Math.max(5, m.lockMs - m.lockSpread)}–${m.lockMs + m.lockSpread} ms` : 'some locks in the spread miss 90 %';
+      lpSetText('lp_kpi_t90_sub', range);
+      const { plan, scale } = lpPlanFor();
+      lpKpi('lp_kpi_ramp', String(Math.round(plan.a1 === plan.a2 ? plan.a1 : (plan.a1 + plan.a2) / 2)), plan.a1 === plan.a2 ? 'RPM/ms' : 'RPM/ms avg');
+      lpSetText('lp_kpi_ramp_sub', `${Math.round(plan.tEnd)} ms from lock to target${scale > 1.001 ? ` · steepened ×${scale.toFixed(2)} for the deadline` : ''}`);
+      const capHit = s.current_limit_a > 0 && sim.peak >= s.current_limit_a - 0.5;
+      lpKpi('lp_kpi_peak', String(Math.round(sim.peak)), 'A / motor', capHit ? ['warn', 'at cap'] : null);
+      lpSetText('lp_kpi_peak_sub', `${s.current_limit_a ? `cap ${s.current_limit_a} A` : 'no cap'} · after lock · pack dips to ${sim.minBus.toFixed(1)} V`);
+      lpKpi('lp_kpi_heat', sim.heat.toFixed(1), 'J / motor');
+      lpSetText('lp_kpi_heat_sub', `startup ≈ ${sim.startupHeat.toFixed(1)} J of it · ${(sim.heat * 10).toFixed(0)} J per 10-shot burst · flywheel stores ${sim.ke.toFixed(0)} J`);
+      if (lp.cache.minV === undefined) lp.cache.minV = lpMinCellVoltage();
+      const minV = lp.cache.minV;
+      if (minV === null) lpKpi('lp_kpi_minv', 'Not reached', '', ['crit', 'even full']);
+      else lpKpi('lp_kpi_minv', minV <= 3.0 ? '≤ 3.00' : minV.toFixed(2), 'V/cell', minV <= 3.5 ? ['good', '✓ whole pack'] : minV <= m.cellV ? ['warn', 'not when low'] : ['crit', 'not at this pack']);
+      lpSetText('lp_kpi_minv_sub', minV === null ? `90 % takes longer than ${LP_GOAL_MS} ms even on a full ${m.cells}S pack` : `resting voltage at which 90 % still comes within ${LP_GOAL_MS} ms (${m.cells}S, this lock)`);
+    }
+    function lpRenderAlerts(sim) {
+      const box = document.getElementById('lp_alerts'); if (!box) return;
+      const out = [], s = lp.s, m = lp.m;
+      const add = (kind, ico, strong, rest) => { const d = document.createElement('div'); d.className = 'lp-alert ' + kind;
+        const i = document.createElement('span'); i.className = 'lp-ico'; i.textContent = ico; i.setAttribute('aria-hidden', 'true');
+        const t = document.createElement('div'); const b = document.createElement('b'); b.textContent = strong; t.append(b, ' ' + rest); d.append(i, t); out.push(d); };
+      if (sim.voltMs > 2 && sim.lagTop > 300) add('crit', '!', 'Out of pack voltage near the top.', `At ${m.cellV.toFixed(2)} V/cell the motors fall up to ${Math.round(sim.lagTop).toLocaleString()} RPM behind the reference (worst at ${Math.round(sim.lagTopAt)} ms). Use two slopes with a gentler upper one, a longer ramp, or plan for a fuller pack.`);
+      if (sim.am32Ms > 2 && sim.lagLow > 300) add('warn', '!', 'AM32 low-RPM limit.', `Below ~19k RPM AM32 caps duty, so the motors trail the start of the ramp by up to ${Math.round(sim.lagLow).toLocaleString()} RPM (at ${Math.round(sim.lagLowAt)} ms) and then catch up. Use two slopes with a gentler lower one, or turn off the ESC's low-RPM protection now that the blaster has its own current cap.`);
+      if (sim.capMs > 2) add('warn', '!', 'Current cap holding.', `The ramp asks for more than ${s.current_limit_a} A for ${Math.round(sim.capMs)} ms, so the motors trail the reference there. Lower the acceleration or raise the cap.`);
+      if (m.am32Low && s.startup_drive_mv / 1000 > 0.2 * m.cells * m.cellV + 0.05) add('info', 'i', 'Startup power above the ESC clip.', `AM32 limits duty to about 20 % (${(0.2 * m.cells * m.cellV).toFixed(1)} V here) until ~2,300 RPM, so anything above that does nothing at this pack voltage.`);
+      if (s.launch_leash_rpm > 0) add('info', 'i', 'Sync leash on.', 'The planner models identical motors, so the leash never holds here. On the blaster it holds the ramp while one motor trails by more than the leash, which trades a later finish for less catch-up current.');
+      if (s.launch_pacing === 1 && lpPlanFor().scale >= 1.999) add('warn', '!', 'Deadline out of reach.', 'Even at twice the set slope the ramp cannot finish by the deadline after this lock. Raise the slope or move the deadline.');
+      box.replaceChildren(...out);
+    }
+    function lpRenderTable(sim) {
+      const tb = document.querySelector('#lp_table tbody'); if (!tb) return;
+      const { plan } = lpPlanFor(), m = lp.m;
+      const ampAt = t => { const i = sim.t.findIndex(x => x >= t); return i >= 0 ? sim.amps[i] : 0; };
+      const rows = [['Trigger', 0, 0, null], ['BEMF lock (ramp start)', m.lockMs, plan.r0, plan.a1]];
+      if (plan.tLand - plan.t1 > 0.5 && plan.t1 > 0.5) rows.push(['Knee', m.lockMs + plan.t1, plan.s1, plan.a2]);
+      if (plan.landMs > 0.5) rows.push(['Landing start', m.lockMs + plan.tLand, plan.rLand, plan.aLand]);
+      rows.push(['Target', m.lockMs + plan.tEnd, plan.target, 0]);
+      if (sim.t90 !== null) rows.push(['Predicted motor at 90 %', sim.t90, 0.9 * m.targetRpm, null]);
+      tb.replaceChildren(...rows.map(([name, t, r, a]) => {
+        const tr = document.createElement('tr');
+        for (const v of [name, `${t.toFixed(1)} ms`, Math.round(r).toLocaleString(), a === null ? '–' : Math.round(a).toString(), ampAt(t).toFixed(1)]) {
+          const td = document.createElement('td'); td.textContent = v; tr.append(td);
+        }
+        return tr;
+      }));
+    }
+
+    // ---- Interaction ----
+    function lpPointer(evt) {
+      const svg = document.getElementById('lp_svg'), pt = svg.createSVGPoint();
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      const p = pt.matrixTransform(svg.getScreenCTM().inverse()), v = lp.view;
+      const G = v.G, D = v.D;
+      return { t: (p.x - G.l) / (G.w - G.l - G.r) * D.x, r: (G.h - G.b - p.y) / (G.h - G.t - G.b) * D.y, px: p.x, py: p.y };
+    }
+    // Slope multiplier f so the nominal ramp (both slopes x f) ends at tEndMs after the lock.
+    function lpSolveScaleForEnd(tEndMs, s = lp.s) {
+      const { a1, a2 } = lpSlopes(s), m = lp.m;
+      const end = f => lpPlan(m.lockRpm, m.targetRpm, a1 * f, a2 * f, s.launch_knee_rpm, s.launch_landing_ms).tEnd;
+      let lo = 40 / Math.max(a1, a2), hi = 1500 / Math.min(a1, a2);
+      if (end(hi) > tEndMs) return hi; if (end(lo) < tEndMs) return lo;
+      for (let i = 0; i < 30; i++) { const mid = Math.sqrt(lo * hi); if (end(mid) > tEndMs) lo = mid; else hi = mid; }
+      return hi;
+    }
+    function lpApplyScale(f) {
+      const { a1, a2 } = lpSlopes();
+      const knee = lp.s.launch_knee_rpm > 0;
+      lpSetSetting('launch_accel', Math.round(a1 * f / 5) * 5);
+      if (knee) lpSetSetting('launch_accel2', Math.round(a2 * f / 5) * 5);
+    }
+    function lpDragTo(id, p, start) {
+      const m = lp.m, s = lp.s;
+      if (id === 'lock') { m.lockMs = Math.round(lpClamp(p.t, 5, 150)); lpSave(); lpSyncControls(); lpScheduleRender(); }
+      else if (id === 'startup') {
+        const v = lp.view, trackTop = v.sy(v.D.y * 0.62), trackBot = v.sy(v.D.y * 0.22);
+        lpSetSetting('startup_drive_mv', 1000 + lpClamp((trackBot - p.py) / (trackBot - trackTop), 0, 1) * 4000);
+      }
+      else if (id === 'deadline') lpSetSetting('launch_deadline_ms', Math.round(p.t));
+      else if (id === 'end') lpApplyScale(lpSolveScaleForEnd(Math.max(s.launch_landing_ms + 4, p.t - m.lockMs)));
+      else if (id === 'land') {
+        const endT = start.endT; // keep the ramp end where it was
+        lpSetSetting('launch_landing_ms', Math.round(lpClamp(endT - (p.t - m.lockMs), 0, 60)));
+        lpApplyScale(lpSolveScaleForEnd(endT));
+      }
+      else if (id === 'knee') {
+        const endT = start.endT, knee = Math.round(lpClamp(p.r, m.lockRpm + 1000, m.targetRpm - 2000) / 250) * 250;
+        const tk = Math.max(2, p.t - m.lockMs), a1 = lpClamp((knee - m.lockRpm) / tk, 40, 1500);
+        lp.s.launch_knee_rpm = knee; lp.s.launch_accel = Math.round(a1 / 5) * 5;
+        // upper slope that keeps the ramp end fixed
+        const end = a2 => lpPlan(m.lockRpm, m.targetRpm, lp.s.launch_accel, a2, knee, s.launch_landing_ms).tEnd;
+        let lo = 40, hi = 1500;
+        if (end(hi) > endT) lo = hi; else if (end(lo) < endT) hi = lo;
+        else for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (end(mid) > endT) lo = mid; else hi = mid; }
+        lpSetSetting('launch_accel', lp.s.launch_accel); lpSetSetting('launch_knee_rpm', knee);
+        lpSetSetting('launch_accel2', Math.round(hi / 5) * 5);
+      }
+    }
+    function lpNudge(id, key) {
+      const m = lp.m, s = lp.s, big = key.shiftKey ? 5 : 1, dir = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[key.key];
+      if (!dir) return false;
+      const { nominal } = lpPlanFor();
+      if (id === 'lock') lpSetModel('lockMs', lpClamp(m.lockMs + dir * big, 5, 150));
+      else if (id === 'startup') lpSetSetting('startup_drive_mv', s.startup_drive_mv + dir * 100 * big);
+      else if (id === 'deadline') lpSetSetting('launch_deadline_ms', s.launch_deadline_ms + dir * big);
+      else if (id === 'end') lpApplyScale(lpSolveScaleForEnd(Math.max(s.launch_landing_ms + 4, nominal.tEnd + dir * big)));
+      else if (id === 'land') { const endT = nominal.tEnd; lpSetSetting('launch_landing_ms', s.launch_landing_ms - dir * big); lpApplyScale(lpSolveScaleForEnd(endT)); }
+      else if (id === 'knee') {
+        if (!(s.launch_knee_rpm > 0)) lpSetKneeEnabled(true);
+        else if (key.key === 'ArrowUp' || key.key === 'ArrowDown') lpDragTo('knee', { t: m.lockMs + nominal.t1, r: s.launch_knee_rpm + dir * 250 * big }, { endT: nominal.tEnd });
+        else lpDragTo('knee', { t: m.lockMs + nominal.t1 + dir * big, r: s.launch_knee_rpm }, { endT: nominal.tEnd });
+      }
+      return true;
+    }
+    function lpShowTooltip(evt) {
+      const tip = document.getElementById('lp_tooltip'), v = lp.view; if (!v) return;
+      const p = lpPointer(evt);
+      if (p.t < 0 || p.t > v.D.x || p.r < -2000) { lpHideTooltip(); return; }
+      lp.hoverT = Math.round(p.t * 2) / 2;
+      const sim = v.sim, i = Math.min(sim.t.length - 1, Math.max(0, Math.round(lp.hoverT / (sim.t[1] - sim.t[0]))));
+      const rows = [];
+      const refVal = lp.hoverT < lp.m.lockMs ? null : lpRef(v.plan, lp.hoverT - lp.m.lockMs).r;
+      rows.push(['var(--lp-ref-hi)', refVal === null ? 'waiting for lock' : `${Math.round(refVal).toLocaleString()} RPM`, 'reference', false]);
+      rows.push(['var(--lp-pred)', `${Math.round(sim.rpm[i]).toLocaleString()} RPM`, 'predicted', true]);
+      if (lp.last) {
+        const S = lp.last.samples; let j = 0, best = Infinity;
+        S.forEach((sm, k) => { const d = Math.abs(sm.ms - lp.hoverT); if (d < best) { best = d; j = k; } });
+        if (best < 4) { rows.push(['var(--lp-m1)', `${Math.round(S[j].rpm1).toLocaleString()} RPM`, 'motor 1', false]); rows.push(['var(--lp-m2)', `${Math.round(S[j].rpm2).toLocaleString()} RPM`, 'motor 2', false]); }
+      }
+      rows.push(['var(--lp-pred)', `${sim.amps[i].toFixed(1)} A`, 'current', true]);
+      tip.replaceChildren();
+      const head = document.createElement('div'); head.className = 'lp-tt-head'; head.textContent = `${lp.hoverT.toFixed(1)} ms from trigger`; tip.append(head);
+      for (const [color, val, name, dash] of rows) {
+        const r = document.createElement('div'); r.className = 'lp-tt-row';
+        const k = document.createElement('span'); k.className = 'lp-tt-key'; k.style.borderTopColor = color; if (dash) k.style.borderTopStyle = 'dashed';
+        const a = document.createElement('span'); a.className = 'lp-tt-val'; a.textContent = val;
+        const b = document.createElement('span'); b.className = 'lp-tt-name'; b.textContent = name;
+        r.append(k, a, b); tip.append(r);
+      }
+      const box = document.getElementById('lp_chart_main').getBoundingClientRect();
+      const x = evt.clientX - box.left, y = evt.clientY - box.top;
+      tip.style.left = `${Math.min(box.width - 170, x + 14)}px`; tip.style.top = `${Math.max(4, Math.min(box.height - 120, y - 60))}px`;
+      tip.classList.add('show');
+      lpScheduleRender();
+    }
+    function lpHideTooltip() { document.getElementById('lp_tooltip')?.classList.remove('show'); if (lp.hoverT !== null) { lp.hoverT = null; lpScheduleRender(); } }
+    function lpInitPlanner() {
+      const svg = document.getElementById('lp_svg'); if (!svg || svg.dataset.lpReady) return;
+      svg.dataset.lpReady = '1';
+      svg.addEventListener('pointerdown', e => {
+        const h = e.target.closest('[data-handle]'); if (!h) return;
+        e.preventDefault();
+        const { nominal } = lpPlanFor();
+        lp.drag = { id: h.dataset.handle, pointer: e.pointerId, endT: nominal.tEnd };
+        svg.setPointerCapture(e.pointerId); lpHideTooltip();
+        if (lp.drag.id === 'knee' && !(lp.s.launch_knee_rpm > 0)) lpSetKneeEnabled(true);
+        lpScheduleRender();
+      });
+      svg.addEventListener('pointermove', e => {
+        if (lp.drag && e.pointerId === lp.drag.pointer) { lpDragTo(lp.drag.id, lpPointer(e), lp.drag); return; }
+        if (e.pointerType === 'mouse') lpShowTooltip(e);
+      });
+      const end = e => { if (lp.drag && e.pointerId === lp.drag.pointer) { lp.drag = null; lp.domain = null; lpScheduleRender(); } };
+      svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+      svg.addEventListener('pointerleave', () => { if (!lp.drag) lpHideTooltip(); });
+      svg.addEventListener('dblclick', e => { const h = e.target.closest('[data-handle="knee"]'); if (h) lpSetKneeEnabled(false); });
+      svg.addEventListener('keydown', e => {
+        const h = e.target.closest?.('[data-handle]'); if (!h) return;
+        if ((e.key === 'Delete' || e.key === 'Backspace') && h.dataset.handle === 'knee') { lpSetKneeEnabled(false); e.preventDefault(); return; }
+        if (lpNudge(h.dataset.handle, e)) {
+          e.preventDefault();
+          const id = h.dataset.handle;
+          requestAnimationFrame(() => requestAnimationFrame(() => svg.querySelector(`[data-handle="${id}"]`)?.focus()));
+        }
+      });
+      lpBuildTargetSelect(); lpSyncControls();
+    }
+    function lpShow() { lpInitPlanner(); lp.domain = null; lpSyncControls(); lpScheduleRender(); }
+    // ============================ END LAUNCH PLANNER ============================
 
     // Run first simulation on boot
     setBrush('white');

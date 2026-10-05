@@ -759,9 +759,9 @@
           </div>
 
           <div class="control">
-            <label for="packR">Pack + wiring resistance <span class="hint">controls voltage sag; both motors draw through it. 30 mΩ is a 5S estimate, not measured</span></label>
+            <label for="packR">Pack + wiring resistance <span class="hint">controls voltage sag; both motors draw through it. 46 mΩ fits the run 9 sag (19.7 → ~15 V) with the calibrated drive impedance; measure it (resting vs loaded voltage) to replace this</span></label>
             <div class="value-box" data-out="packR"></div>
-            <div class="slider-row"><input id="packR" type="range" min="0" max="0.20" step="0.002" value="0.030"></div>
+            <div class="slider-row"><input id="packR" type="range" min="0" max="0.20" step="0.002" value="0.046"></div>
           </div>
 
           <div class="control">
@@ -771,15 +771,27 @@
           </div>
 
           <div class="control">
+            <label for="driveR">Drive impedance (calibrated) <span class="hint">extra voltage-to-current impedance seen on hardware (commutation, inductance, wiring). Run 9: ~6,000 rad/s² per volt of headroom = 125 mΩ total with the 39 g·cm² flywheel, i.e. 94 mΩ on top of motor + ESC. Not counted as motor copper heat. Match the blaster's Current Cap Model Impedance (motorR + escR + this).</span></label>
+            <div class="value-box" data-out="driveR"></div>
+            <div class="slider-row"><input id="driveR" type="range" min="0" max="0.300" step="0.001" value="0.094"></div>
+          </div>
+
+          <div class="control">
             <label for="currentCap">Post-BEMF current ceiling <span class="hint">per motor; keep inside the ESC rating. 20 A cannot reach 32k in under ~160 ms</span></label>
             <div class="value-box" data-out="currentCap"></div>
             <div class="slider-row"><input id="currentCap" type="range" min="5" max="100" step="1" value="60"></div>
           </div>
 
           <div class="control">
-            <label for="bemfTime">Assumed qualified BEMF lock time <span class="hint">fixed optimizer budget; includes crossing count + confirmation</span></label>
+            <label for="bemfTime">BEMF lock time <span class="hint">time from the trigger to the ESC reporting RPM. Measure it: launchtrace lockMs (run 9: ~45 ms to 1,000 RPM). With the curve exported "after lock" this is spent before the curve starts</span></label>
             <div class="value-box" data-out="bemfTime"></div>
-            <div class="slider-row"><input id="bemfTime" type="range" min="0" max="60" step="1" value="30"></div>
+            <div class="slider-row"><input id="bemfTime" type="range" min="0" max="90" step="1" value="45"></div>
+          </div>
+
+          <div class="control">
+            <label for="lockRpm">RPM at BEMF lock <span class="hint">speed the firmware sees when it starts an after-lock curve (lock = 2 frames at or above 1,000 RPM). Read it from launchtrace startRpm</span></label>
+            <div class="value-box" data-out="lockRpm"></div>
+            <div class="slider-row"><input id="lockRpm" type="range" min="1000" max="5000" step="50" value="1200"></div>
           </div>
 
           <div class="control">
@@ -1167,6 +1179,8 @@
             <button id="exportOptimalBtn" type="button" disabled>Export AM32-importable profiles</button>
             <button id="exportReportBtn" type="button" disabled>Export optimizer report JSON</button>
             <button id="exportByteBlasterBtn" class="primary-btn" style="background:#15803d; border-color:#22c55e; color:#fff;" type="button" disabled>Export Byte Blaster Launch Curve (JSON)</button>
+            <label style="display:inline-flex;align-items:center;gap:6px;"><input id="exportAfterLock" type="checkbox" checked> export the after-lock curve (firmware launch clock "at BEMF lock")</label>
+            <span style="display:inline-flex;align-items:center;gap:6px;">landing from <input id="landingPct" type="number" min="0" max="99" step="1" value="95" style="width:4.5em;"> % of target <span class="hint">slope eases to zero at the target instead of stopping dead (0 = off)</span></span>
             <span id="optimizerRunHint">Current target: ≤150 ms to 32k RPM</span>
           </div>
         </div>
@@ -1678,10 +1692,14 @@
     motorR: 0.0247,
     noLoadI: 15.0,
     batteryV: 21.0,
-    packR: 0.030,
+    packR: 0.046,
     escR: 0.006,
+    // Run 9 calibration (2026-10-05): ~6,000 rad/s^2 per volt of headroom = 125 mOhm effective with the 39 g*cm^2
+    // flywheel. motorR/escR stay the dissipative part (heat); driveR is the rest of the voltage-to-current path.
+    driveR: 0.094,
     currentCap: 60,  // post-BEMF ceiling per motor; keep inside the ESC rating (Vortex F65)
-    bemfTime: 30,
+    bemfTime: 45,
+    lockRpm: 1200,
     bemfZeroCrossings: 100,
     bemfConfirmMs: 3,
     startupIStart: 12,
@@ -1724,8 +1742,10 @@
     batteryV: v => `${v.toFixed(1)} V`,
     packR: v => `${(v * 1000).toFixed(0)} mΩ`,
     escR: v => `${(v * 1000).toFixed(1)} mΩ`,
+    driveR: v => `${(v * 1000).toFixed(0)} mΩ (total ${((v + Number(el.motorR?.value || 0) + Number(el.escR?.value || 0)) * 1000).toFixed(0)} mΩ)`,
     currentCap: v => `${v.toFixed(0)} A`,
     bemfTime: v => `${v.toFixed(0)} ms`,
+    lockRpm: v => `${v.toFixed(0)} rpm`,
     bemfZeroCrossings: v => `${v.toFixed(0)} crossings`,
     bemfConfirmMs: v => `${v.toFixed(0)} ms`,
     startupIStart: v => `${v.toFixed(0)} A`,
@@ -1788,6 +1808,9 @@
     p.useSlewLimit = useSlewLimitEl.checked;
     p.useSpeedPI = useSpeedPIEl.checked;
     p.autoTunePI = autoTunePIEl.checked;
+    const afterLockEl = root.getElementById("exportAfterLock"), landingEl = root.getElementById("landingPct");
+    p.exportAfterLock = afterLockEl ? afterLockEl.checked : false;
+    p.landingPct = landingEl ? Number(landingEl.value) : 0;
     return p;
   }
 
@@ -1820,7 +1843,7 @@
 
   function solveAtDutyOne(omega, p, Ke) {
     const emf = Ke * omega;
-    const rSeries = p.motorR + p.escR;
+    const rSeries = p.motorR + p.escR + (Number.isFinite(p.driveR) ? p.driveR : 0);
     // Both motors launch together from one pack, so the pack carries N_MOTORS x this motor's current.
     const denom = safePositive(rSeries + N_MOTORS * p.packR);
     const I = Math.max(0, (p.batteryV - emf) / denom);
@@ -1833,7 +1856,7 @@
   function solveForTargetCurrent(targetI, omega, p, Ke) {
     targetI = Math.max(0, targetI);
     const emf = Ke * omega;
-    const rSeries = p.motorR + p.escR;
+    const rSeries = p.motorR + p.escR + (Number.isFinite(p.driveR) ? p.driveR : 0);
 
     if (targetI <= 1e-9) {
       return { I: 0, duty: 0, Ibat: 0, busV: p.batteryV };
@@ -1935,7 +1958,7 @@
     const dt = 0.00005; // 0.05 ms, averaged electrical model
     const timeout = 0.300;
 
-    let omega = 0;
+    let omega = Math.max(0, Number(p.initialRpm) || 0) * 2 * Math.PI / 60;
     let t = 0;
     let motorHeat = 0;
     let escHeat = 0;
@@ -2356,7 +2379,8 @@
         ? Math.max(0, p.settleWindowMs, p.settleDwellMs) / 1000
         : 0;
 
-    let omega = 0;
+    // After-lock export: start at the measured BEMF-lock speed with the startup phase skipped (bemfTime 0).
+    let omega = Math.max(0, Number(p.initialRpm) || 0) * 2 * Math.PI / 60;
     let t = 0;
 
     let motorHeat = 0;
@@ -7444,7 +7468,12 @@
 
     const packVoltage = Number.isFinite(selected.packVoltage) ? selected.packVoltage : p.batteryV;
     const params = { ...p, batteryV: packVoltage };
-    const sim = simulateOptimizerProfile(selected.profile, params, true);
+    // After lock the firmware starts the curve from the measured lock speed: simulate exactly that part (the
+    // model's own open-loop startup is not what the ESC does before lock, so it is skipped, not trimmed).
+    const afterLock = !!p.exportAfterLock;
+    const lockRpmIn = Math.max(0, Math.min(p.targetRpm * .5, Number.isFinite(p.lockRpm) ? p.lockRpm : 1200));
+    const simParams = afterLock ? { ...params, bemfTime: 0, initialRpm: lockRpmIn } : params;
+    const sim = simulateOptimizerProfile(selected.profile, simParams, true);
 
     if (!sim.reached || !Number.isFinite(sim.spinupMs) || sim.spinupMs < 60 || sim.spinupMs > 300 ||
         !sim.trace?.length || !(p.targetRpm > 0)) {
@@ -7453,37 +7482,79 @@
 
     const targetRpm = Math.round(p.targetRpm);
     const deadlineMs = Math.round(p.optDeadline);
-    const actualSpinupMs = Number(sim.spinupMs.toFixed(1));
     const motorHeatJ = Number(sim.motorHeatJ.toFixed(2));
     const peakCurrentA = Number(sim.peakCurrent.toFixed(1));
 
-    // Sample exactly 16 normalized knot points along the launch trajectory (0% to 100% time)
-    const KNOT_COUNT = 16;
-    const trajectoryKnots = [];
-    const maxT = sim.spinupS > 0 ? sim.spinupS : (deadlineMs / 1000.0);
-
-    for (let i = 0; i < KNOT_COUNT; i++) {
-      const u = i / (KNOT_COUNT - 1);
-      const tSample = u * maxT;
-      let closest = sim.trace[0];
-      let minDiff = Infinity;
-      for (const pt of sim.trace) {
-        const diff = Math.abs(pt.t - tSample);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closest = pt;
+    // Dense modeled trajectory from rest. The integrator's first sample is after its first timestep;
+    // borrowing that RPM at t=0 would invent a nonzero cold-start origin.
+    const dense = sim.trace[0].t > 0 ? [{ ...sim.trace[0], t: 0, rpm: afterLock ? lockRpmIn : 0 }, ...sim.trace] : sim.trace.slice();
+    const rpmAt = t => {
+      if (t <= dense[0].t) return dense[0].rpm;
+      for (let i = 1; i < dense.length; i++) {
+        if (dense[i].t >= t) {
+          const a = dense[i - 1], b = dense[i];
+          return b.t > a.t ? a.rpm + (b.rpm - a.rpm) * (t - a.t) / (b.t - a.t) : b.rpm;
         }
       }
-      // This is a cold-start trajectory. The integrator's first sample is after
-      // its first timestep; borrowing that RPM at t=0 invents a nonzero origin.
-      const rpm = i === 0 ? 0 : Math.min(targetRpm, Math.round(closest.rpm));
-      const rpmFrac = Number((rpm / targetRpm).toFixed(4));
+      return dense[dense.length - 1].rpm;
+    };
+    const closestAt = t => dense.reduce((best, pt) => Math.abs(pt.t - t) < Math.abs(best.t - t) ? pt : best, dense[0]);
+
+    // Firmware launch policy v5: with launch_clock = lock the curve starts when the ESC reports RPM, from the
+    // measured speed. Export only the after-lock part: it is what the firmware plays, over its own duration.
+    const endS0 = sim.spinupS > 0 ? sim.spinupS : (deadlineMs / 1000.0);
+    const lockS = 0;                                   // the after-lock simulation starts at lock
+    const lockRpm = afterLock ? lockRpmIn : 0;
+    const measuredLockS = afterLock ? Math.max(0, p.bemfTime) / 1000 : 0;
+
+    // Landing: from landingPct of the target, ease the slope linearly to zero at the target instead of
+    // reaching it at full slope (which the firmware's acceleration feed-forward turns into a step).
+    let landing = null;
+    const landingFrac = Number.isFinite(p.landingPct) && p.landingPct > 0 && p.landingPct < 100 ? p.landingPct / 100 : 0;
+    if (landingFrac > 0) {
+      const thresholdRpm = Math.max(lockRpm, landingFrac * targetRpm);
+      const idx = dense.findIndex(pt => pt.t >= lockS && pt.rpm >= thresholdRpm);
+      if (idx > 0) {
+        const a = dense[idx];
+        const back = dense.find(pt => pt.t >= a.t - 0.001) || dense[idx - 1];
+        const slope = a.t > back.t ? (a.rpm - back.rpm) / (a.t - back.t) : 0;   // rpm per second
+        if (slope > 0 && a.rpm < targetRpm) {
+          const T = 2 * (targetRpm - a.rpm) / slope;
+          landing = { startS: a.t, startRpm: a.rpm, slope, durationS: T };
+        }
+      }
+    }
+    const trajectoryRpm = t => {
+      if (landing && t >= landing.startS) {
+        const x = Math.min(t - landing.startS, landing.durationS);
+        return landing.startRpm + landing.slope * x - landing.slope / (2 * landing.durationS) * x * x;
+      }
+      return rpmAt(t);
+    };
+    const endS = landing ? landing.startS + landing.durationS : endS0;
+    const curveS = endS - lockS;
+    const curveMs = Math.round(curveS * 1000);
+    if (!(curveMs >= 60 && curveMs <= 300)) {
+      throw new Error(`This profile cannot be exported: the ${afterLock ? 'after-lock ' : ''}curve lasts ${curveMs} ms; the firmware accepts 60–300 ms.`);
+    }
+    const actualSpinupMs = Number(((measuredLockS + endS) * 1000).toFixed(1));
+
+    // Sample exactly 16 normalized knots across the curve (0% to 100% of its time).
+    const KNOT_COUNT = 16;
+    const trajectoryKnots = [];
+    const span = Math.max(1, targetRpm - lockRpm);
+    for (let i = 0; i < KNOT_COUNT; i++) {
+      const u = i / (KNOT_COUNT - 1);
+      const tSample = lockS + u * curveS;
+      const rpm = i === 0 ? Math.round(lockRpm) : (i === KNOT_COUNT - 1 ? targetRpm : Math.min(targetRpm, Math.round(trajectoryRpm(tSample))));
+      const frac = i === 0 ? 0 : (i === KNOT_COUNT - 1 ? 1 : Math.min(1, Math.max(0, (rpm - lockRpm) / span)));
+      const closest = closestAt(Math.min(tSample, endS0));
       trajectoryKnots.push({
         index: i,
         timeFrac: Number(u.toFixed(4)),
-        timeMs: Number((u * maxT * 1000).toFixed(1)),
+        timeMs: Number((u * curveS * 1000).toFixed(1)),
         targetRpm: rpm,
-        rpmFrac: rpmFrac,
+        rpmFrac: Number(frac.toFixed(4)),
         modeledCurrentA: Number(closest.I.toFixed(2)),
         modeledDutyPct: Number((closest.duty * 100).toFixed(1))
       });
@@ -7491,7 +7562,8 @@
 
     if (trajectoryKnots.some((k, i) => !Number.isFinite(k.rpmFrac) || k.rpmFrac < 0 ||
         k.rpmFrac > 1 || (i && k.rpmFrac < trajectoryKnots[i - 1].rpmFrac)) ||
-        trajectoryKnots[KNOT_COUNT - 1].rpmFrac !== 1) {
+        trajectoryKnots[KNOT_COUNT - 1].rpmFrac !== 1 ||
+        (!landing && !afterLock && Math.round(rpmAt(endS0)) < targetRpm)) {
       throw new Error('This profile does not produce a nondecreasing RPM reference ending at 100%. Select a firmware-compatible profile.');
     }
 
@@ -7501,8 +7573,16 @@
       title: "Byte Blaster Thermally-Optimized Launch Trajectory",
       targetDeadlineMs: deadlineMs,
       simulatedSpinupMs: actualSpinupMs,
-      launchDurationMs: Math.round(sim.spinupMs),
+      launchDurationMs: curveMs,
       targetRpm: targetRpm,
+      // Firmware launch policy v5: "lock" curves are played from the first BEMF lock (launch_clock = 1).
+      launchClock: afterLock ? 'lock' : 'request',
+      curveStartsAtLock: afterLock,
+      modelLockMs: Number((measuredLockS * 1000).toFixed(1)),
+      modelLockRpm: Math.round(lockRpm),
+      predictedTotalMs: Number(((measuredLockS + endS) * 1000).toFixed(1)),
+      landing: landing ? { fromPct: Number((landingFrac * 100).toFixed(1)), startMs: Number(((measuredLockS + landing.startS) * 1000).toFixed(1)),
+        addedMs: Number(((endS - endS0) * 1000).toFixed(1)) } : null,
       batteryContext: {
         configuredVoltage: Number(packVoltage.toFixed(2)),
         approxCells: Math.round(packVoltage / 4.1)
@@ -7519,8 +7599,10 @@
         parameters: params, profile: selected.profile, currentSource: 'model_estimate',
         startup: {
           assumedBemfTimeMs: params.bemfTime,
+          traceStartsAtLock: afterLock,
+          lockRpm: afterLock ? Math.round(lockRpmIn) : null,
           envelope: resolveLaunchEnvelope(selected.profile, params),
-          handoffSource: 'assumed_time_not_esc_lock_measurement',
+          handoffSource: afterLock ? 'measured_lock_time_and_rpm_inputs' : 'assumed_time_not_esc_lock_measurement',
           torqueModel: 'ideal_Kt_times_current_minus_drag',
           escStartupSimulated: false,
           windingInductanceSimulated: false
@@ -7528,7 +7610,7 @@
         referenceMeaning: 'modeled_cold_start_rpm_reused_as_firmware_reference_not_direct_esc_rpm_command'
       },
       // Preserve the modeled waveform for hardware overlays, separately from the 16 firmware knots.
-      simulationTrace: (sim.trace[0].t > 0 ? [{...sim.trace[0], t:0, rpm:0}, ...sim.trace] : sim.trace)
+      simulationTrace: dense
         .filter((_, i, points) => i % Math.max(1, Math.ceil(points.length / 4096)) === 0 || i === points.length - 1)
         .map(pt => ({timeMs:Number((pt.t*1000).toFixed(3)),rpm:pt.rpm,currentA:pt.I,dutyPct:pt.duty*100,busVoltageV:pt.busV,phase:pt.phase}))
     };
@@ -7541,9 +7623,13 @@
       const payload = buildByteBlasterCurveExport(optimizerState, p);
       if (!payload) return;
       const dateTag = new Date().toISOString().slice(0, 10);
-      const filename = `byte_blaster_launch_curve_${payload.launchDurationMs}ms_${dateTag}.json`;
+      const filename = payload.curveStartsAtLock
+        ? `byte_blaster_launch_curve_afterlock_${payload.launchDurationMs}ms_total_${Math.round(payload.predictedTotalMs)}ms_${dateTag}.json`
+        : `byte_blaster_launch_curve_${payload.launchDurationMs}ms_${dateTag}.json`;
       downloadJsonObject(payload, filename);
-      if (payload.launchDurationMs !== payload.targetDeadlineMs) {
+      if (payload.curveStartsAtLock) {
+        alert(`Exported a ${payload.launchDurationMs} ms after-lock curve (from ${payload.modelLockRpm} RPM). Predicted total: ${payload.modelLockMs} ms BEMF lock + ${payload.launchDurationMs} ms = ${payload.predictedTotalMs} ms to the target; requested deadline ${payload.targetDeadlineMs} ms. Set the blaster's Launch Curve Start to "At BEMF lock" and compare launchtrace lockMs with the ${payload.modelLockMs} ms used here.`);
+      } else if (payload.launchDurationMs !== payload.targetDeadlineMs) {
         alert(`Exported ${payload.launchDurationMs} ms RPM reference. Requested deadline: ${payload.targetDeadlineMs} ms. Actual firing latency depends on the blaster's measured RPM and firing gates.`);
       }
     } catch (error) {
@@ -7551,8 +7637,18 @@
     }
   }
 
+  // After-lock design (firmware launch clock "at BEMF lock"): search only the after-lock part, from the measured
+  // lock speed, against the deadline minus the measured lock time. The model's open-loop startup is skipped:
+  // it is not what the ESC does before it reports RPM.
+  function optimizerParams(p) {
+    if (!p.exportAfterLock) return p;
+    const lockMs = Math.max(0, p.bemfTime);
+    return { ...p, bemfTime: 0, initialRpm: Math.max(0, Math.min(p.targetRpm * .5, p.lockRpm || 0)),
+      optDeadline: Math.max(60, p.optDeadline - lockMs), afterLockSearch: true, measuredLockMs: lockMs };
+  }
+
   function runOptimizerFromUI() {
-    const p = readParams();
+    const p = optimizerParams(readParams());
     const topButton = root.getElementById("optimizeBtn");
     const panelButton = root.getElementById("optimizePanelBtn");
     const prompt = root.getElementById("optimizerRunPrompt");
@@ -7581,8 +7677,9 @@
         prompt.classList.add("complete");
 
         if (optimizerState.recommended) {
-          root.getElementById("optimizerRunHint").textContent =
-            `Done — recommended ${optimizerState.recommended.spinupMs.toFixed(1)} ms launch found.`;
+          root.getElementById("optimizerRunHint").textContent = p.afterLockSearch
+            ? `Done — recommended ${optimizerState.recommended.spinupMs.toFixed(1)} ms after lock (+${p.measuredLockMs.toFixed(0)} ms BEMF lock = ${(optimizerState.recommended.spinupMs + p.measuredLockMs).toFixed(1)} ms total).`
+            : `Done — recommended ${optimizerState.recommended.spinupMs.toFixed(1)} ms launch found.`;
         } else if (optimizerState.physicalFloor?.reached) {
           root.getElementById("optimizerRunHint").textContent =
             `Done — absolute floor is ${optimizerState.physicalFloor.spinupMs.toFixed(1)} ms.`;
@@ -7602,8 +7699,9 @@
       } finally {
         topButton.disabled = false;
         panelButton.disabled = false;
-        topButton.textContent = `Find best ≤${p.optDeadline.toFixed(0)} ms launch`;
-        panelButton.textContent = `Run optimizer for ≤${p.optDeadline.toFixed(0)} ms`;
+        const shownDeadline = p.afterLockSearch ? p.optDeadline + p.measuredLockMs : p.optDeadline;
+        topButton.textContent = `Find best ≤${shownDeadline.toFixed(0)} ms launch`;
+        panelButton.textContent = `Run optimizer for ≤${shownDeadline.toFixed(0)} ms`;
       }
     });
   }
