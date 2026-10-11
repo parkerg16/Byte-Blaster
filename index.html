@@ -901,7 +901,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.29</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.30</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -1395,6 +1395,20 @@
         </div>
       </div>
 
+      <div class="visualizer-card" id="esc_telemetry_card">
+        <div class="section-title">Measured ESC telemetry</div>
+        <p style="color:var(--text-secondary);font-size:0.85rem">AM32 sensor readings, separate from the current model. Missing, stale, unconfirmed or clipped measurements show --.</p>
+        <div class="preset-bar">
+          <button class="preset-btn" onclick="sendSerialCommand('esc_telem')">Read ESC status</button>
+          <span id="esc_telemetry_state" role="status">Waiting for telemetry</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.75rem">
+          <div class="metric-card cyan"><div class="metric-label">Motor 1 · measured</div><div class="metric-value" id="esc_m1_current">-- A</div><div id="esc_m1_details" class="metric-subtext">Peak -- · Voltage -- · Temperature --</div><div id="esc_m1_health" class="metric-subtext">No data</div></div>
+          <div class="metric-card pink"><div class="metric-label">Motor 2 · measured</div><div class="metric-value" id="esc_m2_current">-- A</div><div id="esc_m2_details" class="metric-subtext">Peak -- · Voltage -- · Temperature --</div><div id="esc_m2_health" class="metric-subtext">No data</div></div>
+          <div class="metric-card green"><div class="metric-label">Combined measured current</div><div class="metric-value" id="esc_total_current">-- A</div><div class="metric-subtext">Sum of both valid average readings; excludes the solenoid and controller.</div></div>
+        </div>
+        <div style="height:220px;margin-top:1rem"><canvas id="esc_current_chart"></canvas></div>
+      </div>
       <div class="visualizer-card" id="launch_comparison_card">
         <div class="section-title">Launch comparison</div>
         <p style="color:var(--text-secondary);font-size:0.85rem">Load the optimizer export, rev, release, then read the recorded launch. Compare the model with the reference and commands the blaster actually used. Reading the recorder does not run the motors.</p>
@@ -3742,6 +3756,7 @@
                     <option value="5">Custom Sprite / Logo</option>
                     <option value="6">Divider / Line / Frame</option>
                     <option value="8">Estimated FPS / Muzzle Velocity</option>
+                    <option value="9">Measured ESC Telemetry</option>
                   </select>
                 </div>
 
@@ -3751,6 +3766,19 @@
                   </select>
                 </div>
 
+                <div id="hud_esc_metric_container" style="display:none">
+                  <label for="hud_esc_metric">ESC measurement</label>
+                  <select id="hud_esc_metric" onchange="updateSelectedWidgetFromInspector()" style="width:100%">
+                    <option value="0">Average current (A)</option><option value="1">Peak current (A)</option>
+                    <option value="2">Voltage (V)</option><option value="3">Temperature (°C)</option>
+                  </select>
+                  <label style="display:block;font-size:0.75rem;margin-top:0.5rem"><input id="hud_esc_demo" type="checkbox" onchange="renderHudCanvas()"> Simulate ESC readings in preview</label>
+                  <label for="hud_esc_sim_m1" style="display:block;font-size:0.75rem;margin-top:0.5rem">Simulated Motor 1 current: <output id="hud_esc_sim_m1_value">12.3 A</output></label>
+                  <input id="hud_esc_sim_m1" type="range" min="-30" max="100" step="0.1" value="12.3" oninput="onHudEscCurrentChange()" style="width:100%">
+                  <label for="hud_esc_sim_m2" style="display:block;font-size:0.75rem">Simulated Motor 2 current: <output id="hud_esc_sim_m2_value">11.5 A</output></label>
+                  <input id="hud_esc_sim_m2" type="range" min="-30" max="100" step="0.1" value="11.5" oninput="onHudEscCurrentChange()" style="width:100%">
+                  <p style="font-size:0.75rem;color:var(--text-secondary)">Moving a slider enables simulation. Preview peaks use 1.5× each current. Combined and difference layouts use average current. These preview readings stay in the configurator.</p>
+                </div>
                 <!-- Assigned Sprite Selector (Visible when Ammo Pip Bar or Sprite Widget is active) -->
                 <div id="hud_widget_sprite_select_container" style="display: none;">
                   <label style="font-size: 0.75rem; color: var(--text-secondary);" id="hud_widget_sprite_select_label">Assigned Sprite</label>
@@ -4171,8 +4199,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.29";
-    window.CONFIGURATOR_VERSION = "1.1.29";
+    const CONFIGURATOR_VERSION = "v1.1.30";
+    window.CONFIGURATOR_VERSION = "1.1.30";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -7818,7 +7846,7 @@ function updateWriteButtonText() {
       if(launchComparison.connectionGeneration===serialConnectionGeneration && launchComparison.source==='recorder' && launchComparison.config?.startMs===point.launchStartMs)return;
       if(launchComparison.connectionGeneration!==serialConnectionGeneration || launchComparison.config?.startMs!==point.launchStartMs){launchComparison={source:'live',connectionGeneration:serialConnectionGeneration,firmware:connectedBlasterVersion,samples:[],simulation:copyComparisonSimulation(),config:{startMs:point.launchStartMs,target:point.launchTarget,startRpm:point.launchStartRpm,durationMs:point.launchDurationMs}};}
       const ms=comparisonElapsed(point.boardMs,point.launchStartMs);if(ms>320)return;
-      launchComparison.samples.push({ms,target:point.launchTarget,ref:point.target,rpm1:point.rpm1,rpm2:point.rpm2,thr1:point.throttle1,thr2:point.throttle2,volts:point.voltage,lim1:point.lim1,lim2:point.lim2,shot:point.sol});
+      launchComparison.samples.push({ms,target:point.launchTarget,ref:point.target,rpm1:point.rpm1,rpm2:point.rpm2,thr1:point.throttle1,thr2:point.throttle2,volts:point.voltage,lim1:point.lim1,lim2:point.lim2,shot:point.sol,escTelemetry:point.escTelemetry});
       if(launchComparison.samples.length>160)launchComparison.samples.shift();
       renderLaunchComparison();comparisonStatus(`Live launch · ${point.launchDurationMs} ms firmware reference · read recorder after release for full details.`);
     }
@@ -7949,6 +7977,128 @@ function updateWriteButtonText() {
       return getCaptureTargetRpm(0);
     }
 
+    // BEGIN ESC_TELEMETRY
+    let latestEscTelemetry = { supported: false, state: 0, motors: [null, null], receivedAt: 0 };
+    let escCurrentChart = null, escChartOriginMs = null;
+    function decodeEscTelemetry(line) {
+      const stateMatch = /,FE:([012])(?:,|$)/.exec(line);
+      if (!stateMatch) return { supported: false, state: 0, motors: [null, null] };
+      const result = { supported: true, state: Number(stateMatch[1]), motors: [] };
+      for (let i = 1; i <= 2; i++) {
+        const match = new RegExp(',ES' + i + ':([^,\\s]+)').exec(line);
+        const fields = match ? match[1].split('/') : [];
+        const values = fields.every(v => /^-?\d+$/.test(v)) ? fields.map(Number) : [];
+        const limits = [[-32768,32767],[-32768,32767],[0,65535],[-128,127],[0,255],[0,255],[0,4294967295],[0,255],[0,1]];
+        if (values.length !== 9 || values.some((v,n) => !Number.isInteger(v) || v < limits[n][0] || v > limits[n][1])) { result.motors.push(null); continue; }
+        const [average,peak,voltage,temperature,flags,samples,ageUs,sequence,received] = values;
+        const connected = result.state === 2 && !!received && ageUs <= 20000;
+        const faultFree = connected && !(flags & 16);
+        const currentValid = faultFree && samples >= 8 && !!(flags & 1) && !!(flags & 4) && !(flags & 8);
+        const voltageValid = faultFree && !!(flags & 2) && !(flags & 64);
+        const temperatureValid = faultFree && !(flags & 128);
+        const counterMatch = new RegExp(',EC' + i + ':([^,\\s]+)').exec(line);
+        const counters = counterMatch ? counterMatch[1].split('/').map(Number) : null;
+        result.motors.push({ connected, currentValid, voltageValid, temperatureValid, flags, samples, ageUs, sequence,
+          received: !!received, averageA: currentValid ? average / 10 : null, peakA: currentValid ? peak / 10 : null,
+          voltageV: voltageValid ? voltage / 100 : null, temperatureC: temperatureValid ? temperature : null,
+          counters: counters?.length === 7 && counters.every(v => Number.isInteger(v) && v >= 0 && v <= 4294967295) ? counters : null });
+      }
+      return result;
+    }
+    function escTelemetryWidgetLines(snapshot, style, metric) {
+      if (style < 0 || style > 5 || metric < 0 || metric > 3) return ['ESC --'];
+      const motors = snapshot.motors || [null,null];
+      const value = m => {
+        const n = m?.[["averageA","peakA","voltageV","temperatureC"][metric]];
+        return Number.isFinite(n) ? (metric === 3 ? `${n}C` : `${n.toFixed(metric === 2 ? 2 : 1)}${metric < 2 ? 'A' : 'V'}`) : '--';
+      };
+      if (style >= 4) {
+        const label = style === 4 ? 'SUM' : 'DIFF';
+        const a = motors[0]?.averageA, b = motors[1]?.averageA;
+        return [Number.isFinite(a) && Number.isFinite(b) ? `${label} ${(style === 4 ? a+b : a-b).toFixed(1)}A` : `${label} --`];
+      }
+      const peak = metric === 1 ? 'P' : '';
+      if (style < 2) return [`M${style+1}${peak} ${value(motors[style])}`];
+      if (style === 3) return [`1${peak}:${value(motors[0])} 2${peak}:${value(motors[1])}`];
+      return [`M1${peak} ${value(motors[0])}`, `M2${peak} ${value(motors[1])}`];
+    }
+    function currentEscTelemetry(now = Date.now()) {
+      if (now - latestEscTelemetry.receivedAt <= 250) return latestEscTelemetry;
+      return { ...latestEscTelemetry, motors: [null,null], usbStale: latestEscTelemetry.supported };
+    }
+    function hudEscPreviewSnapshot() {
+      if (!document.getElementById('hud_esc_demo')?.checked) return currentEscTelemetry();
+      const a = Number(document.getElementById('hud_esc_sim_m1')?.value ?? 12.3);
+      const b = Number(document.getElementById('hud_esc_sim_m2')?.value ?? 11.5);
+      const voltage = Math.round(Number(document.getElementById('hud_sim_v')?.value ?? 16.8)*100);
+      return decodeEscTelemetry(`,FE:2,ES1:${Math.round(a*10)}/${Math.round(a*15)}/${voltage}/42/7/16/0/1/1,ES2:${Math.round(b*10)}/${Math.round(b*15)}/${voltage}/40/7/16/0/1/1`);
+    }
+    function onHudEscCurrentChange() {
+      const demo = document.getElementById('hud_esc_demo');
+      if (demo) demo.checked = true;
+      for (let i=1;i<=2;i++) {
+        const output = document.getElementById(`hud_esc_sim_m${i}_value`);
+        const input = document.getElementById(`hud_esc_sim_m${i}`);
+        if (output && input) output.textContent = `${Number(input.value).toFixed(1)} A`;
+      }
+      renderHudCanvas();
+    }
+    function consumeEscTelemetry(line) {
+      if (!/,FE:[012](?:,|$)/.test(line)) return false;
+      const next = decodeEscTelemetry(line);
+      next.motors.forEach((m,i) => { if (m && !m.counters) m.counters = latestEscTelemetry.motors[i]?.counters || null; });
+      latestEscTelemetry = { ...next, receivedAt: Date.now() };
+      const ms = /(?:^|:)MS:(\d+)/.exec(line);
+      if (ms && !line.startsWith('ESC_TELEM:')) plotEscTelemetry(next, Number(ms[1]));
+      updateEscTelemetryPanel();
+      return line.startsWith('ESC_TELEM:');
+    }
+    function plotEscTelemetry(snapshot, boardMs) {
+      const canvas = document.getElementById('esc_current_chart');
+      if (!canvas || typeof Chart === 'undefined') return;
+      if (!escCurrentChart) escCurrentChart = new Chart(canvas, { type:'line', data:{datasets:[
+        {label:'M1 measured average (A)',borderColor:'#22d3ee',data:[],pointRadius:0},
+        {label:'M2 measured average (A)',borderColor:'#f472b6',data:[],pointRadius:0},
+        {label:'M1 measured peak (A)',borderColor:'#22d3ee',borderDash:[4,4],data:[],pointRadius:0},
+        {label:'M2 measured peak (A)',borderColor:'#f472b6',borderDash:[4,4],data:[],pointRadius:0}
+      ]}, options:{responsive:true,maintainAspectRatio:false,animation:false,spanGaps:false,
+        scales:{x:{type:'linear',title:{display:true,text:'Time (ms)'}},y:{title:{display:true,text:'Measured current (A)'}}} } });
+      if (escChartOriginMs === null || boardMs < escChartOriginMs) {
+        escChartOriginMs = boardMs; escCurrentChart.data.datasets.forEach(d => d.data = []);
+      }
+      escCurrentChart.data.datasets.forEach((dataset,i) => {
+        dataset.data.push({x:boardMs-escChartOriginMs,y:snapshot.motors[i%2]?.[i<2?'averageA':'peakA'] ?? null});
+        if (dataset.data.length > 1200) dataset.data.shift();
+      });
+      escCurrentChart.update('none');
+    }
+    function updateEscTelemetryPanel() {
+      const s = currentEscTelemetry();
+      const state = document.getElementById('esc_telemetry_state');
+      if (state) state.textContent = !s.supported ? 'Waiting for supported firmware' : s.state === 0 ? 'Receiver disabled' : s.state === 1 ? 'Receiver initialization failed' : s.usbStale ? 'USB telemetry stale' : 'Receiver active';
+      const fmt = (v,unit,digits=1) => Number.isFinite(v) ? `${v.toFixed(digits)} ${unit}` : `-- ${unit}`;
+      s.motors.forEach((m,i) => {
+        const current = document.getElementById(`esc_m${i+1}_current`);
+        const details = document.getElementById(`esc_m${i+1}_details`);
+        const health = document.getElementById(`esc_m${i+1}_health`);
+        if (current) current.textContent = fmt(m?.averageA,'A');
+        if (details) details.textContent = `Peak ${fmt(m?.peakA,'A')} · ${fmt(m?.voltageV,'V',2)} · ${fmt(m?.temperatureC,'°C',0)}`;
+        if (health) {
+          const status = !m?.received ? 'No data' : !m.connected ? 'ESC telemetry stale' : m.currentValid ? 'Current valid' : 'Current unavailable';
+          health.textContent = status + (m ? ` · Age ${(m.ageUs/1000).toFixed(1)} ms · Flags 0x${m.flags.toString(16)} · Samples ${m.samples}` : '');
+          if (m?.counters) health.textContent += ` · RX ${m.counters[0]} / CRC ${m.counters[1]} / Lost ${m.counters[2]} / Duplicates ${m.counters[3]} / Resets ${m.counters[4]} / UART ${m.counters[5]} / Queue ${m.counters[6]}`;
+        }
+      });
+      const total = document.getElementById('esc_total_current');
+      const a = s.motors[0]?.averageA, b = s.motors[1]?.averageA;
+      if (total) total.textContent = fmt(Number.isFinite(a) && Number.isFinite(b) ? a+b : null,'A');
+    }
+    // END ESC_TELEMETRY
+    setInterval(() => {
+      updateEscTelemetryPanel();
+      if (typeof HUD_WIDGETS !== 'undefined' && HUD_WIDGETS.some(w => w.enabled && w.type === 9)) renderHudCanvas();
+    }, 100);
+
     function captureTelemetryPoint(point, relTime, motorIndex) {
       const isM1 = motorIndex === 1;
       return {
@@ -7958,6 +8108,12 @@ function updateWriteButtonText() {
         target: Number.isFinite(point.target) ? point.target : null,
         targetCurrent: isM1 ? point.targetCurrent1 : point.targetCurrent2,
         estimatedCurrent: isM1 ? point.estimatedCurrent1 : point.estimatedCurrent2,
+        measuredCurrent: point.escTelemetry?.motors[motorIndex-1]?.averageA ?? null,
+        measuredPeakCurrent: point.escTelemetry?.motors[motorIndex-1]?.peakA ?? null,
+        escVoltage: point.escTelemetry?.motors[motorIndex-1]?.voltageV ?? null,
+        escTemperature: point.escTelemetry?.motors[motorIndex-1]?.temperatureC ?? null,
+        escFlags: point.escTelemetry?.motors[motorIndex-1]?.flags ?? null,
+        escAgeUs: point.escTelemetry?.motors[motorIndex-1]?.ageUs ?? null,
         v: Number.isFinite(point.voltage) ? point.voltage : null,
         fault: point.fault || 'NONE',
         mode: point.mode || 'STOP',
@@ -8246,6 +8402,9 @@ function updateWriteButtonText() {
     }
 
     async function disconnectSerial() {
+      latestEscTelemetry = { supported:false, state:0, motors:[null,null], receivedAt:0 };
+      escChartOriginMs = null;
+      updateEscTelemetryPanel();
       ++serialConnectionGeneration;
       for (const waiter of serialResponseWaiters) waiter.reject(new Error('Serial disconnected'));
       if (launchCurveResponseWaiter) launchCurveResponseWaiter.reject(new Error('Serial disconnected'));
@@ -8570,6 +8729,7 @@ function updateWriteButtonText() {
 
     // Parse incoming lines
     function parseSerialLine(line) {
+      if (consumeEscTelemetry(line)) return;
       if (consumeLaunchComparisonLine(line)) return;
       handleSerialCommandResponse(line);
       if (handleLaunchCurveSerialResponse(line)) return;
@@ -9035,6 +9195,7 @@ function updateWriteButtonText() {
           estimatedCurrent1: estimatedCurrent1,
           targetCurrent2: targetCurrent2,
           estimatedCurrent2: estimatedCurrent2,
+          escTelemetry: decodeEscTelemetry(line),
           voltage: voltage,
           fault: fault,
           mode: mode,
@@ -11705,7 +11866,7 @@ function updateWriteButtonText() {
         fmt(pidSnapshot.simulatorPid.kp), fmt(pidSnapshot.simulatorPid.ki), fmt(pidSnapshot.simulatorPid.kd), fmt(pidSnapshot.simulatorPid.ff)
       ].join(',');
 
-      let csv = "Time (ms),Real Motor 1 (RPM),Real Motor 2 (RPM),Throttle 1,Throttle 2,M1 Target Current (A),M1 Estimated Current (A),M2 Target Current (A),M2 Estimated Current (A),Simulated (RPM),Target RPM,Capture Time ISO,Board M1 Kp,Board M1 Ki,Board M1 Kd,Board M1 FF,Board M2 Kp,Board M2 Ki,Board M2 Kd,Board M2 FF,Manual Tune Kp,Manual Tune Ki,Manual Tune FF,Simulator Kp,Simulator Ki,Simulator Kd,Simulator FF\n";
+      let csv = "Time (ms),Real Motor 1 (RPM),Real Motor 2 (RPM),Throttle 1,Throttle 2,M1 Target Current (A),M1 Estimated Current (A),M2 Target Current (A),M2 Estimated Current (A),Simulated (RPM),Target RPM,Capture Time ISO,Board M1 Kp,Board M1 Ki,Board M1 Kd,Board M1 FF,Board M2 Kp,Board M2 Ki,Board M2 Kd,Board M2 FF,Manual Tune Kp,Manual Tune Ki,Manual Tune FF,Simulator Kp,Simulator Ki,Simulator Kd,Simulator FF,M1 Measured Current (A),M1 Measured Peak (A),M1 ESC Voltage (V),M1 ESC Temperature (C),M1 ESC Flags,M1 ESC Age (us),M2 Measured Current (A),M2 Measured Peak (A),M2 ESC Voltage (V),M2 ESC Temperature (C),M2 ESC Flags,M2 ESC Age (us)\n";
       
       for (let i = 0; i < capturedDataM1.length; i++) {
         const ptM1 = capturedDataM1[i];
@@ -11722,7 +11883,8 @@ function updateWriteButtonText() {
         }
         
         const rowTarget = validCaptureTarget(ptM1.target) || validCaptureTarget(ptM2.target) || validCaptureTarget(pidSnapshot.targetRpm);
-        csv += `${ptM1.x.toFixed(1)},${ptM1.y},${ptM2.y},${ptM1.throttle ?? ''},${ptM2.throttle ?? ''},${ptM1.targetCurrent ?? ''},${ptM1.estimatedCurrent ?? ''},${ptM2.targetCurrent ?? ''},${ptM2.estimatedCurrent ?? ''},${simVal},${Math.round(rowTarget || 0)},${pidColumns}\n`;
+        const escColumns = [ptM1,ptM2].flatMap(p => [p.measuredCurrent,p.measuredPeakCurrent,p.escVoltage,p.escTemperature,p.escFlags,p.escAgeUs]).map(v => v ?? '').join(',');
+        csv += `${ptM1.x.toFixed(1)},${ptM1.y},${ptM2.y},${ptM1.throttle ?? ''},${ptM2.throttle ?? ''},${ptM1.targetCurrent ?? ''},${ptM1.estimatedCurrent ?? ''},${ptM2.targetCurrent ?? ''},${ptM2.estimatedCurrent ?? ''},${simVal},${Math.round(rowTarget || 0)},${pidColumns},${escColumns}\n`;
       }
       
       const blob = new Blob([csv], { type: 'text/csv' });
@@ -12872,7 +13034,8 @@ function updateWriteButtonText() {
       5: "Custom Sprite / Logo",
       6: "Divider / Line / Frame",
       7: "Target RPM",
-      8: "Estimated FPS / Muzzle Velocity"
+      8: "Estimated FPS / Muzzle Velocity",
+      9: "Measured ESC Telemetry"
     };
 
     const HUD_WIDGETS = [
@@ -12953,6 +13116,11 @@ function updateWriteButtonText() {
         { val: 0, label: "Label & Value (FPS: 165)" },
         { val: 1, label: "Numeric Only (165)" },
         { val: 2, label: "Value & Unit (165 FPS)" }
+      ],
+      9: [
+        { val:0, label:"Motor 1" }, { val:1, label:"Motor 2" },
+        { val:2, label:"Both motors stacked" }, { val:3, label:"Both motors side by side" },
+        { val:4, label:"Combined average current" }, { val:5, label:"Current difference (M1 - M2)" }
       ]
     };
 
@@ -13448,7 +13616,13 @@ function updateWriteButtonText() {
       { type: 4, style: 0, name: "Status", icon: "ℹ", tag: "STATUS", desc: "Ready, Low Batt, Decel Glide, and Latency" },
       { type: 5, style: 0, name: "Custom Sprite", icon: "★", tag: "SPRITE", desc: "Custom sprite graphic or badge from atlas" },
       { type: 6, style: 0, name: "Line / Box", icon: "━", tag: "DIVIDER", desc: "Divider line or frame boundary" },
-      { type: 8, style: 2, name: "Est. FPS", icon: "FPS", tag: "FPS", desc: "Real-time estimated muzzle velocity (FPS)" }
+      { type: 8, style: 2, name: "Est. FPS", icon: "FPS", tag: "FPS", desc: "Real-time estimated muzzle velocity (FPS)" },
+      { type:9, style:0, name:"Motor 1 ESC", icon:"A", tag:"M1", desc:"Measured motor 1 current, voltage or temperature" },
+      { type:9, style:1, name:"Motor 2 ESC", icon:"A", tag:"M2", desc:"Measured motor 2 current, voltage or temperature" },
+      { type:9, style:2, name:"ESC Stacked", icon:"≡", tag:"M1 / M2", desc:"Two measured readings stacked in one slot" },
+      { type:9, style:3, name:"ESC Pair", icon:"↔", tag:"PAIR", desc:"Measured motor readings side by side" },
+      { type:9, style:4, name:"ESC Total", icon:"Σ", tag:"SUM", desc:"Sum of both valid average currents" },
+      { type:9, style:5, name:"ESC Difference", icon:"Δ", tag:"DIFF", desc:"Signed difference between measured average currents" }
     ];
 
     function renderWidgetPalette() {
@@ -13552,6 +13726,7 @@ function updateWriteButtonText() {
       w.enabled = 1;
       w.type = pType;
       w.style = pStyle;
+      if (pType === 9) { w.param2 = 0; w.param1 = 3; }
 
       if (posX !== null && posY !== null) {
         w.x = posX;
@@ -13576,7 +13751,7 @@ function updateWriteButtonText() {
         w.align = 0;
         if (!w.param2) w.param2 = 64;
       } else {
-        w.fontSize = 4;
+        w.fontSize = pType === 9 ? 3 : 4;
         if (w.x >= 100) w.align = 2;
         else if (w.x >= 45 && w.x <= 85) w.align = 1;
         else w.align = 0;
@@ -13788,6 +13963,9 @@ function updateWriteButtonText() {
             } else {
               drawMiniText('32K');
             }
+          } else if (widgetType === 9) {
+            if (w.style === 2) { drawMiniText('M1 --',7,1,false); drawMiniText('M2 --',17,1,false); }
+            else drawMiniText(w.style === 4 ? 'SUM --' : w.style === 5 ? 'DIFF --' : w.style === 1 ? 'M2 --' : 'M1 --', 13, 1, false);
           } else if (widgetType === 7) {
             const tLabel = document.getElementById('hud_target_label_input')?.value ?? 'T:';
             if (w.style === 1) {
@@ -14083,6 +14261,7 @@ function updateWriteButtonText() {
       if (!w) return;
       w.type = parseInt(typeEl.value) || 0;
       w.style = 0; // default style
+      if (w.type === 9) { w.param2 = 0; w.param1 = 3; w.fontSize = 3; }
       syncHudInspectorFromSelected();
       renderHudCanvas();
       if (typeof renderWidgetGallery === 'function') renderWidgetGallery();
@@ -14175,6 +14354,10 @@ function updateWriteButtonText() {
       populateHudStyleDropdown();
 
       document.getElementById('hud_widget_enabled').checked = (w.enabled === 1);
+      const escContainer = document.getElementById('hud_esc_metric_container');
+      if (escContainer) escContainer.style.display = widgetType === 9 ? 'block' : 'none';
+      const escMetric = document.getElementById('hud_esc_metric');
+      if (escMetric) { escMetric.value = w.style >= 4 ? 0 : (w.param2 || 0); escMetric.disabled = widgetType === 9 && w.style >= 4; }
       document.getElementById('hud_widget_style').value = w.style;
       const fSize = (w.fontSize !== undefined) ? w.fontSize : 3;
       const sliderVal = (fSize === 0) ? 3 : fSize;
@@ -14438,6 +14621,7 @@ function updateWriteButtonText() {
       }
 
       w.x = parseInt(document.getElementById('hud_widget_x_num').value) || 0;
+      if (widgetType === 9) w.param2 = w.style >= 4 ? 0 : (parseInt(document.getElementById('hud_esc_metric')?.value) || 0);
       w.y = parseInt(document.getElementById('hud_widget_y_num').value) || 0;
 
       if (prevStyle !== w.style) {
@@ -14456,6 +14640,7 @@ function updateWriteButtonText() {
       const isPipBar = (widgetType === 1 && w.style === 2);
       const isLine = (widgetType === 6);
       const isSprite = (widgetType === 5);
+      const isStackedEsc = widgetType === 9 && w.style === 2;
 
       // Horizontal alignment (center_x, left, right, or center)
       if (alignment === 'left') {
@@ -14479,7 +14664,7 @@ function updateWriteButtonText() {
         } else if (isSprite) {
           w.y = 0;
         } else {
-          const fH = getFontHeight(w.fontSize || 4);
+          const fH = getFontHeight(w.fontSize || 4) * (isStackedEsc ? 2 : 1) + (isStackedEsc ? 2 : 0);
           w.y = fH;
         }
       } else if (alignment === 'center_y' || alignment === 'center') {
@@ -14501,7 +14686,7 @@ function updateWriteButtonText() {
           const spriteH = (typeof SPRITE_ATLAS !== 'undefined' && SPRITE_ATLAS[w.style & 0x0F]) ? SPRITE_ATLAS[w.style & 0x0F].h : 16;
           w.y = Math.max(0, Math.round(32 - (spriteH / 2)));
         } else {
-          const fH = getFontHeight(w.fontSize || 4);
+          const fH = getFontHeight(w.fontSize || 4) * (isStackedEsc ? 2 : 1) + (isStackedEsc ? 2 : 0);
           w.y = Math.round(32 + (fH / 2));
         }
       } else if (alignment === 'bottom') {
@@ -15284,6 +15469,16 @@ function updateWriteButtonText() {
             break;
           }
 
+          case 9: { // Measured ESC telemetry. y is the bottom baseline of a stacked pair.
+            const snapshot = hudEscPreviewSnapshot();
+            const lines = escTelemetryWidgetLines(snapshot, w.style, w.param2 || 0);
+            const fontH = getFontHeight(fSize), step = fontH + 2;
+            drawW = Math.max(...lines.map(text => measureHudText(text,fSize,false)));
+            drawH = fontH + (lines.length-1)*step;
+            const drawX = getAlignedX(w.x, drawW, alignMode);
+            lines.forEach((text,row) => drawHudText(hudCtx,text,drawX,w.y-(lines.length-1-row)*step,fSize,false));
+            break;
+          }
           case 8: { // Estimated FPS / Muzzle Velocity
             const simFps = parseInt(document.getElementById('hud_sim_fps')?.value || 165);
             let fpsStr = `FPS: ${simFps}`;
