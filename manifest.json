@@ -1,53 +1,53 @@
-﻿{
-    "schema":  1,
-    "product":  "Byte Blaster",
-    "version":  "v1.1.29",
-    "channel":  "prerelease",
-    "release_repo":  "parkerg16/Byte-Blaster",
-    "source_repo":  "parkerg16/Byte_Blaster_RP2040",
-    "source_commit":  "8187273ca8399a3dcbfeab016586c67859aee175",
-    "created_utc":  "2026-10-05T17:51:31.3591751Z",
-    "blaster":  {
-                    "board":  "waveshare_rp2040_zero",
-                    "artifact":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.29/Byte_Blaster_RP2040_v1.1.29.uf2"
-                },
-    "esc":  {
-                "target":  "F4A_4IN1_F421",
-                "am32_version":  "2.21",
-                "artifact":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.29/AM32_F4A_4IN1_F421_2.21_v1.1.29.hex"
-            },
-    "assets":  [
-                   {
-                       "name":  "Byte_Blaster_RP2040_v1.1.29.uf2",
-                       "type":  "blaster",
-                       "format":  "uf2",
-                       "sha256":  "790e0901a2ee1f73551e895c2268607a06b2174946bf0026dfcee2594f752656",
-                       "size":  603136,
-                       "url":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.29/Byte_Blaster_RP2040_v1.1.29.uf2"
-                   },
-                   {
-                       "name":  "Byte_Blaster_RP2040_v1.1.29.bin",
-                       "type":  "blaster",
-                       "format":  "bin",
-                       "sha256":  "c12929b9cb2de0f1bd315c1f2ed1861e53ff9ef4f8f9700c543dbbb582efa4c5",
-                       "size":  301540,
-                       "url":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.29/Byte_Blaster_RP2040_v1.1.29.bin"
-                   },
-                   {
-                       "name":  "AM32_F4A_4IN1_F421_2.21_v1.1.29.hex",
-                       "type":  "esc",
-                       "format":  "hex",
-                       "sha256":  "af3a494a69e1a9be09c07a9d74484593858a9dd1b8c28babc4910eab5de1c9eb",
-                       "size":  62971,
-                       "url":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.29/AM32_F4A_4IN1_F421_2.21_v1.1.29.hex"
-                   },
-                   {
-                       "name":  "AM32_F4A_4IN1_F421_2.21_v1.1.29.bin",
-                       "type":  "esc",
-                       "format":  "bin",
-                       "sha256":  "3311d33828f5fd5b52d5b58f3e1f273f063029396de72413de209bf9feed3a45",
-                       "size":  27648,
-                       "url":  "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.29/AM32_F4A_4IN1_F421_2.21_v1.1.29.bin"
-                   }
-               ]
+{
+  "schema": 1,
+  "product": "Byte Blaster",
+  "version": "v1.1.30",
+  "channel": "prerelease",
+  "release_repo": "parkerg16/Byte-Blaster",
+  "source_repo": "parkerg16/Byte_Blaster_RP2040",
+  "source_commit": "1fe088f7b6daa161c4b3ddbe31e3748295ef8bdf",
+  "created_utc": "2026-10-11T05:44:44.5804622Z",
+  "blaster": {
+    "board": "waveshare_rp2040_zero",
+    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.30/Byte_Blaster_RP2040_v1.1.30.uf2"
+  },
+  "esc": {
+    "target": "F4A_4IN1_F421",
+    "am32_version": "2.21",
+    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.30/AM32_F4A_4IN1_F421_2.21_v1.1.30.hex"
+  },
+  "assets": [
+    {
+      "name": "Byte_Blaster_RP2040_v1.1.30.uf2",
+      "type": "blaster",
+      "format": "uf2",
+      "sha256": "54193d608a099e9c0a8540c546ecfa443d749d0e7cd22d2c1939e590d00efe1f",
+      "size": 610816,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.30/Byte_Blaster_RP2040_v1.1.30.uf2"
+    },
+    {
+      "name": "Byte_Blaster_RP2040_v1.1.30.bin",
+      "type": "blaster",
+      "format": "bin",
+      "sha256": "44dc96c0e52420b127a0ebe3bd84d04bb26cea4a75cbd9d5bd200d2ba76ab815",
+      "size": 305260,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.30/Byte_Blaster_RP2040_v1.1.30.bin"
+    },
+    {
+      "name": "AM32_F4A_4IN1_F421_2.21_v1.1.30.hex",
+      "type": "esc",
+      "format": "hex",
+      "sha256": "af3a494a69e1a9be09c07a9d74484593858a9dd1b8c28babc4910eab5de1c9eb",
+      "size": 62971,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.30/AM32_F4A_4IN1_F421_2.21_v1.1.30.hex"
+    },
+    {
+      "name": "AM32_F4A_4IN1_F421_2.21_v1.1.30.bin",
+      "type": "esc",
+      "format": "bin",
+      "sha256": "3311d33828f5fd5b52d5b58f3e1f273f063029396de72413de209bf9feed3a45",
+      "size": 27648,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.30/AM32_F4A_4IN1_F421_2.21_v1.1.30.bin"
+    }
+  ]
 }
