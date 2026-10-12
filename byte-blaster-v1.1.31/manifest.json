@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "product": "Byte Blaster",
+  "version": "v1.1.31",
+  "channel": "prerelease",
+  "release_repo": "parkerg16/Byte-Blaster",
+  "source_repo": "parkerg16/Byte_Blaster_RP2040",
+  "source_commit": "733a6e5a0e4eba09d39f79893a5beb48bc3dc979",
+  "created_utc": "2026-10-12T02:43:04.9862222Z",
+  "blaster": {
+    "board": "waveshare_rp2040_zero",
+    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.31/Byte_Blaster_RP2040_v1.1.31.uf2"
+  },
+  "esc": {
+    "target": "F4A_4IN1_F421",
+    "am32_version": "2.21",
+    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.31/AM32_F4A_4IN1_F421_2.21_v1.1.31.hex"
+  },
+  "assets": [
+    {
+      "name": "Byte_Blaster_RP2040_v1.1.31.uf2",
+      "type": "blaster",
+      "format": "uf2",
+      "sha256": "7202d51a1ed09b6cbc6cf72b3e65b7ba9049075fc03ac8686956f5af7b44b7ab",
+      "size": 610304,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.31/Byte_Blaster_RP2040_v1.1.31.uf2"
+    },
+    {
+      "name": "Byte_Blaster_RP2040_v1.1.31.bin",
+      "type": "blaster",
+      "format": "bin",
+      "sha256": "ea68fd8bed12db1ca4858c8dd608804ea57e5128af891dc28a383f6b2ed5757c",
+      "size": 305084,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.31/Byte_Blaster_RP2040_v1.1.31.bin"
+    },
+    {
+      "name": "AM32_F4A_4IN1_F421_2.21_v1.1.31.hex",
+      "type": "esc",
+      "format": "hex",
+      "sha256": "af3a494a69e1a9be09c07a9d74484593858a9dd1b8c28babc4910eab5de1c9eb",
+      "size": 62971,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.31/AM32_F4A_4IN1_F421_2.21_v1.1.31.hex"
+    },
+    {
+      "name": "AM32_F4A_4IN1_F421_2.21_v1.1.31.bin",
+      "type": "esc",
+      "format": "bin",
+      "sha256": "3311d33828f5fd5b52d5b58f3e1f273f063029396de72413de209bf9feed3a45",
+      "size": 27648,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.31/AM32_F4A_4IN1_F421_2.21_v1.1.31.bin"
+    }
+  ]
+}
