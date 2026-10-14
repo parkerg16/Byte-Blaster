@@ -901,7 +901,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.31</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.32</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -1403,11 +1403,17 @@
           <span id="esc_telemetry_state" role="status">Waiting for telemetry</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0.75rem">
-          <div class="metric-card cyan"><div class="metric-label">Motor 1 · measured</div><div class="metric-value" id="esc_m1_current">-- A</div><div id="esc_m1_details" class="metric-subtext">Peak -- · Voltage -- · Temperature --</div><div id="esc_m1_health" class="metric-subtext">No data</div></div>
-          <div class="metric-card pink"><div class="metric-label">Motor 2 · measured</div><div class="metric-value" id="esc_m2_current">-- A</div><div id="esc_m2_details" class="metric-subtext">Peak -- · Voltage -- · Temperature --</div><div id="esc_m2_health" class="metric-subtext">No data</div></div>
-          <div class="metric-card green"><div class="metric-label">Combined measured current</div><div class="metric-value" id="esc_total_current">-- A</div><div class="metric-subtext">Sum of both valid average readings; excludes the solenoid and controller.</div></div>
+          <div class="metric-card cyan"><div class="metric-label">Motor 1 · measured</div><div class="metric-value" id="esc_m1_current">-- A</div><div id="esc_m1_peak5" class="metric-subtext" style="color:#fbbf24">5 s peak -- A</div><div id="esc_m1_details" class="metric-subtext">Peak -- · Voltage -- · Temperature --</div><div id="esc_m1_health" class="metric-subtext">No data</div></div>
+          <div class="metric-card pink"><div class="metric-label">Motor 2 · measured</div><div class="metric-value" id="esc_m2_current">-- A</div><div id="esc_m2_peak5" class="metric-subtext" style="color:#fbbf24">5 s peak -- A</div><div id="esc_m2_details" class="metric-subtext">Peak -- · Voltage -- · Temperature --</div><div id="esc_m2_health" class="metric-subtext">No data</div></div>
+          <div class="metric-card green"><div class="metric-label">Combined measured current</div><div class="metric-value" id="esc_total_current">-- A</div><div id="esc_total_peak5" class="metric-subtext" style="color:#fbbf24">5 s peak -- A</div><div class="metric-subtext">Sum of both valid average readings; excludes the solenoid and controller.</div></div>
         </div>
-        <div style="height:220px;margin-top:1rem"><canvas id="esc_current_chart"></canvas></div>
+        <div id="esc_telemetry_source" style="color:var(--text-secondary);font-size:0.78rem;margin-top:0.6rem">No measured current yet.</div>
+        <div class="preset-bar" style="margin-top:0.6rem;gap:0.5rem">
+          <button class="preset-btn" id="esc_chart_pause" onclick="toggleEscChartPause()">Pause</button>
+          <button class="preset-btn" onclick="clearEscChart()">Clear</button>
+          <button class="preset-btn" onclick="exportEscChart()">Export CSV</button>
+        </div>
+        <div style="height:220px;margin-top:0.5rem"><canvas id="esc_current_chart"></canvas></div>
       </div>
       <div class="visualizer-card" id="launch_comparison_card">
         <div class="section-title">Launch comparison</div>
@@ -1958,7 +1964,7 @@
         
         <div style="padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
           <div style="margin-bottom: 1rem; line-height: 1.45;">
-            Brushless flywheels require nonlinear feedforward due to aerodynamic drag (&tau; &prop; &omega;<sup>2</sup>) and low-speed bearing friction. The RP2040 firmware uses a 5-point voltage-normalized drive table (<code>ffCal</code>) stored in EEPROM with real-time linear interpolation. You can edit points directly below or run an automated curve sweep with bidirectional DShot telemetry and smooth decel glide.
+            The RP2040 stores separate voltage-normalized feedforward curves for both motors. Autotuning fits a smooth curve across the RPM range. Editing or saving the five points below replaces that fit with a table using linear interpolation. Automated tuning uses bidirectional DShot telemetry and finishes through the production glide.
           </div>
 
           <section id="guided_tuning" class="guided-tuning">
@@ -1976,19 +1982,24 @@
               <h4>1 · Setup</h4>
               <p id="guided_setup" role="status">Connect your blaster to read its controller and launch settings.</p>
               <div class="guided-profile"><span id="guided_ff_state">FF · Status unknown</span><span id="guided_pid_state">PID · Status unknown</span></div>
+              <p id="guided_ff_history" class="guided-help">FF origin and completion details will be read from the blaster.</p>
+              <p id="guided_pid_history" class="guided-help">PID origin and completion details will be read from the blaster.</p>
               <p id="guided_transport" class="guided-help">Motor measurements take priority over live graph delivery.</p>
               <p class="guided-help">Validation applies to the saved configuration. Older profiles have no validation record; their origin cannot be inferred.</p>
             </div>
             <h4>2 · Tune</h4>
-            <p style="margin:.3rem 0 1rem">Both motors run together through feedforward measurement, validation, PID tuning, and final validation. Write your launch settings before starting and keep them fixed during the run. One PID pass measures existing gains; multiple passes compare candidate gains. Remove the magazine and darts.</p>
+            <p style="margin:.3rem 0 1rem">Tune FF on its own, or run a full tune. PID-only requires a complete FF calibration validated on this blaster. The launch curve sets the RPM reference, FF supplies the drive, and PID corrects tracking error. Write your launch settings first and keep them fixed during tuning. Remove the magazine and darts.</p>
             <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+              <label>Stage <select id="guided_scope" onchange="guidedButtons()"><option value="full">FF + PID</option><option value="ff">FF only</option><option value="pid">PID only — validated FF required</option></select></label>
               <label>PID launch baseline <select id="guided_baseline"><option value="cold">Stopped — glide between launches</option><option value="idle">Spinning idle</option></select></label>
-              <label>PID passes <select id="guided_passes"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
+              <label>Fallback search passes <select id="guided_passes"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
+              <label>Maximum step window <select id="guided_window"><option value="100">100 ms</option><option value="150">150 ms</option><option value="200">200 ms</option><option value="300" selected>300 ms (default)</option><option value="500">500 ms</option><option value="1000">1000 ms</option></select></label>
               <button id="guided_start" disabled class="action-btn" style="width:auto;margin:0" onclick="startGuidedTuning()">Tune Blaster</button>
               <button id="guided_cancel" class="preset-btn" disabled onclick="cancelGuidedTuning()">Cancel &amp; glide down</button>
               <button class="preset-btn" onclick="refreshGuidedTuning()">Refresh status</button>
               <button id="guided_export" class="preset-btn" disabled onclick="exportGuidedTuning()">Download run</button>
             </div>
+            <p class="guided-help">Model steps may finish early after both motors settle. At the maximum window, an unsettled response falls back to launch search. Smaller steps reduce the disturbance; they do not guarantee a shorter settling time. Changing the launch curve invalidates PID validation, while unchanged FF can be reused.</p>
             <div id="guided_resume" role="group" aria-label="Continue the stopped tuning run" style="display:none;margin-top:.75rem;padding:.6rem .75rem;border:1px solid rgba(56,189,248,.35);border-radius:8px">
               <p id="guided_resume_text" class="guided-help" style="margin:0 0 .5rem"></p>
               <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
@@ -2021,7 +2032,7 @@
             </div>
             <p style="font-size:.75rem;color:var(--text-secondary);margin-top:0.5rem">The graph keeps the full session across stages. FF is measured, applied, and validated before PID uses that fixed curve. Normal glide only permits DShot 0 below 2,500 RPM on both motors; cold PID tests then wait for both to stop. Fault shutdowns can stop drive immediately. Cancelling restores the prior tune after glide-down. Firmware continues if USB disconnects; reconnect to recover status.</p>
             <div class="guided-section"><h4>3 · Results</h4><p id="guided_outcome" role="status">No run completed in this session.</p></div>
-            <details id="guided_measurements"><summary>Per-motor measurements</summary><div style="max-height:240px;overflow:auto"><table style="width:100%;font-size:.8rem"><thead><tr><th>Stage</th><th>Motor</th><th>Target</th><th>Start</th><th>Pass</th><th>Steady RPM</th><th>Error</th><th>Overshoot</th><th>Rise (ms)</th><th>Settle (ms)</th><th>Kp</th><th>Ki</th><th title="The limit that set the motor output for most of the launch, until 90% of target">Launch limited by</th><th>Result</th></tr></thead><tbody id="guided_results"></tbody></table></div></details>
+            <details id="guided_measurements"><summary>Per-motor measurements</summary><div style="max-height:240px;overflow:auto"><table style="width:100%;font-size:.8rem"><thead><tr><th>Stage</th><th>Motor</th><th>Target</th><th>Start</th><th>Pass</th><th>Steady RPM</th><th>Error</th><th>Overshoot</th><th>Rise (ms)</th><th>Settle (ms)</th><th>Kp</th><th>Ki</th><th title="The limit that set the motor output for most of the launch, until 90% of target">Launch limited by</th><th title="From the ESC's own telemetry: peak battery current, launch energy, ESC temperature at start and end, and the estimated motor winding rise">ESC (peak · energy · temp · motor heat)</th><th>Result</th></tr></thead><tbody id="guided_results"></tbody></table></div></details>
           </section>
 
           <!-- Interactive Feedforward Curve Canvas -->
@@ -2207,23 +2218,31 @@
             <div>
               <div class="lp-eyebrow">Launch Planner</div>
               <h2 class="lp-title">Startup<span class="lp-arrow">→</span>Ramp<span class="lp-arrow">→</span>Landing</h2>
-              <p class="lp-sub">Drag the points on the graph to shape the launch. Every number updates live from a model of your blaster, and the blaster runs exactly this profile once you apply it.</p>
+              <p class="lp-sub">Drag the points to shape the launch. Predictions update from the model; measured ESC current comes from your last launch captured over USB. Apply sends the reference profile to the blaster.</p>
             </div>
             <div class="lp-actions">
               <span id="lp_status_badge" class="lp-badge" role="status">Not read from blaster</span>
               <button type="button" class="lp-btn" onclick="lpReadFromBlaster()">Read blaster</button>
               <button type="button" class="lp-btn" onclick="lpReadLastLaunch()">Read last launch</button>
+              <button type="button" class="lp-btn" onclick="lpStartTelemetry()">Stream telemetry</button>
               <button type="button" class="lp-btn" onclick="lpResetDefaults()">Reset</button>
               <button type="button" class="lp-btn primary" id="lp_apply_btn" onclick="lpApplyToBlaster()">Apply to blaster</button>
             </div>
           </div>
 
           <div class="lp-kpis" aria-live="polite">
-            <div class="lp-kpi"><div class="lp-kpi-label">Trigger → 90 %</div><div class="lp-kpi-value" id="lp_kpi_t90">–</div><div class="lp-kpi-sub" id="lp_kpi_t90_sub">–</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Predicted trigger → 90 %</div><div class="lp-kpi-value" id="lp_kpi_t90">–</div><div class="lp-kpi-sub" id="lp_kpi_t90_sub">–</div></div>
             <div class="lp-kpi"><div class="lp-kpi-label">Ramp</div><div class="lp-kpi-value" id="lp_kpi_ramp">–</div><div class="lp-kpi-sub" id="lp_kpi_ramp_sub">–</div></div>
-            <div class="lp-kpi"><div class="lp-kpi-label">Peak current</div><div class="lp-kpi-value" id="lp_kpi_peak">–</div><div class="lp-kpi-sub" id="lp_kpi_peak_sub">–</div></div>
-            <div class="lp-kpi"><div class="lp-kpi-label">Heat per shot</div><div class="lp-kpi-value" id="lp_kpi_heat">–</div><div class="lp-kpi-sub" id="lp_kpi_heat_sub">–</div></div>
-            <div class="lp-kpi"><div class="lp-kpi-label">150 ms holds down to</div><div class="lp-kpi-value" id="lp_kpi_minv">–</div><div class="lp-kpi-sub" id="lp_kpi_minv_sub">–</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Measured ESC sample peak</div><div class="lp-kpi-value" id="lp_kpi_measured_peak">–</div><div class="lp-kpi-sub" id="lp_kpi_measured_peak_sub">Capture a launch while USB telemetry is streaming.</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Predicted peak current</div><div class="lp-kpi-value" id="lp_kpi_peak">–</div><div class="lp-kpi-sub" id="lp_kpi_peak_sub">–</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Estimated heat per shot</div><div class="lp-kpi-value" id="lp_kpi_heat">–</div><div class="lp-kpi-sub" id="lp_kpi_heat_sub">–</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Predicted 150 ms holds to</div><div class="lp-kpi-value" id="lp_kpi_minv">–</div><div class="lp-kpi-sub" id="lp_kpi_minv_sub">–</div></div>
+          </div>
+
+          <div class="lp-kpis" aria-live="polite" style="margin-top: 0.65rem;">
+            <div class="lp-kpi"><div class="lp-kpi-label">Measured both → 90 %</div><div class="lp-kpi-value" id="lp_kpi_actual90">–</div><div class="lp-kpi-sub" id="lp_kpi_actual90_sub">Read last launch for measured timing.</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Measured both → first 100 %</div><div class="lp-kpi-value" id="lp_kpi_actual100">–</div><div class="lp-kpi-sub" id="lp_kpi_actual100_sub">First crossing is separate from settling.</div></div>
+            <div class="lp-kpi"><div class="lp-kpi-label">Measured both settled ±2 %</div><div class="lp-kpi-value" id="lp_kpi_actualsettle">–</div><div class="lp-kpi-sub" id="lp_kpi_actualsettle_sub">At least 20 ms observed in band, before a shot.</div></div>
           </div>
 
           <div class="lp-toolbar">
@@ -2258,9 +2277,11 @@
           <div class="lp-legend" id="lp_legend"></div>
           <div class="lp-chart" id="lp_chart_current">
             <svg id="lp_svg_current" viewBox="0 0 900 170" role="img" aria-labelledby="lp_svgc_title">
-              <title id="lp_svgc_title">Predicted motor current per motor against time</title>
+              <title id="lp_svgc_title">Predicted current and measured ESC current from the last launch</title>
             </svg>
           </div>
+          <div class="lp-legend" id="lp_current_legend"></div>
+          <p class="lp-sub" id="lp_measured_note">Keep USB telemetry streaming during the launch to compare measured current with the prediction.</p>
           <div class="lp-alerts" id="lp_alerts" role="status" aria-live="polite"></div>
 
           <div class="lp-grid">
@@ -2277,7 +2298,7 @@
                 <input type="range" id="lp_launch_accel2" min="40" max="1500" step="5" value="280" oninput="lpSetSetting('launch_accel2', Number(this.value))" aria-label="Acceleration above the knee, RPM per millisecond"></div>
               <div class="lp-row"><div class="lp-row-top"><span>Landing<span id="lp_d_launch_landing_ms"></span></span><output id="lp_o_landing">–</output></div>
                 <input type="range" id="lp_launch_landing_ms" min="0" max="60" step="1" value="10" oninput="lpSetSetting('launch_landing_ms', Number(this.value))" aria-label="Landing, milliseconds">
-                <div class="lp-row-desc">The slope eases to zero over this time, so the motors arrive without overshoot.</div></div>
+                <div class="lp-row-desc">Eases the reference slope and acceleration feedforward toward zero. Compare measured overshoot and settling; controller tuning also affects the finish.</div></div>
               <div class="lp-row" id="lp_row_deadline" hidden><div class="lp-row-top"><span>Deadline<span id="lp_d_launch_deadline_ms"></span></span><output id="lp_o_deadline">–</output></div>
                 <input type="range" id="lp_launch_deadline_ms" min="60" max="400" step="1" value="145" oninput="lpSetSetting('launch_deadline_ms', Number(this.value))" aria-label="Deadline from the trigger, milliseconds">
                 <div class="lp-row-desc">A late lock steepens the ramp (up to 2×) to still reach target by this time. Early locks keep the set slope.</div></div>
@@ -2312,8 +2333,9 @@
                 <div class="lp-row-desc">Blaster setting: the current cap and this mode's acceleration feed-forward use it.</div>
                 <button type="button" class="lp-mini-btn" onclick="lpFitFromLaunch()">Fit from last launch</button>
                 <div class="lp-fit" id="lp_fit_result"></div></div>
-              <div class="lp-row"><div class="lp-row-top"><span>Current cap<span id="lp_d_current_limit_a"></span></span><output id="lp_o_cap">–</output></div>
-                <input type="range" id="lp_current_limit_a" min="0" max="150" step="5" value="60" oninput="lpSetSetting('current_limit_a', Number(this.value))" aria-label="Current cap per motor, amps"></div>
+              <div class="lp-row"><div class="lp-row-top"><span>Estimated current cap<span id="lp_d_current_limit_a"></span></span><output id="lp_o_cap">–</output></div>
+                <input type="range" id="lp_current_limit_a" min="0" max="150" step="5" value="60" oninput="lpSetSetting('current_limit_a', Number(this.value))" aria-label="Estimated current cap per motor, amps">
+                <div class="lp-row-desc">Limits the model estimate. Measured ESC current is for comparison and does not control this cap.</div></div>
               <div class="lp-row"><div class="lp-row-top"><span>Winding + FET resistance</span><output id="lp_o_rcu">–</output></div>
                 <input type="range" id="lp_m_rCuMohm" min="10" max="100" step="1" value="31" oninput="lpSetModel('rCuMohm', Number(this.value))" aria-label="Winding and FET resistance, milliohms">
                 <div class="lp-row-desc">Heat only.</div></div>
@@ -2325,9 +2347,9 @@
 
           <details class="lp-explain">
             <summary>How the planner works, and the profile as a table</summary>
-            <p>The blaster runs three phases. <b>Startup</b>: each motor gets the startup power open-loop until its ESC reports RPM. <b>Ramp</b>: from the first lock, the reference rises at a constant acceleration (two, with a knee). Constant acceleration means constant current, the coolest way to reach a given speed in a given time. <b>Landing</b>: the slope eases to zero so the motors arrive without overshoot.</p>
+            <p>The blaster runs three phases. <b>Startup</b>: each motor gets the startup power open-loop until its ESC reports RPM. <b>Ramp</b>: from the first lock, the reference rises at a constant acceleration (two, with a knee). For an inertia-dominated load this asks for approximately constant torque; measured ESC input current can still vary. <b>Landing</b>: the reference slope and acceleration feedforward ease toward zero to reduce overshoot. Verify the finish with measured RPM; PID and feedforward tuning also matter.</p>
             <p>The predicted curve and the numbers come from a motor model: back-EMF from KV, the voltage headroom pushing current through the effective impedance, pack sag, the current cap and the AM32 low-RPM limit. Heat is copper loss, I²R in the windings and FETs. Fit the impedance from a real launch, and set inertia from CAD, for numbers you can trust. The shape is exact; the predictions are only as good as those two inputs.</p>
-            <table id="lp_table"><thead><tr><th>Point</th><th>Time from trigger</th><th>RPM</th><th>Slope (RPM/ms)</th><th>Current (A)</th></tr></thead><tbody></tbody></table>
+            <table id="lp_table"><thead><tr><th>Point</th><th>Time from trigger</th><th>RPM</th><th>Slope (RPM/ms)</th><th>Predicted current (A)</th></tr></thead><tbody></tbody></table>
           </details>
 
           <!-- Blaster settings this planner owns (read back / written with the rest of the settings) -->
@@ -2464,7 +2486,8 @@
                   <input type="checkbox" id="set_freewheel" onchange="syncBlasterField('freewheel', this.checked, 'checkbox'); toggleFreewheel(this.checked);" style="width: 16px; height: 16px; accent-color: var(--accent-violet);">
                   <span style="font-weight: 600;"><span class="settings-row-num">05b.</span> Freewheel / Coast on Trigger Release</span>
                 </div>
-                <div class="settings-row-desc">Allows flywheel motors to coast freely upon trigger release instead of active software deceleration glide.</div>
+                <div class="settings-row-desc">On release the blaster sends DShot 0 and the ESCs freewheel at zero current while still reporting RPM, instead of the software deceleration glide. Requires "Coast when throttle is released" in ESC Config → AM32 Settings: with AM32's default, DShot 0 brakes hard.</div>
+                <div id="freewheel_coast_warning" class="settings-row-desc" style="color:#fbbf24;display:none">The ESCs were last read with AM32 coast off: releasing will brake hard. Turn on coast in ESC Config → AM32 Settings.</div>
               </div>
             </div>
 
@@ -3247,6 +3270,44 @@
 
       <!-- ESC Tool Launcher Tab Content -->
       <div id="tab_content_esc" style="display: none; flex-direction: column; gap: 1rem; width: 100%;">
+        <div id="esc_settings_card" style="background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: 8px; padding: 1.5rem; width: 100%;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+            <div>
+              <h2 style="font-size: 1.2rem; color: #22d3ee; margin: 0 0 0.4rem 0;">AM32 Settings</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.45; max-width: 760px;">
+                Change AM32 settings from the blaster over the DShot signal wire, with the flywheels stopped. Reading uses ESC passthrough and stops the motors for a few seconds.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="preset-btn" onclick="readEscSettings()">Read from ESCs</button>
+              <button class="action-btn" onclick="applyEscSettings()" style="width: auto; padding: 0.45rem 0.8rem; background: rgba(6, 182, 212, 0.15); border-color: rgba(6, 182, 212, 0.4); color: #22d3ee;">Apply to ESCs</button>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin-top: 1rem;">
+            <div class="metric-card cyan" id="esc_cfg_m1">
+              <div class="metric-label">Motor 1 ESC</div>
+              <div id="esc_cfg_m1_info" class="metric-subtext">Not read yet</div>
+              <label style="display:flex;gap:0.5rem;align-items:center;margin-top:0.6rem"><input type="checkbox" id="esc_cfg_m1_coast"> Coast when throttle is released</label>
+              <label style="display:flex;gap:0.5rem;align-items:center;margin-top:0.4rem">Direction
+                <select id="esc_cfg_m1_dir" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:6px;padding:0.2rem 0.4rem"><option value="0">Normal</option><option value="1">Reversed</option></select></label>
+              <label style="display:flex;gap:0.5rem;align-items:center;margin-top:0.4rem">Beeper volume
+                <input type="range" id="esc_cfg_m1_volume" min="0" max="11" value="5" oninput="document.getElementById('esc_cfg_m1_volume_val').textContent=this.value"><span id="esc_cfg_m1_volume_val">5</span></label>
+            </div>
+            <div class="metric-card pink" id="esc_cfg_m2">
+              <div class="metric-label">Motor 2 ESC</div>
+              <div id="esc_cfg_m2_info" class="metric-subtext">Not read yet</div>
+              <label style="display:flex;gap:0.5rem;align-items:center;margin-top:0.6rem"><input type="checkbox" id="esc_cfg_m2_coast"> Coast when throttle is released</label>
+              <label style="display:flex;gap:0.5rem;align-items:center;margin-top:0.4rem">Direction
+                <select id="esc_cfg_m2_dir" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:6px;padding:0.2rem 0.4rem"><option value="0">Normal</option><option value="1">Reversed</option></select></label>
+              <label style="display:flex;gap:0.5rem;align-items:center;margin-top:0.4rem">Beeper volume
+                <input type="range" id="esc_cfg_m2_volume" min="0" max="11" value="5" oninput="document.getElementById('esc_cfg_m2_volume_val').textContent=this.value"><span id="esc_cfg_m2_volume_val">5</span></label>
+            </div>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.45; margin-top: 0.75rem;">
+            Coast and direction apply immediately; beeper volume and startup tunes apply at the next ESC power-up. Coast lets the flywheels freewheel at zero current on DShot 0 while AM32 keeps tracking RPM; it is AM32's own setting, separate from Byte's glide.
+          </div>
+          <div id="esc_cfg_status" role="status" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">Read the ESCs to load their current settings.</div>
+        </div>
         <div style="background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.18); border-radius: 8px; padding: 1.5rem; width: 100%;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
             <div>
@@ -3466,6 +3527,43 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        <div id="tune_studio_card" style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 1100px;">
+          <h2 style="font-size: 1.2rem; color: #a855f7; margin: 0 0 0.4rem 0;">ESC Startup Tune</h2>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 1rem 0; line-height: 1.45;">
+            Paste a ringtone (RTTTL or a bare note list), pick the part that fits in the ESC, listen to it as AM32 will play it, then send it to the ESCs.
+          </p>
+          <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 1rem; align-items: start;">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <select id="tune_preset" onchange="loadTunePreset()" style="padding: 0.4rem; background: #0f172a; color: white; border: 1px solid var(--border-color); border-radius: 6px;"><option value="">Presets…</option></select>
+              <textarea id="tune_input" rows="4" oninput="tuneStudio.bpmOverride = null; tuneStudioUpdate()" placeholder="BarbieGirl:b=120,o=5,d=8:g#,e,g#,c#6,4a,f#,d#,f#,b,4g#  or  g#,e,g#,c#6,4a,..." style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-family: monospace; font-size: 0.78rem; resize: vertical;"></textarea>
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--text-secondary); align-items: center;">
+                <label>Tempo <input type="number" id="tune_bpm" min="40" max="255" value="120" oninput="tuneStudio.bpmOverride = Number(this.value) || null; tuneStudioUpdate()" style="width: 4.5rem; background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:4px;"></label>
+                <label>Transpose <input type="number" id="tune_transpose" min="-24" max="24" value="0" oninput="tuneStudioUpdate()" style="width: 4rem; background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:4px;"> semitones</label>
+                <label>Plain note length <select id="tune_default_len" onchange="tuneStudioUpdate()" style="background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:4px;"><option value="4">1/4</option><option value="8" selected>1/8</option><option value="16">1/16</option></select></label>
+              </div>
+              <canvas id="tune_strip" width="640" height="90" style="width: 100%; height: 90px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 6px; cursor: grab; touch-action: none;"></canvas>
+              <input type="range" id="tune_window_start" min="0" max="0" value="0" oninput="tuneStudioSetStart(Number(this.value))" style="width: 100%;">
+              <div id="tune_summary" style="font-size: 0.78rem; color: var(--text-secondary);">Paste a tune to begin.</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="preset-btn" id="tune_play_btn" onclick="tuneStudioPlayPause()">▶ Play</button>
+                <button class="preset-btn" onclick="tuneStudioRestart()">⏮ Start</button>
+                <label style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem;"><input type="checkbox" id="tune_loop"> Loop</label>
+              </div>
+              <div id="tune_issues" style="font-size: 0.75rem; color: #fbbf24; min-height: 1rem;"></div>
+              <label style="font-size: 0.75rem; color: var(--text-muted);">Fitting tune (RTTTL)</label>
+              <textarea id="tune_output" rows="3" readonly style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-family: monospace; font-size: 0.72rem;"></textarea>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                <button class="preset-btn" onclick="copyTuneOutput()">Copy RTTTL</button>
+                <select id="tune_target" style="background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:6px; padding:0.3rem;"><option value="all">Both ESCs</option><option value="1">ESC 1</option><option value="2">ESC 2</option></select>
+                <button class="action-btn" onclick="sendTuneToEscs()" style="width: auto; padding: 0.45rem 0.8rem; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">Send to ESCs</button>
+              </div>
+              <div id="tune_esc_tunes" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+              <div id="tune_status" role="status" style="font-size: 0.78rem; color: var(--text-secondary);">The ESC plays the new tune at its next power-up. Writing takes about 2 s with the flywheels stopped.</div>
             </div>
           </div>
         </div>
@@ -4199,8 +4297,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.31";
-    window.CONFIGURATOR_VERSION = "1.1.31";
+    const CONFIGURATOR_VERSION = "v1.1.32";
+    window.CONFIGURATOR_VERSION = "1.1.32";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -5938,6 +6036,19 @@ function updateWriteButtonText() {
               (!(motor.validMask & (1 << i)) && drive !== 0))) {
           throw new Error('Feedforward calibration cannot be restored exactly by this firmware protocol');
         }
+        if (motor.fit != null) {
+          const f = motor.fit;
+          if (motor.validMask !== 31 || !Number.isInteger(f.minRpm) || !Number.isInteger(f.maxRpm) ||
+              f.minRpm<1 || f.maxRpm<=f.minRpm || f.maxRpm>65535 || !Array.isArray(f.c) || f.c.length!==4 ||
+              f.c.some(c=>!Number.isFinite(c))) throw new Error('Invalid fitted feedforward curve');
+          const evalAt = r => {const s=r/10000;return ((f.c[3]*s+f.c[2])*s+f.c[1])*s+f.c[0];};
+          const slope = r => {const s=r/10000;return ((3*f.c[3]*s+2*f.c[2])*s+f.c[1])/10000;};
+          const vertex = f.c[3]>0 ? -f.c[2]/(3*f.c[3])*10000 : NaN;
+          if(vertex>f.minRpm&&vertex<f.maxRpm&&!(slope(vertex)>0))throw new Error('Fitted FF must rise throughout its range');
+          for(let i=0;i<=32;i++){const r=f.minRpm+(f.maxRpm-f.minRpm)*i/32;if(!(evalAt(r)>0&&slope(r)>0))throw new Error('Fitted FF must be positive and rising');}
+          table.rpm.forEach((r,i)=>{const d=r<f.minRpm?evalAt(f.minRpm)*r/f.minRpm:r>f.maxRpm?evalAt(f.maxRpm)+slope(f.maxRpm)*(r-f.maxRpm):evalAt(r);
+            if(Math.abs(d-motor.drive[i])>1)throw new Error('Fitted FF does not match its stored knots');});
+        }
       }
       return table;
     }
@@ -5986,6 +6097,11 @@ function updateWriteButtonText() {
 
     async function restoreProfileFeedforward(table, connectionPort, generation) {
       validateProfileFeedforward(table);
+      if (table.motors.some(m=>m.fit != null)) {
+        const support = await requestBoardLaunchConfiguration();
+        assertSerialConnection(connectionPort, generation);
+        if (!support.feedforward?.motors?.every(m=>Object.hasOwn(m,'fit'))) throw new Error('Update firmware before restoring a fitted FF curve.');
+      }
       logToConsole('Restoring calibrated feedforward table for both motors...');
       // Stored drive is (throttle - 48) * voltage. Use an explicit reference
       // voltage and enough decimal places to recover every integer exactly,
@@ -5998,13 +6114,21 @@ function updateWriteButtonText() {
           const throttle = (48 + table.motors[motor].drive[point] / 26).toFixed(9);
           await sendAcknowledgedCommand(`ff set m${motor + 1} ${table.rpm[point]} ${throttle} 26`, 'ff set: ok', 'ff set:');
         }
+        const fit = table.motors[motor].fit;
+        if (fit) {
+          assertSerialConnection(connectionPort, generation);
+          await sendAcknowledgedCommand(`ff fit m${motor + 1} ${fit.minRpm} ${fit.maxRpm} ${fit.c.map(c=>Math.fround(c).toPrecision(9)).join(' ')}`, 'ff fit: ok', 'ff fit:');
+        }
       }
       assertSerialConnection(connectionPort, generation);
       const readback = await requestBoardLaunchConfiguration();
       assertSerialConnection(connectionPort, generation);
       if (JSON.stringify(readback.feedforward?.rpm) !== JSON.stringify(table.rpm) ||
           table.motors.some((motor, i) => readback.feedforward?.motors?.[i]?.validMask !== motor.validMask ||
-            motor.drive.some((drive, point) => readback.feedforward?.motors?.[i]?.drive?.[point] !== drive))) {
+            motor.drive.some((drive, point) => readback.feedforward?.motors?.[i]?.drive?.[point] !== drive) ||
+            (motor.fit != null && (readback.feedforward?.motors?.[i]?.fit?.minRpm !== motor.fit.minRpm ||
+              readback.feedforward?.motors?.[i]?.fit?.maxRpm !== motor.fit.maxRpm ||
+              motor.fit.c.some((c,k)=>Math.abs((readback.feedforward?.motors?.[i]?.fit?.c?.[k] ?? Infinity)-c)>Math.max(1e-7,Math.abs(c)*1e-6)))))) {
         throw new Error('Feedforward readback does not match the imported calibration');
       }
       logToConsole('Both feedforward masks and all ten stored drive values verified on blaster.');
@@ -6070,7 +6194,10 @@ function updateWriteButtonText() {
         }
         if (connected && data.feedforward_calibration) {
           // Check readback support and idle state before changing any settings.
-          await requestBoardLaunchConfiguration();
+          const support = await requestBoardLaunchConfiguration();
+          if (data.feedforward_calibration.motors.some(m=>m.fit != null) && !support.feedforward?.motors?.every(m=>Object.hasOwn(m,'fit'))) {
+            throw new Error('Update firmware before restoring a fitted FF curve.');
+          }
           assertSerialConnection(connectionPort, connectionGeneration);
         }
         if (data.settings) {
@@ -7646,12 +7773,59 @@ function updateWriteButtonText() {
     function comparisonWindow(samples) {
       return samples.length ? {firstMs:samples[0].ms,lastMs:samples.at(-1).ms,samples:samples.length} : null;
     }
+    // Timing belongs to the recorded target, never the planner's what-if target. Do not
+    // interpolate across stale RPM, gaps >20 ms, or a shot. A first crossing is not settling.
+    function comparisonMeasuredTiming(run) {
+      const rows = run?.samples || [], target = run?.config?.target || rows.at(-1)?.target;
+      const result = { target, source: run?.source || 'unknown', motors: [], both: null };
+      if (!(target > 0) || !rows.length) return result;
+      const shotMs = rows.find(s => s.shot > 0)?.ms;
+      const fresh = (s, m) => Number.isFinite(s[`rpm${m}`]) && s[`rpm${m}`] >= 0 &&
+        !(s[`lim${m}`] & (1 << 11)) && (s[`age${m}`] === undefined ||
+        (Number.isFinite(s[`age${m}`]) && s[`age${m}`] >= 0 && s[`age${m}`] <= 20));
+      for (const motor of [1, 2, 0]) {
+        const out = { motor, first90: null, first100: null, settleMs: null, observedThroughMs: null,
+          maxGapMs: 0, excludedSamples: 0 };
+        let prev = null, bandStart = null;
+        for (const s of rows) {
+          if (Number.isFinite(shotMs) && s.ms >= shotMs) break;
+          if (!Number.isFinite(s.ms) || s.ms < 0 || !(motor ? fresh(s, motor) : fresh(s, 1) && fresh(s, 2))) {
+            prev = null; bandStart = null; out.excludedSamples++; continue;
+          }
+          const rpm = motor ? s[`rpm${motor}`] : Math.min(s.rpm1, s.rpm2);
+          const gap = prev ? s.ms - prev.ms : null;
+          if (gap !== null && gap > 0) out.maxGapMs = Math.max(out.maxGapMs, gap);
+          const continuous = gap !== null && gap > 0 && gap <= 20;
+          if (!continuous) bandStart = null;
+          for (const [key, fraction] of [['first90', .9], ['first100', 1]]) {
+            if (out[key] !== null || rpm < target * fraction) continue;
+            const interpolate = continuous && prev.rpm < target * fraction;
+            out[key] = { ms: interpolate ? prev.ms + gap * (target * fraction - prev.rpm) / (rpm - prev.rpm) : s.ms,
+              interpolated: interpolate, bracketMs: interpolate ? gap : null };
+          }
+          const inBand = motor ? Math.abs(rpm - target) <= target * .02 :
+            Math.abs(s.rpm1 - target) <= target * .02 && Math.abs(s.rpm2 - target) <= target * .02;
+          if (!inBand) bandStart = null;
+          else if (bandStart === null) bandStart = s.ms;
+          out.settleMs = bandStart !== null && s.ms - bandStart >= 20 ? bandStart : null;
+          out.observedThroughMs = s.ms;
+          prev = { ms: s.ms, rpm };
+        }
+        // A stale final sample cannot establish a continuous settled interval.
+        if (bandStart === null) out.settleMs = null;
+        if (motor) result.motors.push(out); else result.both = out;
+      }
+      return result;
+    }
+    function comparisonTimingText(crossing) {
+      return crossing ? `${crossing.interpolated ? '≈ ' : 'by '}${crossing.ms.toFixed(1)} ms` : 'not observed';
+    }
     function analyzeLaunchComparison(run) {
       const rows = run.samples, config = run.config || {}, target = config.target || rows.at(-1)?.target;
       if (!rows.length || !(target > 0)) return { messages:['No usable launch samples.'] };
       const shot = rows.find(s => s.shot > 0);
       const launchRows = shot ? rows.filter(s => s.ms < shot.ms) : rows;
-      const result = { target, motors:[], messages:[], currentSource:'model_estimate' };
+      const result = { target, motors:[], messages:[], currentSource:'model_estimate', measuredTiming:comparisonMeasuredTiming(run) };
       result.reference95Ms = comparisonCrossing(launchRows,'ref',target*.95);
       // Startup power / BEMF lock (firmware launch policy v5).
       const locks = Array.isArray(config.lockMs) ? config.lockMs : null;
@@ -7672,10 +7846,11 @@ function updateWriteButtonText() {
         result.predicted95Ms = comparisonCrossing(comparisonCurvePoints(run.simulation,target,config.startRpm||0).map(p=>({...p,ms:p.x})), 'y',target*.95);
       }
       for (const m of [1,2]) {
+        const timing = result.measuredTiming.motors[m-1];
         const measuredRows=launchRows.filter(s=>s[`age${m}`]!==65535 && !(s[`lim${m}`] & (1<<11)));
         const excludedRpmSamples=launchRows.length-measuredRows.length;
         const firstTelemetryMs=measuredRows[0]?.ms??null;
-        const rise90 = comparisonCrossing(measuredRows,`rpm${m}`,target*.9);
+        const rise90 = timing.first90?.ms ?? null;
         const rise95 = comparisonCrossing(measuredRows,`rpm${m}`,target*.95);
         const acceleration = measuredRows.filter(s=>rise95 === null || s.ms <= rise95);
         const limits = {}, lagRows = acceleration.filter(s=>s.ref-s[`rpm${m}`] > Math.max(150,s.ref*.05));
@@ -7697,7 +7872,7 @@ function updateWriteButtonText() {
           return rpm+Math.max(150,s.ref*.01)<peerRpm;
         }));
         const peak = Math.max(0,...measuredRows.map(s=>s[`rpm${m}`]));
-        const motor = { motor:m,rise90Ms:rise90,rise95Ms:rise95,overshootPct:Math.max(0,(peak-target)/target*100),limits,minimumOverspeed,deliveredLag,commandHeadroom,negativeFeedback,startupCap,syncCatchup,firstTelemetryMs,excludedRpmSamples };
+        const motor = { motor:m,rise90Ms:rise90,rise95Ms:rise95,rise100Ms:timing.first100?.ms??null,settleMs:timing.settleMs,overshootPct:Math.max(0,(peak-target)/target*100),limits,minimumOverspeed,deliveredLag,commandHeadroom,negativeFeedback,startupCap,syncCatchup,firstTelemetryMs,excludedRpmSamples };
         result.motors.push(motor);
         if (excludedRpmSamples) result.messages.push(`M${m}: ${excludedRpmSamples} samples had unavailable/stale RPM and are excluded from speed and delivered-command conclusions. First usable telemetry: ${firstTelemetryMs===null?'none':firstTelemetryMs+' ms'}.`);
         if (minimumOverspeed) result.messages.push(`M${m}: RPM exceeded the reference while already at minimum running throttle. Startup impulse/momentum or ESC behavior needs investigation; more PID gain cannot command a smaller running throttle.`);
@@ -7742,7 +7917,7 @@ function updateWriteButtonText() {
       if (el) {
         el.replaceChildren();
         const timing=document.createElement('div');timing.textContent=`95% timing: loaded model ${Number.isFinite(report.predicted95Ms)?report.predicted95Ms.toFixed(1)+' ms':'unavailable'} · firmware reference ${Number.isFinite(report.reference95Ms)?report.reference95Ms.toFixed(1)+' ms':'not reached'}`;el.appendChild(timing);
-        for (const m of report.motors||[]) { const p=document.createElement('div');p.textContent=`M${m.motor}: sampled 90% ${m.rise90Ms===null?'not reached':m.rise90Ms.toFixed(1)+' ms'} · 95% ${m.rise95Ms===null?'not reached':m.rise95Ms.toFixed(1)+' ms'} · peak overshoot ${m.overshootPct.toFixed(1)}%`;el.appendChild(p); }
+        for (const m of report.motors||[]) { const t=report.measuredTiming.motors[m.motor-1], p=document.createElement('div');p.textContent=`M${m.motor}: measured 90% ${comparisonTimingText(t.first90)} · first 100% ${comparisonTimingText(t.first100)} · settled ±2% ${t.settleMs===null?'not observed':t.settleMs.toFixed(1)+' ms (20 ms minimum observed hold)'} · peak overshoot ${m.overshootPct.toFixed(1)}%`;el.appendChild(p); }
         for (const message of report.messages) { const p=document.createElement('div');p.textContent=message;el.appendChild(p); }
       }
     }
@@ -7817,8 +7992,19 @@ function updateWriteButtonText() {
         launchReadPending={resolve,reject,run:{samples:[],config:null,source:'recorder',connectionGeneration:generation,firmware:connectedBlasterVersion,simulation:copyComparisonSimulation()}};});
       try {comparisonStatus('Reading recorder. Release rev/fire and wait for the motors to stop.');
         const [,run]=await Promise.all([sendSerialCommand('launchtrace',{requireSuccess:true}),response]);assertSerialConnection(connectionPort,generation);
+        preserveLaunchEscCapture(run,launchComparison);
         launchComparison=run;renderLaunchComparison();if(typeof lpIngestLaunch==='function')lpIngestLaunch();comparisonStatus(`${run.samples.length} recorded samples · ${run.config?.durationMs||'unknown'} ms firmware reference · loaded simulation ${run.simulation?validateLaunchCurve(run.simulation).durationMs+' ms':'none'}`);
       }catch(error){comparisonStatus(`Launch read failed: ${error.message}`);}finally{clearTimeout(timer);launchReadPending=null;}
+    }
+    // Recorder rows contain RPM/commands but not ESC current. Retain browser samples only for the
+    // exact same launch on the same connection; equal board uptime after a reconnect is insufficient.
+    function preserveLaunchEscCapture(run, previous) {
+      if (!Number.isInteger(run.config?.startMs) || !Number.isInteger(run.connectionGeneration) || run.connectionGeneration !== previous?.connectionGeneration ||
+          run.config.startMs !== previous?.config?.startMs || run.config.target !== previous?.config?.target) return;
+      const rows = previous.escSamples || previous.samples || [];
+      if (rows.some(s => s.escTelemetry?.supported)) {
+        run.escSamples = rows.map(s => ({ ms: s.ms, escTelemetry: s.escTelemetry ? JSON.parse(JSON.stringify(s.escTelemetry)) : null }));
+      }
     }
     async function requestBoardLaunchConfiguration() {
       if(launchConfigPending)throw new Error('Configuration read already in progress');
@@ -7848,6 +8034,7 @@ function updateWriteButtonText() {
       const ms=comparisonElapsed(point.boardMs,point.launchStartMs);if(ms>320)return;
       launchComparison.samples.push({ms,target:point.launchTarget,ref:point.target,rpm1:point.rpm1,rpm2:point.rpm2,thr1:point.throttle1,thr2:point.throttle2,volts:point.voltage,lim1:point.lim1,lim2:point.lim2,shot:point.sol,escTelemetry:point.escTelemetry});
       if(launchComparison.samples.length>160)launchComparison.samples.shift();
+      if(typeof lpIngestLaunch==='function')lpIngestLaunch();
       renderLaunchComparison();comparisonStatus(`Live launch · ${point.launchDurationMs} ms firmware reference · read recorder after release for full details.`);
     }
     // END LAUNCH COMPARISON
@@ -7996,10 +8183,17 @@ function updateWriteButtonText() {
         const currentValid = faultFree && samples >= 8 && !!(flags & 1) && !!(flags & 4) && !(flags & 8);
         const voltageValid = faultFree && !!(flags & 2) && !(flags & 64);
         const temperatureValid = faultFree && !(flags & 128);
+        // EX: source (1 TLM UART, 2 long DShot reply), current in 0.01 A and duty 0-2000. A DShot
+        // reply carries one current reading per frame, so it has no independently measured peak.
+        const ex = new RegExp(',EX' + i + ':(\\d+)/(\\d+)/(\\d+)(?:,|$|\\s)').exec(line);
+        const source = ex ? Number(ex[1]) : 0;
+        const dshot = source === 2;
         const counterMatch = new RegExp(',EC' + i + ':([^,\\s]+)').exec(line);
         const counters = counterMatch ? counterMatch[1].split('/').map(Number) : null;
         result.motors.push({ connected, currentValid, voltageValid, temperatureValid, flags, samples, ageUs, sequence,
-          received: !!received, averageA: currentValid ? average / 10 : null, peakA: currentValid ? peak / 10 : null,
+          received: !!received, source, duty: dshot && connected ? Number(ex[3]) : null,
+          averageA: currentValid ? (dshot ? Number(ex[2]) / 100 : average / 10) : null,
+          peakA: currentValid && !dshot ? peak / 10 : null,
           voltageV: voltageValid ? voltage / 100 : null, temperatureC: temperatureValid ? temperature : null,
           counters: counters?.length === 7 && counters.every(v => Number.isInteger(v) && v >= 0 && v <= 4294967295) ? counters : null });
       }
@@ -8048,56 +8242,512 @@ function updateWriteButtonText() {
       const next = decodeEscTelemetry(line);
       next.motors.forEach((m,i) => { if (m && !m.counters) m.counters = latestEscTelemetry.motors[i]?.counters || null; });
       latestEscTelemetry = { ...next, receivedAt: Date.now() };
+      noteEscPeak(next, latestEscTelemetry.receivedAt);
       const ms = /(?:^|:)MS:(\d+)/.exec(line);
-      if (ms && !line.startsWith('ESC_TELEM:')) plotEscTelemetry(next, Number(ms[1]));
+      const field = name => { const m = new RegExp('(?:^|,)' + name + ':(-?\\d+)').exec(line); return m ? Number(m[1]) : null; };
+      if (ms && !line.startsWith('ESC_TELEM:')) plotEscTelemetry(next, Number(ms[1]),
+        { target: field('TARGET'), rpm: [field('RPM1'), field('RPM2')], throttle: [field('THR1'), field('THR2')] });
       updateEscTelemetryPanel();
       return line.startsWith('ESC_TELEM:');
     }
-    function plotEscTelemetry(snapshot, boardMs) {
+    // Measured-current chart. A gap in the board clock (USB outage, reconnect) or stale telemetry
+    // inserts a null point so the line breaks instead of bridging the missing interval.
+    let escChartPaused = false, escChartLastMs = null, escChartLog = [];
+    const ESC_CHART_GAP_MS = 250, ESC_CHART_MAX_POINTS = 1200, ESC_CHART_MAX_LOG = 60000;
+    function escChartBreak() {
+      if (!escCurrentChart || escChartLastMs === null) return;
+      const x = escChartLastMs - escChartOriginMs + 0.5;
+      escCurrentChart.data.datasets.forEach(d => { if (d.data.length && d.data[d.data.length-1].y !== null) d.data.push({x, y:null}); });
+    }
+    // Highest valid measured current per motor and combined over the last few seconds, so short
+    // spin-up peaks stay readable after they pass.
+    const ESC_PEAK_WINDOW_MS = 5000;
+    let escPeakSamples = [];
+    function noteEscPeak(snapshot, nowMs) {
+      const a = snapshot.motors.map(m => Number.isFinite(m?.averageA) ? m.averageA : null);
+      if (a.some(v => v !== null)) escPeakSamples.push({ ms: nowMs, a });
+      while (escPeakSamples.length && nowMs - escPeakSamples[0].ms > ESC_PEAK_WINDOW_MS) escPeakSamples.shift();
+    }
+    function escRecentPeak(now = Date.now()) {
+      const peak = { m: [null, null], total: null };
+      for (const s of escPeakSamples) {
+        if (now - s.ms > ESC_PEAK_WINDOW_MS) continue;
+        s.a.forEach((v, i) => { if (v !== null && (peak.m[i] === null || v > peak.m[i])) peak.m[i] = v; });
+        if (s.a[0] !== null && s.a[1] !== null && (peak.total === null || s.a[0] + s.a[1] > peak.total)) peak.total = s.a[0] + s.a[1];
+      }
+      return peak;
+    }
+    function plotEscTelemetry(snapshot, boardMs, context = {}) {
+      if (escChartPaused) return;
+      if (escChartLog.length < ESC_CHART_MAX_LOG) escChartLog.push({ ms: boardMs, target: context.target ?? null,
+        rpm: context.rpm || [null, null], throttle: context.throttle || [null, null], motors: snapshot.motors.map(m => m ? {
+        source: m.source, currentA: m.averageA, peakA: m.peakA, duty: m.duty, voltageV: m.voltageV,
+        temperatureC: m.temperatureC, flags: m.flags, ageUs: m.ageUs } : null) });
       const canvas = document.getElementById('esc_current_chart');
       if (!canvas || typeof Chart === 'undefined') return;
       if (!escCurrentChart) escCurrentChart = new Chart(canvas, { type:'line', data:{datasets:[
-        {label:'M1 measured average (A)',borderColor:'#22d3ee',data:[],pointRadius:0},
-        {label:'M2 measured average (A)',borderColor:'#f472b6',data:[],pointRadius:0},
-        {label:'M1 measured peak (A)',borderColor:'#22d3ee',borderDash:[4,4],data:[],pointRadius:0},
-        {label:'M2 measured peak (A)',borderColor:'#f472b6',borderDash:[4,4],data:[],pointRadius:0}
+        {label:'M1 measured current (A)',borderColor:'#22d3ee',data:[],pointRadius:0},
+        {label:'M2 measured current (A)',borderColor:'#f472b6',data:[],pointRadius:0},
+        {label:'M1 TLM median peak (A)',borderColor:'#22d3ee',borderDash:[4,4],data:[],pointRadius:0,hidden:true},
+        {label:'M2 TLM median peak (A)',borderColor:'#f472b6',borderDash:[4,4],data:[],pointRadius:0,hidden:true}
       ]}, options:{responsive:true,maintainAspectRatio:false,animation:false,spanGaps:false,
         scales:{x:{type:'linear',title:{display:true,text:'Time (ms)'}},y:{title:{display:true,text:'Measured current (A)'}}} } });
       if (escChartOriginMs === null || boardMs < escChartOriginMs) {
-        escChartOriginMs = boardMs; escCurrentChart.data.datasets.forEach(d => d.data = []);
+        escChartOriginMs = boardMs; escChartLastMs = null; escCurrentChart.data.datasets.forEach(d => d.data = []);
       }
+      if (escChartLastMs !== null && boardMs - escChartLastMs > ESC_CHART_GAP_MS) escChartBreak();
+      escChartLastMs = boardMs;
+      // Only the TLM UART stream measures a separate peak; show those lines when it is the source.
+      const uartPeak = snapshot.motors.some(m => m?.source === 1 && Number.isFinite(m.peakA));
+      escCurrentChart.data.datasets[2].hidden = escCurrentChart.data.datasets[3].hidden = !uartPeak;
       escCurrentChart.data.datasets.forEach((dataset,i) => {
         dataset.data.push({x:boardMs-escChartOriginMs,y:snapshot.motors[i%2]?.[i<2?'averageA':'peakA'] ?? null});
-        if (dataset.data.length > 1200) dataset.data.shift();
+        while (dataset.data.length > ESC_CHART_MAX_POINTS) dataset.data.shift();
       });
       escCurrentChart.update('none');
+    }
+    function toggleEscChartPause() {
+      escChartPaused = !escChartPaused;
+      if (!escChartPaused) escChartLastMs = null;  // resuming starts a new segment
+      escChartBreak();
+      const button = document.getElementById('esc_chart_pause');
+      if (button) button.textContent = escChartPaused ? 'Resume' : 'Pause';
+    }
+    function clearEscChart() {
+      escChartLog = []; escChartOriginMs = null; escChartLastMs = null;
+      if (escCurrentChart) { escCurrentChart.data.datasets.forEach(d => d.data = []); escCurrentChart.update('none'); }
+    }
+    function escChartCsv() {
+      const sourceName = v => v === 2 ? 'DShot' : v === 1 ? 'UART' : '';
+      let csv = 'Board time (ms),' + [1,2].map(i => `M${i} Source,M${i} Current (A),M${i} TLM Median Peak (A),M${i} Duty (0-2000),M${i} ESC Voltage (V),M${i} ESC Temperature (C),M${i} ESC Flags,M${i} ESC Age (us)`).join(',') +
+        ',Target RPM,M1 RPM,M2 RPM,M1 Throttle,M2 Throttle\n';
+      for (const row of escChartLog) {
+        csv += row.ms + ',' + row.motors.map(m => m ? [sourceName(m.source), m.currentA, m.peakA, m.duty, m.voltageV, m.temperatureC, m.flags, m.ageUs].map(v => v ?? '').join(',') : ',,,,,,,').join(',') +
+          ',' + [row.target, row.rpm?.[0], row.rpm?.[1], row.throttle?.[0], row.throttle?.[1]].map(v => v ?? '').join(',') + '\n';
+      }
+      return csv;
+    }
+    function exportEscChart() {
+      if (!escChartLog.length) { logToConsole('No measured ESC current recorded yet', true); return; }
+      const url = URL.createObjectURL(new Blob([escChartCsv()], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = `esc_measured_current_${Date.now()}.csv`; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
     function updateEscTelemetryPanel() {
       const s = currentEscTelemetry();
       const state = document.getElementById('esc_telemetry_state');
-      if (state) state.textContent = !s.supported ? 'Waiting for supported firmware' : s.state === 0 ? 'Receiver disabled' : s.state === 1 ? 'Receiver initialization failed' : s.usbStale ? 'USB telemetry stale' : 'Receiver active';
+      const sources = new Set(s.motors.map(m => m?.source).filter(Boolean));
+      const dshotSource = sources.has(2), uartSource = sources.has(1);
+      if (state) state.textContent = !s.supported ? 'Waiting for supported firmware' : s.usbStale ? 'USB telemetry stale' :
+        dshotSource ? 'Receiving long DShot replies' : uartSource ? 'Receiving TLM UART stream' :
+        s.state === 1 ? 'Receiver initialization failed' : 'Waiting for ESC telemetry';
+      const sourceNote = document.getElementById('esc_telemetry_source');
+      if (sourceNote) sourceNote.textContent = dshotSource
+        ? 'Source: long DShot reply on the signal wire, one current reading per frame (no separate peak). Requires the Byte fast AM32 build on both ESCs.'
+        : uartSource ? 'Source: 1 kHz TLM UART stream (average and median peak per 1 ms window). Requires the AM32 -UartStream build and TLM wiring.'
+        : 'No measured current yet. Stock AM32 sends RPM only; flash the Byte fast AM32 build (-Fast) to get current, voltage and duty over DShot.';
+      if (s.usbStale) escChartBreak();
       const fmt = (v,unit,digits=1) => Number.isFinite(v) ? `${v.toFixed(digits)} ${unit}` : `-- ${unit}`;
+      const recent = escRecentPeak();
       s.motors.forEach((m,i) => {
         const current = document.getElementById(`esc_m${i+1}_current`);
         const details = document.getElementById(`esc_m${i+1}_details`);
         const health = document.getElementById(`esc_m${i+1}_health`);
         if (current) current.textContent = fmt(m?.averageA,'A');
-        if (details) details.textContent = `Peak ${fmt(m?.peakA,'A')} · ${fmt(m?.voltageV,'V',2)} · ${fmt(m?.temperatureC,'°C',0)}`;
+        const peak5 = document.getElementById(`esc_m${i+1}_peak5`);
+        if (peak5) peak5.textContent = `5 s peak ${fmt(recent.m[i],'A')}`;
+        if (details) details.textContent = m?.source === 2
+          ? `Duty ${Number.isFinite(m.duty) ? (m.duty / 20).toFixed(1) + ' %' : '--'} · ${fmt(m?.voltageV,'V',2)} · ${fmt(m?.temperatureC,'°C',0)}`
+          : `Peak ${fmt(m?.peakA,'A')} · ${fmt(m?.voltageV,'V',2)} · ${fmt(m?.temperatureC,'°C',0)}`;
         if (health) {
           const status = !m?.received ? 'No data' : !m.connected ? 'ESC telemetry stale' : m.currentValid ? 'Current valid' : 'Current unavailable';
-          health.textContent = status + (m ? ` · Age ${(m.ageUs/1000).toFixed(1)} ms · Flags 0x${m.flags.toString(16)} · Samples ${m.samples}` : '');
+          health.textContent = status + (m ? (m.source === 2 ? ` · Age ${(m.ageUs/1000).toFixed(1)} ms · DShot` : ` · Age ${(m.ageUs/1000).toFixed(1)} ms · Flags 0x${m.flags.toString(16)} · Samples ${m.samples}`) : '');
           if (m?.counters) health.textContent += ` · RX ${m.counters[0]} / CRC ${m.counters[1]} / Lost ${m.counters[2]} / Duplicates ${m.counters[3]} / Resets ${m.counters[4]} / UART ${m.counters[5]} / Queue ${m.counters[6]}`;
         }
       });
       const total = document.getElementById('esc_total_current');
       const a = s.motors[0]?.averageA, b = s.motors[1]?.averageA;
       if (total) total.textContent = fmt(Number.isFinite(a) && Number.isFinite(b) ? a+b : null,'A');
+      const totalPeak = document.getElementById('esc_total_peak5');
+      if (totalPeak) totalPeak.textContent = `5 s peak ${fmt(recent.total,'A')}`;
     }
     // END ESC_TELEMETRY
     setInterval(() => {
       updateEscTelemetryPanel();
-      if (typeof HUD_WIDGETS !== 'undefined' && HUD_WIDGETS.some(w => w.enabled && w.type === 9)) renderHudCanvas();
+      // Telemetry-only redraw: must not reschedule the live mirror, or its 150 ms debounce never fires.
+      if (typeof HUD_WIDGETS !== 'undefined' && HUD_WIDGETS.some(w => w.enabled && w.type === 9)) renderHudCanvas({ skipMirror: true });
     }, 100);
+
+    // BEGIN ESC_TUNE
+    // AM32 startup tunes (Src/sounds.c playBlueJayTune): EEPROM bytes 48-175. Bytes 0-3 are a header
+    // (bpm high/low, octave, length; byte 0 must not be 0xFF), then 62 two-byte entries (t4, t3):
+    // t3 = period byte, f = 1e7 / (t3 * 247 + 4000); t4 = pulse count, duration = t4 * period / 11000 ms;
+    // (255, t3 != 0) adds 255 to the next count; t3 = 0 is a pause of t4 ms; (0, 0) ends the tune.
+    const TUNE_ENTRIES = 62;
+    const TUNE_SEMITONE = {c:0,d:2,e:4,f:5,g:7,a:9,b:11};
+    const TUNE_NAMES = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+    const TUNE_DURATIONS = [1,2,4,8,16,32];
+    function tuneNearestDuration(d) {
+      return TUNE_DURATIONS.reduce((best, v) => Math.abs(Math.log2(v) - Math.log2(d)) < Math.abs(Math.log2(best) - Math.log2(d)) ? v : best, 4);
+    }
+    function tuneParse(text, defaults) {
+      const issues = new Set();
+      const parts = String(text || '').trim().split(':');
+      const settings = { name: 'Tune', b: defaults.b, o: defaults.o, d: defaults.d };
+      let body = parts.join(':');
+      if (parts.length >= 3) {
+        settings.name = parts[0].trim() || 'Tune';
+        for (const item of parts[1].split(',')) {
+          const [k, v] = item.trim().toLowerCase().split('=');
+          if (['b','o','d'].includes(k) && /^\d+$/.test(v || '')) settings[k] = Number(v);
+        }
+        body = parts.slice(2).join(':');
+      }
+      const notes = [];
+      for (const raw of body.replace(/\s+/g, '').toLowerCase().split(',')) {
+        if (!raw) continue;
+        const m = /^(\d+)?([a-gp])(#?)(\.*)(\d)?(\.*)$/.exec(raw);
+        if (!m) { issues.add(`dropped "${raw}"`); continue; }
+        let dur = m[1] ? Number(m[1]) : settings.d;
+        if (!TUNE_DURATIONS.includes(dur)) { const fixed = tuneNearestDuration(dur); issues.add(`duration ${dur} -> ${fixed}`); dur = fixed; }
+        const dots = m[4].length + m[6].length;
+        if (dots > 1) issues.add('double dot -> single dot');
+        const octave = m[5] ? Number(m[5]) : settings.o;
+        notes.push({ dur, dotted: dots > 0, semi: m[2] === 'p' ? null : TUNE_SEMITONE[m[2]] + (m[3] ? 1 : 0), oct: octave });
+      }
+      return { settings, notes, issues };
+    }
+    function tuneTranspose(note, semitones) {
+      if (note.semi === null || !semitones) return note;
+      const n = note.oct * 12 + note.semi + semitones;
+      return { ...note, semi: ((n % 12) + 12) % 12, oct: Math.floor(n / 12) };
+    }
+    function tuneNoteMs(note, bpm) { const ms = 60000 / bpm * 4 / note.dur; return note.dotted ? ms * 1.5 : ms; }
+    function tunePeriodByte(note) {
+      const f = 440 * Math.pow(2, (note.oct * 12 + note.semi - 57) / 12);
+      return Math.round((1e7 / f - 4000) / 247);
+    }
+    function tunePlayable(note) { if (note.semi === null) return true; const t3 = tunePeriodByte(note); return t3 >= 1 && t3 <= 255; }
+    function tuneNoteEntries(note, bpm) {
+      const ms = tuneNoteMs(note, bpm), out = [];
+      if (note.semi === null) {
+        let total = Math.max(1, Math.round(ms));
+        while (total > 255) { out.push([255, 1]); total -= 255; }
+        out.push([Math.max(1, total), 0]);
+        return out;
+      }
+      const t3 = tunePeriodByte(note);
+      if (t3 < 1 || t3 > 255) return null;
+      let pulses = Math.max(1, Math.round(ms * 11000 / (t3 * 247 + 4000)));
+      while (pulses > 255) { out.push([255, t3]); pulses -= 255; }
+      out.push([Math.min(pulses, 254), t3]);
+      return out;
+    }
+    // What AM32 will actually play for some entries: [{freq|0, ms}], quantized like playBlueJayTune.
+    function tuneEntriesToSound(entries) {
+      const out = []; let full = 0;
+      for (const [t4, t3] of entries) {
+        if (t4 === 0 && t3 === 0) break;
+        if (t4 === 255 && t3 !== 0) { full++; continue; }
+        if (t3 === 0) out.push({ freq: 0, ms: full * 255 + t4 });
+        else out.push({ freq: 1e7 / (t3 * 247 + 4000), ms: (full * 255 + t4) * (t3 * 247 + 4000) / 11000 });
+        full = 0;
+      }
+      return out;
+    }
+    function tuneBytesFor(settings, entries) {
+      const bytes = new Uint8Array(128);
+      bytes[0] = 0; bytes[1] = Math.min(settings.b, 255); bytes[2] = settings.o; bytes[3] = Math.min(settings.d, 239);
+      entries.slice(0, TUNE_ENTRIES).forEach(([t4, t3], i) => { bytes[4 + 2*i] = t4; bytes[5 + 2*i] = t3; });
+      return bytes;
+    }
+    function tuneBytesToEntries(bytes) {
+      const entries = [];
+      for (let i = 4; i + 1 < 128; i += 2) { if (!bytes[i] && !bytes[i+1]) break; entries.push([bytes[i], bytes[i+1]]); }
+      return entries;
+    }
+    // Last note index (exclusive) of the window starting at `start` that fits the 62 entries.
+    function tuneWindowEnd(costs, start) {
+      let used = 0, end = start;
+      while (end < costs.length && used + costs[end] <= TUNE_ENTRIES) used += costs[end++];
+      return end;
+    }
+    function tuneNoteText(note, settings) {
+      let t = note.dur === settings.d ? '' : String(note.dur);
+      t += note.semi === null ? 'p' : TUNE_NAMES[note.semi];
+      if (note.semi !== null && note.oct !== settings.o) t += note.oct;
+      return t + (note.dotted ? '.' : '');
+    }
+    function tuneToRtttl(settings, notes) {
+      const name = String(settings.name || 'Tune').replace(/[^A-Za-z0-9]+/g, '').slice(0, 16) || 'Tune';
+      return `${name}:b=${settings.b},o=${settings.o},d=${settings.d}:` + notes.map(n => tuneNoteText(n, settings)).join(',');
+    }
+    // END ESC_TUNE
+
+    const TUNE_PRESETS = [{"name":"Agadoo","rtttl":"Agadoo:b=120,o=5,d=8:b,g#,4e,e,e,4e,e,e,e,e,d#,e,4f#,a,f#,4d#,d#,d#,4d#,d#,d#,d#,d#,c#,d#,4e"},{"name":"AmazingGrace","rtttl":"AmazingGrace:b=120,o=5,d=8:c,2f,a,g,f,2a,a,g,2f,4d,2c,c,2f,a,g,f,2a,g,a,2c6."},{"name":"BaBaBlackSheep","rtttl":"BaBaBlackSheep:b=120,o=5,d=8:c,c,g,g,4a,4b,4c6,4a,4g,f,f,e,e,d,d,4c"},{"name":"BacktotheFuture","rtttl":"BacktotheFuture:b=120,o=5,d=8:4g.,4c.,2f#.,g.,a.,g,e,c,4f#,g.,a.,g.,d.,g.,d6.,4d6.,4c#6,b.,c#6.,2d6."},{"name":"BarbieGirl","rtttl":"BarbieGirl:b=120,o=5,d=8:g#,e,g#,c#6,4a,f#,d#,f#,b,4g#,f#,e,e,c#,4f#,4c#,f#,e,4g#,4f#"},{"name":"BethBarbie","rtttl":"BethBarbie:b=120,o=5,d=4:g#,e,g#,c#6,a,f#,d#,f#,b,g#,f#,e,e,c#,f#,c#,f#,e,g#,f#"},{"name":"Batman","rtttl":"Batman:b=120,o=5,d=8:d,d,c#,c#,c,c,c#,c#,d,d,c#,c#,c,c,c#,c#,d,d#,c,c#,c,c,c#,c#,f,4f"},{"name":"Bebopalula","rtttl":"Bebopalula:b=120,o=5,d=8:a,a,e,g,a,a,a,g,a,a,a,e,g,a,a,a,g,a"},{"name":"Bethoven","rtttl":"Bethoven:b=120,o=5,d=8:c,e,c,g,c,c6,b,a,g,a,g,f,e,f,e,d,c,e,g,e,c6,g."},{"name":"BirdySong","rtttl":"BirdySong:b=120,o=5,d=8:g,g,a,a,e,e,g,g,g,a,a,e,e,g,g,g,a,a,c6,c6,b,b,a,g,f,f,f,g,g,d,d,f,f,f,g,g,d,d,f,f,f,g,g,a,b,c6,a,g,e,4c"},{"name":"BlackBear","rtttl":"BlackBear:b=120,o=5,d=8:d#,d#,g.,16d#,a#.,16g,d#,d#,g.,16d#,a#.,16g,f,c.,16b4,c,f.,16d#,d.,16d#,c.,16d,a#4.,16c,d.,16a#4,d#,d#,g.,16d#,a#.,16g,d#,d#,g.,16d#,a#.,16g,f,f,f,g.,16f,d#,g,2d#"},{"name":"Borteus","rtttl":"Borteus:b=120,o=5,d=8:b,c6,d6,b,g,e,b,g,e,c,g,e,c,a4,c6,d6,e6,c6,a,f,c6,a,f,d,a,f,d,b4,g6,e6,c6,a,f,d,b4,c6,a,f,d,b4,f,d,b4,f,4e."},{"name":"Cantina","rtttl":"Cantina:b=120,o=5,d=8:a,d6,a,d6,a,d6,a,g#,4a,a,g#,a,4g,f#,g,f#,4f.,d.,a,d6,a,d6,a,d6,a,g#,a,g,4g.,f#,g,c6,4a#,4a,4g"},{"name":"ChariotsofFire","rtttl":"ChariotsofFire:b=120,o=5,d=8:c#,f#.,g#.,a#.,4g#,4f,c#,f#.,g#.,a#.,2g#,c#,f#.,g#.,a#.,4g#,4f,f,f#.,f.,c#.,2c#"},{"name":"CocaCola","rtttl":"CocaCola:b=120,o=5,d=8:f#6,f#6,f#6,f#6,4g6,f#6,4e6,e6,a6,4f#6,4d6"},{"name":"ColonelBogey","rtttl":"ColonelBogey:b=120,o=5,d=8:g,e,e,f,g,e6,e6,2c6,g,e,e,f,e,g,g,2f,f,d,d,e,f,g,e,e,f#,e,d,g,e,f#,d,a,g.,16f#,g,a,g,f,e,d"},{"name":"DeathMarch","rtttl":"DeathMarch:b=120,o=5,d=8:4c,c,c,2c,d#,d,d,c,c,b4,2c."},{"name":"DeepPurpleLazy","rtttl":"DeepPurpleLazy:b=120,o=5,d=8:d4.,f4,16d4,g4,16f4,d4.,f4,16d4,g4,16f4,d4"},{"name":"DeepPurpleSmokeo","rtttl":"DeepPurpleSmokeo:b=120,o=5,d=8:c,d#,f.,c,d#,f#,f,c,d#,f.,d#,c,c,d#,f.,c,d#,f#,f,c,d#,f.,d#,c"},{"name":"Digimon","rtttl":"Digimon:b=120,o=5,d=8:c,g,f#,16c,16c,g,f#,g,16c,16c,g,f#,g,a#,a#,c,g,f#,16c,16c,g,f#,g,16c,16c,g,f#,d#,4c"},{"name":"DontCare","rtttl":"DontCare:b=120,o=5,d=8:f,e,f,e,f,e,d,e,d,e,d,e,d,c,d,4d"},{"name":"DuellingBanjos","rtttl":"DuellingBanjos:b=120,o=5,d=8:c#,d,4e,4c#,4d,4b4,4c#,4a4,4b4,16c#6,16d6,e6,c#6,d6,b,c#6,a,4b,4a4,4a4,4b4,4c#,4a4,4c#,4b4,a,a,b,c#6,a,c#6,b"},{"name":"Flintstones","rtttl":"Flintstones:b=120,o=5,d=8:g#,4c#,4c#6,a#,4g#,4c#,4g#,f#,f,f,f#,g#,4c#,4d#,2f,4g#,4c#,4c#6,a#,4g#,4c#,4g#,f#,f,f,f#,g#,4c#,4d#,2c#"},{"name":"FraggleRock","rtttl":"FraggleRock:b=120,o=5,d=8:c6,16c6,c6,16c6,a,b,b,a,g,16e6,d6,c6,16a,g,c6,16c6,c6,16d6,a,b,16b,a,16b,c6"},{"name":"Friends","rtttl":"Friends:b=120,o=5,d=8:c,g,a#4,f,c,g,a#4,a#,e,c,g,a#4,f,c,g,a#4,a#,e"},{"name":"FunkyTown","rtttl":"FunkyTown:b=120,o=5,d=8:c6,c6,a#,c6,g,g,c6,f6,e6,c6,c6,c6,a#,c6,g,g,c6,f6,e6,c6"},{"name":"GhostBusters","rtttl":"GhostBusters:b=120,o=5,d=8:16c6,16c6,e6,c6,d6,a#,32c6,32c6,c6,a#,c6"},{"name":"Halloween","rtttl":"Halloween:b=120,o=5,d=8:d6,g,g,d6,g,g,d6,g,d#6,g,d6,g,g,d6,g,g,d6,g,d#6,g,c#6,f#,f#,c#6,f#,f#,c#6,f#,d6,f#,c#6,f#,f#,c#6,f#,f#,c#6,f#,d6,f#"},{"name":"Heman","rtttl":"Heman:b=120,o=5,d=8:g,g,g,4g,4e,g,a,g,f,4g,4c,g,a,g,f,4g,4e,c,2d.,4e.,4a,4c,e,f#,e,d,4e,4a,e,f#,e,d,4e,4a,g,2a"},{"name":"Hitchcock","rtttl":"Hitchcock:b=120,o=5,d=8:c,f4,f,32g,f,e,d,e,f,g,c,f4,f,32g,f,e,d,e,f,g,c,f4,g#,c6,a#,g#,c6,d#6,c#6,c6,d#6,g6,f6,e6,c#6,c6,a#,g#,g,f4"},{"name":"IfIWereaRichMan","rtttl":"IfIWereaRichMan:b=120,o=5,d=8:g,f,g,f,e,4c,e,f,g,f,g,f,e,f,g,a,a#,a,a#,a,2g.,4g#,4g,4f#,4f,d#,d,c,d,4d#,d#,d,c,d,4d#,4c,4g"},{"name":"ItchyandScratchy","rtttl":"ItchyandScratchy:b=120,o=5,d=8:c6,a,c6,a6,c6,a,c6,a,c6,a6,c6,d6,e6,e6,f6,g6,d6,c6,4d6,f6,4a#6,4a6,2c7"},{"name":"JesusChristSuper","rtttl":"JesusChristSuper:b=120,o=5,d=8:f,d,2a#4,4g,d#,2a#4,4g#,f,g#,4g,f,d#,4f,d,4a#4."},{"name":"JingleBells","rtttl":"JingleBells:b=120,o=5,d=8:b,b,b,b,b,b,b,d6,g.,a,2b.,c6,c6,c6.,c6,c6,b,b,b,b,b,a,a,b,2a,2d6"},{"name":"Kiss","rtttl":"Kiss:b=120,o=5,d=8:d4,e4,f4.,g4,f4,e4,d4,c4,2d4,d4,c4,2d4,d4,e4,f4.,g4,f4,e4,c4,e4,2d4."},{"name":"KnightRider","rtttl":"KnightRider:b=120,o=5,d=8:16e,f,e,b,16e6,f6,e6,b,16e,f,e,16b,16e6,4d6,16e,f,e,b,16e6,f6,e6,b,16e,f,e,16b,16e6,4f6"},{"name":"LedZepelinStairw","rtttl":"LedZepelinStairw:b=120,o=5,d=8:a4,c,e,a,b,e,c,b,c6,e,c,c6,f#,d,a4,f#,e.,16c,a4,4e,c,a4,e,g4,a4,4a4"},{"name":"Letitbe","rtttl":"Letitbe:b=120,o=5,d=8:16e6,d6,4c6,16e6,g6,a6,g6.,16g6,g6,e6,16d6,c6,16a,g,4e6.,e6,16e6,f6.,e6,e6,d6,16e6,16d6,d6,2c6."},{"name":"LightMyFire","rtttl":"LightMyFire:b=120,o=5,d=8:b,16g,16a,b,d6,c6,b,a,g,a,16f,16a,c6,f6,16d6,16c6,16a#,16g,g#,g,g#,16g,16a,b,c#6,16b,16a,16g,16f,e,f,4a"},{"name":"Macarena","rtttl":"Macarena:b=120,o=5,d=8:f,f,f,4f,f,f,f,f,f,f,f,a,c,c,4f,f,f,4f,f,f,f,f,f,f,d,c,4f,f,f,4f,f,f,f,f,f,f,f,a,2c6.,4a,c6,a,f"},{"name":"MagicRoundabout","rtttl":"MagicRoundabout:b=120,o=5,d=8:4c6,c6,c6,4g,4g,4a,a,a,2f,4a#,a,a,4f,f.,4b.,b,b,2g"},{"name":"MissionImpossibl","rtttl":"MissionImpossibl:b=120,o=5,d=8:32d,32d#,32d,32d#,32d,32d#,32d,32d#,32d,32d,32d#,32e,32f,32f#,32g,g,g,a#,c6,g,g,f,f#,g,g,a#,c6,g,g,f,f#,a#,g,2d,a#,g,2c#,a#,g,2c,a#4,c"},{"name":"Napoli","rtttl":"Napoli:b=120,o=5,d=8:f.,g.,g#.,a#.,c.,g#,c,c.,a#.,c.,c#.,a#.,c#.,a#.,f,f.,f.,g.,g#.,g.,f.,g.,c,c.,a#.,c.,a#.,g#.,g.,g#,f."},{"name":"NewYear","rtttl":"NewYear:b=120,o=5,d=8:a4,4d.,d,4d,4f#,4e.,d,4e,f#,e,4d.,d,4f#,4a,2b.,4b,4a.,f#,4f#,4d,4e.,d,4e,f#,e,4d.,b4,4b4,4a4,2d"},{"name":"OhLittleStartofB","rtttl":"OhLittleStartofB:b=120,o=5,d=8:16c.,f,f,4f,4g,a,g,a,a#,c6.,4a,4a#,a,16f.,g.,g,2f.,16c.,f,f,4f,4g,a,g,a,a#,c6.,4a,4a#,a,16f.,g.,g,2f."},{"name":"OnIlckleyMoor","rtttl":"OnIlckleyMoor:b=120,o=5,d=8:d,g.,16g,g,d,4g,a,b.,16b,b,a,4b,b,4a,4g,4g,4f#,2g"},{"name":"Pager","rtttl":"Pager:b=120,o=5,d=8:d6,2d6,d6,2d6,d6,2d6."},{"name":"Pingu","rtttl":"Pingu:b=120,o=5,d=8:g,e,f,e,d,g,e,f,a,g,a,c7,b,a,g,c7,g,f,e,f,e,d,g,g,f,e,g,c7,c"},{"name":"Popeye","rtttl":"Popeye:b=120,o=5,d=8:a,c,c,c,4a#,a,4c,c,d,a#,d,4f,d,2c,c,d,a#,d,f,e,d,c,d,c,a,f,a,c,d,c,4a#,g,2f"},{"name":"PostmanPat","rtttl":"PostmanPat:b=120,o=5,d=8:f#,a,b,f#,a,b,f#,a,b,d6,d6,c#6,c#6,a,4b.,32f#,g,a,b,g,f#.,e,32f#,g,a,32b.,32b.,g,f#.,e,32f#,g,a,b,g,f#,e,d,c#,2d"},{"name":"RhubarbandCustar","rtttl":"RhubarbandCustar:b=120,o=5,d=8:e,f,g,4d#.,e,f,g,4d#.,e,f,g,4a#,a#,2g.,e,f,g,4d#.,e,f,g,4d#.,4e,e,4d,d,2c."},{"name":"RichMansWorld","rtttl":"RichMansWorld:b=120,o=5,d=8:e,e,e,e,e,e,16e,16a,16c,16e,d#,d#,d#,d#,d#,d#,16f,16a,16c,16d#,4d,c,a,c,4c,2a,32a,32c,32e,a6"},{"name":"RingHigh","rtttl":"RingHigh:b=120,o=5,d=8:b,d,b,d,b,d,b,d,d,f,d,f,d,f,d,f,f,a,f,a,f,a,f,a."},{"name":"RingLow","rtttl":"RingLow:b=120,o=5,d=8:b4,d,b4,d,b4,d,b4,d,d,f,d,f,d,f,d,f,f,a,f,a,f,a,f,a"},{"name":"Rugrats","rtttl":"Rugrats:b=120,o=5,d=8:c,d,e,f.,g.,a,a,g,f,e.,d.,c,c,d,e,d.,c.,b6,b6,c,d,c.,b6.,a6,c,d,e,f.,g.,a,a,g,f,e.,d.,c,c,d,e,d.,c.,b6"},{"name":"RuleBritania","rtttl":"RuleBritania:b=120,o=5,d=8:e.,e,f,4f,e,f.,16e,d.,16c,2b4,4g,4f,16e,16c,16f,16d,g,f,4e,d.,16c,4c"},{"name":"Scale","rtttl":"Scale:b=120,o=5,d=8:c,d,e,f,g,a,b,c6,b,a,g,f,e,d,c"},{"name":"Scarlet","rtttl":"Scarlet:b=120,o=5,d=8:16d6,16a,16a#,16d#6,16d,32d,16e,32d,16e,f,g,32a.,32a#.,32g.,a.,16a,32a.,32a#.,32g.,a"},{"name":"ScoobyDoo","rtttl":"ScoobyDoo:b=120,o=5,d=8:e,e,d,d,2c,d,4e,2a,a,4b,4g,4e,d,4c,d,2e,e,e,d,d,2c,d,4f,2a,a,4b,4g,4e,d,2c"},{"name":"Simpsons","rtttl":"Simpsons:b=120,o=5,d=8:c6.,4e6,4f#6,a6,4g6.,4e6,4c6,a,f#,f#,f#,2g,f#,f#,f#,g,4a#.,c6,c6,c6,4c6"},{"name":"Soap","rtttl":"Soap:b=120,o=5,d=8:g,a,c6,a,4c6,a,g,e,c,4g,a,c6,4b,a,g,e,c#,a,c6,a,g,a,g,e,4c"},{"name":"SouthPark","rtttl":"SouthPark:b=120,o=5,d=8:e,e,e,16e,e,16e,e,e,e,e,e,16e,e,g,g,4g,16b,16b,b,e,a#,16g,16g,g,16f#,16f#,f#,e"},{"name":"Spiderman","rtttl":"Spiderman:b=120,o=5,d=8:c,d#,g.,f#,d#,c.,c,d#,g,g#,g,f#,d#,c.,f,g#,c7.,a#,g#,f.,c,d#,g.,f#,d#,c,g#,2g,f#,f#,d#,f,d#,2c"},{"name":"StarTrek","rtttl":"StarTrek:b=120,o=5,d=8:f.,a#,4d#6.,d6,a#.,g.,c6.,4f6"},{"name":"TakeOnMe","rtttl":"TakeOnMe:b=120,o=5,d=8:f#,f#,f#,d,b4,e,e,e,g#,g#,a,b,a,a,a,e,d,f#,f#,f#,e,e,f#,e,f#,f#,f#,d,b4,e,e,e,g#,g#,a,b,a,a,a,e,d,f#,f#,f#,e,e"},{"name":"TeenageTurtles","rtttl":"TeenageTurtles:b=120,o=5,d=8:g,a,g,a,g,16a,g.,a,a#,c,a#,c,a#,16c,a#.,c,d#,f,d#,f,d#,16f,d#.,f,16c,16c,16c,16c,a#,4c,16c7,16c7,16c7"},{"name":"TeleTubbies","rtttl":"TeleTubbies:b=120,o=5,d=8:16g.,16g,e,4g.,4a,2f.,16g.,16g,e,4g.,2d.,16g.,16g,e,4g.,4a,2f.,2g,2b,2c6."},{"name":"TheATeam","rtttl":"TheATeam:b=120,o=5,d=8:4d#6,a#,2d#6,g#,4a#,4d#.,16g,16a#,d#6,a#,f6,2d#6,c#6.,16c6,16a#,g#.,2a#."},{"name":"Timetosaygoodbye","rtttl":"Timetosaygoodbye:b=120,o=5,d=8:c,d,e,d,e,f#,g,f#,g,a,g,e,a,b,4c6,4b"},{"name":"Titanic","rtttl":"Titanic:b=120,o=5,d=8:c,d,2e.,d,c,d,g,2g,f,e,4c,2a,g,f,16d,16e,2d,c,d,2e.,d,c,d,g,2g,e,g,2a,2g,16d,16e,2d."},{"name":"ToTheDumpToTheDu","rtttl":"ToTheDumpToTheDu:b=120,o=5,d=8:c,c,4c,c,c,4c,c,c,f,g,4a,c,c,4c,c,c,4c,a,a,g,e,4c,c,c,4c,c,c,4c,c,c,f,g,4a,f,a,1c6,a,g,f,a.,f"},{"name":"Toccata","rtttl":"Toccata:b=120,o=5,d=8:a,g,1a,g,f,e,d,2c#,2d,a,g,1a,e.,4f,2c#,2d"},{"name":"Tones","rtttl":"Tones:b=120,o=5,d=8:b,b,g,g,d6,d6,d,d."},{"name":"TrimPhone","rtttl":"TrimPhone:b=120,o=5,d=8:a,b,a,b,a,b,a,a,b,a,b,a,b,a,b,a."},{"name":"USANationalAnthe","rtttl":"USANationalAnthe:b=120,o=5,d=8:e.,d,4c,4e,4g,4c6.,e6.,d6,4c6,4e,4f#,4g.,4g,4e6.,d6,4c6,2b,a,4b,c6.,4c6,4g,4e,4c"},{"name":"Verve","rtttl":"Verve:b=120,o=5,d=8:b4,d,b4,c,a4,c,f,c,f,e,c,e,b4,d,b4,c,a4,c,f,c,f,e,c,e"},{"name":"WalkofLife","rtttl":"WalkofLife:b=120,o=5,d=8:4g.,4g,d,e,4g,e,4d,4c.,4c,d,e,4g.,4g,d,e,4g,e,4d,4c.,4c"},{"name":"Wannabe","rtttl":"Wannabe:b=120,o=5,d=8:16g,16g,16g,16g,g,a,g,e,16c,16d,16c,d,d,c,4e,g,g,g,a,g,e,4c6,c6,b,g,a,16b,16a,4g"},{"name":"WeWishyouaMerryC","rtttl":"WeWishyouaMerryC:b=120,o=5,d=8:4d,4g,g,a,g,f#,4e,4c,4e,4a,a,b,a,g,4f#,4d,4f#,4b,b,c6,b,a,4g,4e,4d,4e,4a,4f#,2g"},{"name":"WhileShepardsWat","rtttl":"WhileShepardsWat:b=120,o=5,d=8:4a,a,g.,4f,a#.,a#.,a.,4g,a.,c6.,c6.,b,2c6.,4a,c6.,4a#,a.,4g,f.,4e,4a,4g,f.,f.,e.,2f."},{"name":"Winnethepooh","rtttl":"Winnethepooh:b=120,o=5,d=8:e,16d,e,d,e,16d,e,d,c,16c,a#,16a#,a,16a,g,f,e,d,d#,e,16d,e,d,e,16d,e,d,c,16c,a#,16a#,a,16a,g,2f"},{"name":"WolfWhistle","rtttl":"WolfWhistle:b=120,o=5,d=8:a4,a#4,b4,c,c#,d,d#,e,f,f#,g,g#,a,a#,b,c6,c#6,d6,d#6,e6,f6,a4,a#4,b4,c,c#,d,d#,e,f,f#,g,g#,a,a#,b,a#,a,g#,g,f#,f,e,d#,d,c#,c,b4,a#4,a4"},{"name":"Wombles","rtttl":"Wombles:b=120,o=5,d=8:c,16d,f,f,16d,c,c,16d,f,4a,16a,a#,16a,g,a,16g,f,g,16d,f,4e,c,16d,f,f,16d,c,c,16d,f,4a,a#,16a,g,a,16g,f,g,16d,f"}];
+    let tuneStudio = { notes: [], costs: [], settings: null, start: 0, end: 0, bpmOverride: null };
+    let tunePlayer = { ctx: null, osc: null, gain: null, playing: false, startedAt: 0, offsetMs: 0, timeline: [], totalMs: 0, raf: 0 };
+    function initTuneStudio() {
+      const select = document.getElementById('tune_preset');
+      if (!select || select.options.length > 1) return;
+      TUNE_PRESETS.forEach((p, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = p.name; select.appendChild(o); });
+      const strip = document.getElementById('tune_strip');
+      let dragging = false;
+      const pick = ev => {
+        const rect = strip.getBoundingClientRect();
+        const x = (ev.clientX - rect.left) / rect.width;
+        const total = tuneStudio.costs.reduce((a, b) => a + b, 0);
+        let acc = 0, idx = 0;
+        while (idx < tuneStudio.costs.length && (acc + tuneStudio.costs[idx] / 2) / Math.max(total, 1) < x) acc += tuneStudio.costs[idx++];
+        tuneStudioSetStart(Math.min(idx, Math.max(0, tuneStudio.notes.length - 1)));
+      };
+      strip.addEventListener('pointerdown', ev => { dragging = true; strip.setPointerCapture(ev.pointerId); pick(ev); });
+      strip.addEventListener('pointermove', ev => { if (dragging) pick(ev); });
+      strip.addEventListener('pointerup', () => { dragging = false; });
+    }
+    function loadTunePreset() {
+      const i = document.getElementById('tune_preset').value;
+      if (i === '') return;
+      document.getElementById('tune_input').value = TUNE_PRESETS[Number(i)].rtttl;
+      tuneStudioStop(); tuneStudio.start = 0; tuneStudio.bpmOverride = null; tuneStudioUpdate();
+    }
+    function tuneStudioUpdate() {
+      initTuneStudio();
+      const text = document.getElementById('tune_input')?.value || '';
+      const bpmInput = document.getElementById('tune_bpm');
+      const defaults = { b: Number(bpmInput?.value) || 120, o: 5, d: Number(document.getElementById('tune_default_len')?.value) || 8 };
+      const parsed = tuneParse(text, defaults);
+      // A tempo typed by the user overrides the tune's own header until new text is pasted.
+      if (tuneStudio.bpmOverride) parsed.settings.b = Math.max(40, Math.min(255, tuneStudio.bpmOverride));
+      else if (bpmInput) bpmInput.value = parsed.settings.b;
+      const shift = Math.round(Number(document.getElementById('tune_transpose')?.value) || 0);
+      let notes = parsed.notes.map(n => tuneTranspose(n, shift));
+      const unplayable = notes.filter(n => !tunePlayable(n)).length;
+      if (unplayable) parsed.issues.add(`${unplayable} note(s) outside D#3-D7 skipped; try transposing`);
+      notes = notes.filter(tunePlayable);
+      tuneStudio = { ...tuneStudio, notes, settings: parsed.settings, costs: notes.map(n => tuneNoteEntries(n, parsed.settings.b).length) };
+      const slider = document.getElementById('tune_window_start');
+      if (slider) { slider.max = String(Math.max(0, notes.length - 1)); }
+      tuneStudio.start = Math.min(tuneStudio.start, Math.max(0, notes.length - 1));
+      document.getElementById('tune_issues').textContent = [...parsed.issues].join(' · ');
+      tuneStudioSetStart(tuneStudio.start);
+    }
+    function tuneStudioSetStart(start) {
+      tuneStudio.start = Math.max(0, Math.min(start, Math.max(0, tuneStudio.notes.length - 1)));
+      tuneStudio.end = tuneWindowEnd(tuneStudio.costs, tuneStudio.start);
+      const slider = document.getElementById('tune_window_start');
+      if (slider) slider.value = String(tuneStudio.start);
+      const windowNotes = tuneStudio.notes.slice(tuneStudio.start, tuneStudio.end);
+      const used = tuneStudio.costs.slice(tuneStudio.start, tuneStudio.end).reduce((a, b) => a + b, 0);
+      const seconds = windowNotes.reduce((a, n) => a + tuneNoteMs(n, tuneStudio.settings?.b || 120), 0) / 1000;
+      const summary = document.getElementById('tune_summary');
+      if (summary) summary.textContent = tuneStudio.notes.length
+        ? `Window: notes ${tuneStudio.start + 1}–${tuneStudio.end} of ${tuneStudio.notes.length} · ${used}/${TUNE_ENTRIES} entries · ${seconds.toFixed(1)} s` +
+          (tuneStudio.end - tuneStudio.start < tuneStudio.notes.length ? ' · drag the window to choose the part that plays' : ' · the whole tune fits')
+        : 'Paste a tune to begin.';
+      const output = document.getElementById('tune_output');
+      if (output) output.value = windowNotes.length ? tuneToRtttl(tuneStudio.settings, windowNotes) : '';
+      if (tunePlayer.playing) tuneStudioRestart(); else drawTuneStrip(-1);
+    }
+    function drawTuneStrip(playheadNote) {
+      const canvas = document.getElementById('tune_strip');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      const total = tuneStudio.costs.reduce((a, b) => a + b, 0);
+      if (!total) return;
+      let x = 0;
+      const pitches = tuneStudio.notes.filter(n => n.semi !== null).map(n => n.oct * 12 + n.semi);
+      const lo = Math.min(...pitches), span = Math.max(1, Math.max(...pitches) - lo);
+      tuneStudio.notes.forEach((n, i) => {
+        const bw = tuneStudio.costs[i] / total * w;
+        const inWindow = i >= tuneStudio.start && i < tuneStudio.end;
+        const pitch = n.semi === null ? 0 : (n.oct * 12 + n.semi - lo) / span;
+        const y = n.semi === null ? h - 8 : h - 8 - pitch * (h - 20);
+        ctx.fillStyle = i === playheadNote ? '#fde047' : inWindow ? (n.semi === null ? '#475569' : '#a855f7') : 'rgba(148,163,184,0.25)';
+        ctx.fillRect(x + 0.5, y - 6, Math.max(1, bw - 1), n.semi === null ? 2 : 10);
+        x += bw;
+      });
+      const before = tuneStudio.costs.slice(0, tuneStudio.start).reduce((a, b) => a + b, 0);
+      const inside = tuneStudio.costs.slice(tuneStudio.start, tuneStudio.end).reduce((a, b) => a + b, 0);
+      ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 2;
+      ctx.strokeRect(before / total * w + 1, 1, inside / total * w - 2, h - 2);
+    }
+    function tuneStudioTimeline() {
+      const bpm = tuneStudio.settings?.b || 120, timeline = [];
+      let t = 0;
+      for (let i = tuneStudio.start; i < tuneStudio.end; i++) {
+        const sounds = tuneEntriesToSound(tuneNoteEntries(tuneStudio.notes[i], bpm));
+        for (const s of sounds) { timeline.push({ note: i, freq: s.freq, at: t, ms: s.ms }); t += s.ms; }
+      }
+      return { timeline, totalMs: t };
+    }
+    function tuneStudioStop() {
+      if (tunePlayer.osc) { try { tunePlayer.osc.stop(); } catch (_) {} tunePlayer.osc = null; }
+      cancelAnimationFrame(tunePlayer.raf);
+      tunePlayer.playing = false; tunePlayer.offsetMs = 0;
+      const btn = document.getElementById('tune_play_btn'); if (btn) btn.textContent = '▶ Play';
+      drawTuneStrip(-1);
+    }
+    function tuneStudioPlay(fromMs) {
+      if (!tuneStudio.notes.length) return;
+      const { timeline, totalMs } = tuneStudioTimeline();
+      if (!timeline.length) return;
+      if (!tunePlayer.ctx) tunePlayer.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = tunePlayer.ctx;
+      ctx.resume();
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = 'square'; gain.gain.value = 0;
+      osc.connect(gain).connect(ctx.destination);
+      const t0 = ctx.currentTime + 0.05 - fromMs / 1000;
+      for (const ev of timeline) {
+        const at = t0 + ev.at / 1000, end = at + ev.ms / 1000;
+        if (end <= ctx.currentTime) continue;
+        if (ev.freq) { osc.frequency.setValueAtTime(ev.freq, Math.max(at, ctx.currentTime)); gain.gain.setValueAtTime(0.08, Math.max(at, ctx.currentTime)); }
+        else gain.gain.setValueAtTime(0, Math.max(at, ctx.currentTime));
+        gain.gain.setValueAtTime(0, end - 0.002);
+      }
+      osc.start(); osc.stop(t0 + totalMs / 1000 + 0.05);
+      Object.assign(tunePlayer, { osc, gain, playing: true, startedAt: t0, timeline, totalMs });
+      const btn = document.getElementById('tune_play_btn'); if (btn) btn.textContent = '⏸ Pause';
+      const tick = () => {
+        if (!tunePlayer.playing) return;
+        const ms = (ctx.currentTime - tunePlayer.startedAt) * 1000;
+        if (ms >= totalMs) {
+          tuneStudioStop();
+          if (document.getElementById('tune_loop')?.checked) tuneStudioPlay(0);
+          return;
+        }
+        const ev = timeline.find(e => ms >= e.at && ms < e.at + e.ms);
+        drawTuneStrip(ev ? ev.note : -1);
+        tunePlayer.raf = requestAnimationFrame(tick);
+      };
+      tunePlayer.raf = requestAnimationFrame(tick);
+    }
+    function tuneStudioPlayPause() {
+      if (tunePlayer.playing) {
+        const ms = (tunePlayer.ctx.currentTime - tunePlayer.startedAt) * 1000;
+        tuneStudioStop(); tunePlayer.offsetMs = ms;
+        return;
+      }
+      tuneStudioPlay(tunePlayer.offsetMs || 0);
+    }
+    function tuneStudioRestart() { const wasPlaying = tunePlayer.playing; tuneStudioStop(); if (wasPlaying) tuneStudioPlay(0); }
+    function copyTuneOutput() {
+      const out = document.getElementById('tune_output');
+      if (out?.value) navigator.clipboard?.writeText(out.value);
+    }
+    function currentTuneHex() {
+      const s = tuneStudio.settings;
+      if (!s || tuneStudio.end <= tuneStudio.start) return null;
+      const entries = tuneStudio.notes.slice(tuneStudio.start, tuneStudio.end).flatMap(n => tuneNoteEntries(n, s.b));
+      return Array.from(tuneBytesFor(s, entries), b => b.toString(16).padStart(2, '0')).join('');
+    }
+    async function sendTuneToEscs() {
+      const hex = currentTuneHex();
+      const status = document.getElementById('tune_status');
+      if (!hex) { if (status) status.textContent = 'Paste a tune first.'; return; }
+      const target = document.getElementById('tune_target')?.value || 'all';
+      if (status) status.textContent = 'Sending tune… keep the flywheels stopped.';
+      escSettingsPending = 'tune';
+      await sendSerialCommand(`esc_tune ${target} ${hex}`);
+    }
+    function playEscTune(index) {
+      const bytes = escSettingsRead[index]?.tune;
+      if (!bytes) return;
+      tuneStudioStop();
+      const sounds = tuneEntriesToSound(tuneBytesToEntries(bytes));
+      if (!tunePlayer.ctx) tunePlayer.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = tunePlayer.ctx; ctx.resume();
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = 'square'; gain.gain.value = 0; osc.connect(gain).connect(ctx.destination);
+      let t = ctx.currentTime + 0.05;
+      for (const s of sounds) {
+        if (s.freq) { osc.frequency.setValueAtTime(s.freq, t); gain.gain.setValueAtTime(0.08, t); } else gain.gain.setValueAtTime(0, t);
+        t += s.ms / 1000; gain.gain.setValueAtTime(0, t - 0.002);
+      }
+      osc.start(); osc.stop(t + 0.05);
+    }
+
+    // ---- AM32 settings over the blaster (esc_settings / esc_set / esc_tune) ----
+    let escSettingsRead = [null, null], escSettingsPending = null;
+    function parseEscSettingsHex(hex) {
+      const bytes = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(2 * i, 2), 16);
+      return { bytes, version: `${bytes[3]}.${String(bytes[4]).padStart(2, '0')}`, eepromVersion: bytes[1],
+        coast: bytes[13] === 1, dirReversed: bytes[17] === 1, volume: bytes[30] > 11 ? 5 : bytes[30],
+        tune: bytes.length >= 176 ? bytes.slice(48, 176) : null };
+    }
+    function showEscSettings() {
+      escSettingsRead.forEach((s, i) => {
+        const n = i + 1, info = document.getElementById(`esc_cfg_m${n}_info`);
+        if (!s) { if (info) info.textContent = 'Not read'; return; }
+        const tunePresent = s.tune && s.tune[0] !== 0xFF;
+        if (info) info.textContent = `AM32 ${s.version} · EEPROM v${s.eepromVersion} · ${tunePresent ? 'custom startup tune' : 'default startup beep'}`;
+        document.getElementById(`esc_cfg_m${n}_coast`).checked = s.coast;
+        document.getElementById(`esc_cfg_m${n}_dir`).value = s.dirReversed ? '1' : '0';
+        document.getElementById(`esc_cfg_m${n}_volume`).value = String(s.volume);
+        document.getElementById(`esc_cfg_m${n}_volume_val`).textContent = String(s.volume);
+      });
+      updateFreewheelCoastWarning();
+      const tunes = document.getElementById('tune_esc_tunes');
+      if (tunes) {
+        tunes.innerHTML = '';
+        escSettingsRead.forEach((s, i) => {
+          if (!s?.tune || s.tune[0] === 0xFF) return;
+          const b = document.createElement('button');
+          b.className = 'preset-btn'; b.textContent = `▶ ESC ${i + 1} tune`; b.onclick = () => playEscTune(i);
+          tunes.appendChild(b);
+        });
+      }
+    }
+    async function readEscSettings() {
+      const status = document.getElementById('esc_cfg_status');
+      if (status) status.textContent = 'Reading through passthrough… the motors stop for a few seconds.';
+      escSettingsPending = 'read';
+      await sendSerialCommand('esc_settings');
+    }
+    async function applyEscSettings() {
+      const status = document.getElementById('esc_cfg_status');
+      const settingsFor = n => `coast ${document.getElementById(`esc_cfg_m${n}_coast`).checked ? 1 : 0} ` +
+        `volume ${document.getElementById(`esc_cfg_m${n}_volume`).value} dir ${document.getElementById(`esc_cfg_m${n}_dir`).value}`;
+      const a = settingsFor(1), b = settingsFor(2);
+      escSettingsPending = 'apply';
+      if (status) status.textContent = 'Writing settings over DShot… keep the flywheels stopped.';
+      if (a === b) await sendSerialCommand(`esc_set all ${a}`);
+      else { escSettingsQueue = [`esc_set 2 ${b}`]; await sendSerialCommand(`esc_set 1 ${a}`); }
+    }
+    let escSettingsQueue = [];
+    function handleEscSettingsLine(line) {
+      if (line.startsWith('ESC_SETTINGS:')) {
+        const status = document.getElementById('esc_cfg_status');
+        const m = /^ESC_SETTINGS:([12]):([0-9A-F]+):([0-9A-F]+)$/i.exec(line.trim());
+        if (m) { escSettingsRead[Number(m[1]) - 1] = parseEscSettingsHex(m[3]); showEscSettings(); }
+        else if (/^ESC_SETTINGS:done/.test(line)) { if (status && escSettingsPending === 'read') status.textContent = escSettingsRead.some(Boolean) ? 'Settings read from the ESCs.' : 'No AM32 settings could be read.'; escSettingsPending = null; }
+        else if (status) status.textContent = line.replace('ESC_SETTINGS:', 'Read: ');
+        return true;
+      }
+      if (line.startsWith('ESC_PROG:')) {
+        const text = line.slice(9).trim();
+        const status = document.getElementById(escSettingsPending === 'tune' ? 'tune_status' : 'esc_cfg_status');
+        if (text === 'done') {
+          if (escSettingsQueue.length) { sendSerialCommand(escSettingsQueue.shift()); return true; }
+          if (status) status.textContent = escSettingsPending === 'tune'
+            ? 'Tune written. Power-cycle the ESCs to hear it.' : 'Settings written. Volume applies at the next ESC power-up.';
+          escSettingsPending = null;
+        } else if (text.startsWith('busy') || text.startsWith('error')) {
+          escSettingsQueue = [];
+          if (status) status.textContent = 'Not written: ' + text.replace(/^(busy|error)\s*/, '');
+          escSettingsPending = null;
+        } else if (status && text.startsWith('started')) status.textContent = 'Writing… keep the flywheels stopped.';
+        return true;
+      }
+      return false;
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTuneStudio);
+    else setTimeout(initTuneStudio, 0);
 
     function captureTelemetryPoint(point, relTime, motorIndex) {
       const isM1 = motorIndex === 1;
@@ -8110,6 +8760,8 @@ function updateWriteButtonText() {
         estimatedCurrent: isM1 ? point.estimatedCurrent1 : point.estimatedCurrent2,
         measuredCurrent: point.escTelemetry?.motors[motorIndex-1]?.averageA ?? null,
         measuredPeakCurrent: point.escTelemetry?.motors[motorIndex-1]?.peakA ?? null,
+        escDuty: point.escTelemetry?.motors[motorIndex-1]?.duty ?? null,
+        escSource: point.escTelemetry?.motors[motorIndex-1]?.source ?? null,
         escVoltage: point.escTelemetry?.motors[motorIndex-1]?.voltageV ?? null,
         escTemperature: point.escTelemetry?.motors[motorIndex-1]?.temperatureC ?? null,
         escFlags: point.escTelemetry?.motors[motorIndex-1]?.flags ?? null,
@@ -8621,8 +9273,15 @@ function updateWriteButtonText() {
       }
     }
 
+    function updateFreewheelCoastWarning() {
+      const warn = document.getElementById('freewheel_coast_warning');
+      const freewheel = document.getElementById('set_freewheel')?.checked;
+      const read = (typeof escSettingsRead !== 'undefined') ? escSettingsRead.filter(Boolean) : [];
+      if (warn) warn.style.display = freewheel && read.length && read.some(s => !s.coast) ? '' : 'none';
+    }
     async function toggleFreewheel(enabled) {
       const checkbox = document.getElementById('set_freewheel') || document.getElementById('freewheel_toggle');
+      setTimeout(updateFreewheelCoastWarning, 0);
       if (checkbox && typeof enabled === 'boolean') {
         checkbox.checked = enabled;
       }
@@ -8730,6 +9389,7 @@ function updateWriteButtonText() {
     // Parse incoming lines
     function parseSerialLine(line) {
       if (consumeEscTelemetry(line)) return;
+      if (handleEscSettingsLine(line)) return;
       if (consumeLaunchComparisonLine(line)) return;
       handleSerialCommandResponse(line);
       if (handleLaunchCurveSerialResponse(line)) return;
@@ -10891,7 +11551,7 @@ function updateWriteButtonText() {
       if (!match) { tuningPacket = null; return true; }
       const [,id,offsetText,totalText,hex] = match;
       const offset=Number(offsetText), total=Number(totalText);
-      if (total<1 || total>=640 || hex.length>128 || hex.length%2 || offset+hex.length/2>total) { tuningPacket=null; return true; }
+      if (total<1 || total>=1024 || hex.length>128 || hex.length%2 || offset+hex.length/2>total) { tuningPacket=null; return true; }
       if (offset===0) tuningPacket={id,total,text:''};
       if (!tuningPacket || tuningPacket.id!==id || tuningPacket.total!==total || tuningPacket.text.length!==offset) { tuningPacket=null; return true; }
       for (let i=0;i<hex.length;i+=2) tuningPacket.text+=String.fromCharCode(parseInt(hex.slice(i,i+2),16));
@@ -11208,7 +11868,7 @@ function updateWriteButtonText() {
     }
     function maybeStartPostTuneDartRecovery(event, resultsPending) {
       const optIn = guidedElement('guided_recovery_after');
-      if (!optIn || !optIn.checked || resultsPending || dartRecovery.active || event.state !== 'saved') return;
+      if (!optIn || !optIn.checked || resultsPending || dartRecovery.active || event.state !== 'saved' || event.scope === 'ff') return;
       if (guidedTuning.postRecoverySession === event.session) return;
       guidedTuning.postRecoverySession = event.session;
       startDartRecoveryTune(recoveryTargetFromUi(), recoveryShotCountFromUi());
@@ -11219,18 +11879,31 @@ function updateWriteButtonText() {
       const setup = guidedElement('guided_setup');
       if (setup) setup.textContent = !status || guidedTuning.disconnected
         ? 'Disconnected or status unavailable. Reconnect and refresh to read the blaster.'
-        : `${['Aerospace','RPM PID','RPM TBH','ESC RPM Target'][status.algo] || 'Unknown controller'} · Throttle rise limit: ${status.stepUp ?? 'unavailable'} / tick · Trajectory: ${['Linear','S-curve','16-knot curve'][status.trajectory] || 'unavailable'} · ${pending ? pending + ' settings pending — write before tuning' : 'No pending settings'}`;
+        : `${['Aerospace','RPM PID','RPM TBH','ESC RPM Target'][status.algo] || 'Unknown controller'} · Throttle rise limit: ${status.stepUp ?? 'unavailable'} / tick · Trajectory: ${['Linear','S-curve','16-knot curve','Phased ramp'][status.trajectory] || 'unavailable'} · ${pending ? pending + ' settings pending — write before tuning' : 'No pending settings'}`;
       const labels = { validated: 'Validated on this blaster', changed: 'Changed since validation', unverified: 'No validation record' };
       for (const [id,field,label] of [['guided_ff_state','ffValidation','FF'],['guided_pid_state','pidValidation','PID']]) {
         const el = guidedElement(id); if (!el) continue;
         el.textContent = `${label} · ${guidedTuning.disconnected ? 'Status unavailable' : labels[status?.[field]] || 'Status unknown'}`;
       }
     }
+    function guidedHistoryText(label, record) {
+      if (!record) return `${label} · Completion history unavailable on this firmware.`;
+      if (record.source === 'factory') return `${label} · Factory ${label} · No tune date or battery measurement.`;
+      if (record.source === 'unknown') return `${label} · Custom or older calibration · Origin and completion date unknown.`;
+      const origin = record.source === 'browser' ? 'Through browser' : 'On blaster · Date/time unavailable';
+      const at = record.at ? new Date(record.at * 1000).toLocaleString() : '';
+      const volts = record.mv ? `${(record.mv / 1000).toFixed(2)} V average (${(record.minMv / 1000).toFixed(2)}–${(record.maxMv / 1000).toFixed(2)} V during stage)` : 'Battery voltage unavailable';
+      return `${label} · ${origin}${at ? ' · ' + at : ''} · ${volts}${record.matches ? '' : ' · Changed since this tune'}${record.pending ? ' · Stage passed, awaiting save' : ''}`;
+    }
     function guidedButtons() {
       guidedElement('guided_start').disabled = guidedTuning.busy || guidedTuning.pending || guidedTuning.disconnected || !guidedTuning.status || guidedTuning.status.algo !== 1;
+      const scope = guidedElement('guided_scope')?.value || 'full';
+      if (scope === 'pid' && !guidedTuning.status?.ffReady) guidedElement('guided_start').disabled = true;
+      for (const id of ['guided_scope','guided_window']) { const el = guidedElement(id); if (el) el.disabled = guidedTuning.busy || guidedTuning.pending || (id === 'guided_window' && scope === 'ff'); }
+      for (const stage of ['ff','pid']) { const el = guidedElement(`guided_${stage}_history`); if (el) el.textContent = guidedTuning.disconnected ? `${stage.toUpperCase()} · Reconnect to read calibration history.` : guidedHistoryText(stage.toUpperCase(), guidedTuning.status?.calibration?.[stage]); }
       guidedElement('guided_cancel').disabled = !guidedTuning.busy || guidedTuning.disconnected;
-      guidedElement('guided_baseline').disabled = guidedTuning.busy || guidedTuning.pending;
-      guidedElement('guided_passes').disabled = guidedTuning.busy || guidedTuning.pending;
+      guidedElement('guided_baseline').disabled = guidedTuning.busy || guidedTuning.pending || scope === 'ff';
+      guidedElement('guided_passes').disabled = guidedTuning.busy || guidedTuning.pending || scope === 'ff';
       guidedElement('guided_export').disabled = !guidedTuning.samples.length && !guidedTuning.results.length && !guidedTuning.events.length;
       renderGuidedResume();
       guidedElement('dart_recovery_start').disabled = guidedTuning.busy || guidedTuning.pending || dartRecovery.active || dartRecovery.tuning || guidedTuning.disconnected;
@@ -11357,9 +12030,26 @@ function updateWriteButtonText() {
       const cells = [guidedLabels[guidedStages.indexOf(result.stage)] || result.stage, result.motor, result.target,
         startLabel, result.pass, result.rpm, `${result.errorPct}%`, `${result.overshootPct}%`, result.riseMs ?? '—', result.settleMs ?? '—',
         Number.isFinite(result.kp) ? result.kp.toFixed(4) : '—', Number.isFinite(result.ki) ? result.ki.toFixed(5) : '—',
-        guidedLimiterSummary(result.lim), result.valid ? 'PASS' : failText];
+        guidedLimiterSummary(result.lim), guidedEscSummary(result.esc), result.valid ? 'PASS' : failText];
       for (const value of cells) { const td = document.createElement('td'); td.textContent = String(value); row.appendChild(td); }
       guidedElement('guided_results').appendChild(row); guidedButtons();
+    }
+    // result.esc = [meanA, peakA, energyJ, minV, steadyV, steadyDutyPct, tempStartC, tempEndC, riseStartK, risePeakK]
+    function guidedEscSummary(esc) {
+      if (!Array.isArray(esc)) return '—';
+      const [, peakA, energyJ, , , , t0, t1, , risePeak] = esc, parts = [];
+      if (Number.isFinite(peakA)) parts.push(`${peakA.toFixed(1)} A`);
+      if (Number.isFinite(energyJ)) parts.push(`${Math.round(energyJ)} J`);
+      if (Number.isFinite(t0) && Number.isFinite(t1)) parts.push(t0 === t1 ? `${t1} °C` : `${t0}→${t1} °C`);
+      if (Number.isFinite(risePeak)) parts.push(`motor +${Math.round(risePeak)} K`);
+      return parts.join(' · ') || '—';
+    }
+    // status.heat = [motor 1 rise K, motor 2 rise K, hotter ESC °C or null]; phase COOL = paused for heat.
+    function guidedCoolingText(event, sinceMs) {
+      const [r1, r2, escC] = Array.isArray(event.heat) ? event.heat : [];
+      const rise = Math.max(Number(r1) || 0, Number(r2) || 0);
+      const waited = Number.isFinite(sinceMs) && Number.isFinite(event.ms) ? Math.max(0, Math.round((event.ms - sinceMs) / 1000)) : 0;
+      return `Cooling before the next launch · motors est. +${rise} K${Number.isFinite(escC) ? ` · ESC ${escC} °C` : ''} · ${waited} s · resumes automatically`;
     }
     function guidedMarkerX(event) {
       if (Number.isFinite(event.stageMs)) return guidedBoardX(event.stageMs);
@@ -11418,8 +12108,9 @@ function updateWriteButtonText() {
       }
       const ffSkipped = ['reuse_check','reused'].includes(event.ffPath);
       document.querySelectorAll('[data-tuning-stage]').forEach((el,i) => {
-        const skipped = i === 0 && ffSkipped;
-        if (i === 0) el.textContent = skipped ? '1 · Measure FF (skipped: existing FF reused)' : '1 · Measure FF';
+        const skipped = (i === 0 && ffSkipped) || (event.scope === 'ff' && i >= 2);
+        if (i === 0) el.textContent = ffSkipped ? '1 · Measure FF (skipped: existing FF reused)' : '1 · Measure FF';
+        if (i >= 2) el.textContent = `${i + 1} · ${['Tune PID','Select PID','Validate PID'][i - 2]}${event.scope === 'ff' ? ' (not run)' : ''}`;
         el.style.color = skipped ? '#64748b' : (event.state === 'saved' || (guidedTuning.busy && i < index) ? '#4ade80' : (guidedTuning.busy && i === index ? '#22d3ee' : '#94a3b8'));
         el.style.fontWeight = i === index ? '700' : '400';
       });
@@ -11427,17 +12118,20 @@ function updateWriteButtonText() {
       const reasons = { measurement_failed:'The measurement did not pass validation.',
         save_failed:'EEPROM commit failed. Prior tune restored.', telemetry_timeout:'Motor telemetry was lost.',
         telemetry_timeout_m1:'Motor 1 telemetry was lost.', telemetry_timeout_m2:'Motor 2 telemetry was lost.', telemetry_timeout_both:'Both motor telemetries were lost.',
-        motor_stalled:'A motor did not spin as expected.', low_voltage:'Battery voltage was too low.', fault_or_timeout:'A fault, transition timeout, or configuration change stopped the run.' };
-      if (event.state === 'running') guidedMessage(`${guidedFfMessage(event) || guidedLabels[index] || 'PID measurement'} · ${event.target.toLocaleString()} RPM · ${event.phase === 'PREP' ? 'Gliding to launch baseline' : event.phase === 'HOLD' ? 'Measuring steady speed' : 'Production launch / settling'} · ${event.stage === 'select_pid' ? 'Candidate' : 'Pass'} ${event.pass || 1} · ${event.done}/${event.total} paired measurements`);
+        motor_stalled:'A motor did not spin as expected.', low_voltage:'Battery voltage was too low.', fault_or_timeout:'A fault, transition timeout, or configuration change stopped the run.',
+        esc_overheat:'An ESC reached 90 °C.', overheat_timeout:'The motors or ESCs did not cool down within 10 minutes.' };
+      if (event.phase === 'COOL' && (!old || old.phase !== 'COOL')) guidedTuning.coolSinceMs = event.ms;
+      if (event.state === 'running' && event.phase === 'COOL') guidedMessage(guidedCoolingText(event, guidedTuning.coolSinceMs));
+      else if (event.state === 'running') guidedMessage(`${guidedFfMessage(event) || guidedLabels[index] || 'PID measurement'} · ${event.target.toLocaleString()} RPM · ${({FF_UP:'Sweeping upward',FF_TOP:'Holding top speed',FF_DOWN:'Sweeping downward',FF_LOW:'Holding low speed',IDENT:'Identifying motor response'})[event.phase] || (event.pidMode === 'verify' ? 'Verifying model gains with launch' : event.phase === 'PREP' ? 'Gliding to launch baseline' : event.phase === 'HOLD' ? 'Measuring steady speed' : 'Production launch / settling')} · ${event.stage === 'select_pid' ? 'Candidate' : 'Pass'} ${event.pass || 1} · ${event.done}/${event.total} paired measurements`);
       else if (event.state === 'gliding') guidedMessage(`${reasons[event.reason] || (event.reason === 'cancelled' ? 'Cancellation requested.' : 'Measurements complete.')} Gliding down; waiting for both motors to stop.`);
-      else if (event.state === 'saved') guidedMessage(resultsPending ? `Profile saved; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : `Both stages passed. The validated feedforward and PID profile is saved on the blaster.${guidedWarnText(event.warn)}`);
+      else if (event.state === 'saved') guidedMessage(resultsPending ? `Profile saved; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : event.scope === 'ff' ? 'FF passed and saved on the blaster. Existing PID gains were retained; tune PID against this FF next.' : `Both stages passed. The validated feedforward and PID profile is saved on the blaster.${guidedWarnText(event.warn)}`);
       else if (event.state === 'cancelled') guidedMessage(`Cancelled (from the configurator or by holding FIRE on the blaster). Glide-down finished and the prior tune is back in use.${guidedResumable(event) ? ' The run\'s progress is kept: continue it below or start over.' : ''}`);
       else if (event.state === 'failed') guidedMessage(`${reasons[event.reason] || 'Tuning failed.'}${event.detail ? ` (${event.detail})` : ''} The prior tune is back in use.${guidedResumable(event) ? ' The run\'s progress is kept: retry or re-tune just this point below, or start over.' : ' Review the results and blaster setup before starting over.'}`);
       else if (event.state === 'complete') guidedMessage(resultsPending ? `Measurement complete; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : 'Measurement complete. Suggestions are available; no automatic save was made.');
       else guidedMessage(event.algo === 1 ? 'Ready. Tune Blaster measures and validates FF, then tunes and validates PID.' : 'Select RPM PID (controller algorithm 1) in settings before tuning.');
       const outcome = guidedElement('guided_outcome');
       if (outcome) {
-        if (event.state === 'saved') outcome.textContent = resultsPending ? 'Profile saved · Receiving remaining results...' : 'FF passed · PID passed · Profile saved on the blaster.';
+        if (event.state === 'saved') outcome.textContent = resultsPending ? 'Profile saved · Receiving remaining results...' : event.scope === 'ff' ? 'FF passed · FF saved · Prior PID gains retained.' : 'FF passed · PID passed · Profile saved on the blaster.';
         else if (event.state === 'failed') outcome.textContent = guidedResumable(event)
           ? 'Run stopped · Prior profile in use · Progress kept: retry or re-tune the failed point, or start over.'
           : 'Run failed · Prior profile restored. Inspect the measurements for the failed stage.';
@@ -11476,11 +12170,16 @@ function updateWriteButtonText() {
           throw new Error('Write your pending motor and launch settings to the blaster before tuning.');
         }
         const passes=Number(guidedElement('guided_passes').value), baseline=guidedElement('guided_baseline').value;
+        const scope=guidedElement('guided_scope')?.value || 'full', windowMs=Number(guidedElement('guided_window')?.value || 300);
+        if (!['full','ff','pid'].includes(scope) || !Number.isInteger(windowMs) || windowMs<100 || windowMs>1000) throw new Error('Choose a valid stage and maximum step window.');
+        if (scope === 'pid' && !previous.ffReady) throw new Error('Run FF tuning first. PID-only requires complete validated FF on this blaster.');
         if (!Number.isInteger(passes) || passes<1 || passes>6 || !['cold','idle'].includes(baseline)) throw new Error('Choose a valid pass count and launch baseline.');
         // Firmware owns one FF measurement/validation/PID sequence; do not pre-save a browser sweep.
         await sendSerialCommand('stream fast');
+        await sendAcknowledgedCommand(`autotune window ${windowMs}`, 'autotune window: ok', 'autotune window: rejected');
+        await sendAcknowledgedCommand(`autotune context ${Math.floor(Date.now()/1000)}`, 'autotune context: ok', 'autotune context: rejected');
         issued=true;
-        await sendSerialCommand(`autotune full ${passes} ${baseline}`);
+        await sendSerialCommand(scope === 'ff' ? 'autotune ff' : `autotune ${scope} ${passes} ${baseline}`);
         const status=await requestGuidedStatus(s => s.session > previous.session || ['running','gliding'].includes(s.state));
         if (status.session === previous.session || !['running','gliding'].includes(status.state)) throw new Error('The blaster did not start tuning. Release triggers, wait for idle, and check the serial log.');
       } catch(error) {
@@ -11512,7 +12211,7 @@ function updateWriteButtonText() {
         text.textContent = `Stopped at ${stageLabel} · ${target} RPM. Everything measured before that is kept (in the blaster's memory until it is powered off). ` +
           (st.resume === 'retune'
             ? (st.resumeStage === 'validate_ff'
-                ? `Retry repeats that check. Re-tune measures the ${target} RPM feedforward point again, then checks it.`
+                ? 'Retry repeats that check. Re-tune measures the complete feedforward curve again, then validates every point.'
                 : `Retry repeats that launch. Re-tune tunes PID at ${target} RPM again, chooses the gain set again, then re-validates every target.`)
             : 'Retry continues from the measurement that stopped.');
       }
@@ -11522,7 +12221,7 @@ function updateWriteButtonText() {
       const retune = guidedElement('guided_resume_retune');
       retune.style.display = st.resume === 'retune' ? '' : 'none';
       retune.disabled = busy;
-      retune.textContent = st.resumeStage === 'validate_ff' ? `Re-measure ${target} RPM FF, then check it` : `Re-tune ${target} RPM, then re-validate`;
+      retune.textContent = st.resumeStage === 'validate_ff' ? 'Re-measure FF curve, then validate all points' : `Re-tune ${target} RPM, then re-validate`;
       guidedElement('guided_resume_discard').disabled = busy;
     }
     async function resumeGuidedTuning(mode) {
@@ -11568,11 +12267,12 @@ function updateWriteButtonText() {
         firmware: (typeof connectedBlasterVersion !== 'undefined' && connectedBlasterVersion) ||
                   document.getElementById('sidebar_connected_version_val')?.textContent?.trim() || null,
         session: st.session ?? null,
-        options: { baseline: guidedElement('guided_baseline')?.value, passes: Number(guidedElement('guided_passes')?.value) },
+        options: { scope: guidedElement('guided_scope')?.value || 'full', identWindowMs: Number(guidedElement('guided_window')?.value || 300), baseline: guidedElement('guided_baseline')?.value, passes: Number(guidedElement('guided_passes')?.value) },
         status: guidedTuning.status, events: guidedTuning.events, results: guidedTuning.results,
         boardConfiguration: boardLaunchConfiguration?.generation === serialConnectionGeneration ? boardLaunchConfiguration : null,
         settingsReadback: {...boardSettingsSnapshot}, simulation: copyComparisonSimulation(),
         stages: guidedTuning.markers, samples: guidedTuning.samples,
+        resultEscFields: 'esc=[meanA, peakA, energyJ, minV, steadyV, steadyDutyPct, tempStartC, tempEndC, riseStartK, risePeakK] from the ESC telemetry over the launch; rise = estimated motor winding temperature rise (model, not a sensor)',
         sampleFields: 'x=s since first board sample; target=firmware ramp reference; launchTarget=final preset; launchStartMs=board-clock origin; launchDurationMs=firmware duration during this sample; tuneTarget/phase/pass/stage=last TUNING status; lim1/lim2=limiter bits; boardConfiguration=readback at its readAt time',
       });
       if (st.state === 'saved' && port?.writable) {
@@ -11866,7 +12566,7 @@ function updateWriteButtonText() {
         fmt(pidSnapshot.simulatorPid.kp), fmt(pidSnapshot.simulatorPid.ki), fmt(pidSnapshot.simulatorPid.kd), fmt(pidSnapshot.simulatorPid.ff)
       ].join(',');
 
-      let csv = "Time (ms),Real Motor 1 (RPM),Real Motor 2 (RPM),Throttle 1,Throttle 2,M1 Target Current (A),M1 Estimated Current (A),M2 Target Current (A),M2 Estimated Current (A),Simulated (RPM),Target RPM,Capture Time ISO,Board M1 Kp,Board M1 Ki,Board M1 Kd,Board M1 FF,Board M2 Kp,Board M2 Ki,Board M2 Kd,Board M2 FF,Manual Tune Kp,Manual Tune Ki,Manual Tune FF,Simulator Kp,Simulator Ki,Simulator Kd,Simulator FF,M1 Measured Current (A),M1 Measured Peak (A),M1 ESC Voltage (V),M1 ESC Temperature (C),M1 ESC Flags,M1 ESC Age (us),M2 Measured Current (A),M2 Measured Peak (A),M2 ESC Voltage (V),M2 ESC Temperature (C),M2 ESC Flags,M2 ESC Age (us)\n";
+      let csv = "Time (ms),Real Motor 1 (RPM),Real Motor 2 (RPM),Throttle 1,Throttle 2,M1 Target Current (A),M1 Estimated Current (A),M2 Target Current (A),M2 Estimated Current (A),Simulated (RPM),Target RPM,Capture Time ISO,Board M1 Kp,Board M1 Ki,Board M1 Kd,Board M1 FF,Board M2 Kp,Board M2 Ki,Board M2 Kd,Board M2 FF,Manual Tune Kp,Manual Tune Ki,Manual Tune FF,Simulator Kp,Simulator Ki,Simulator Kd,Simulator FF,M1 Measured Current (A),M1 Measured Peak (A),M1 ESC Voltage (V),M1 ESC Temperature (C),M1 ESC Flags,M1 ESC Age (us),M2 Measured Current (A),M2 Measured Peak (A),M2 ESC Voltage (V),M2 ESC Temperature (C),M2 ESC Flags,M2 ESC Age (us),M1 ESC Duty (0-2000),M1 Telemetry Source,M2 ESC Duty (0-2000),M2 Telemetry Source\n";
       
       for (let i = 0; i < capturedDataM1.length; i++) {
         const ptM1 = capturedDataM1[i];
@@ -11883,7 +12583,9 @@ function updateWriteButtonText() {
         }
         
         const rowTarget = validCaptureTarget(ptM1.target) || validCaptureTarget(ptM2.target) || validCaptureTarget(pidSnapshot.targetRpm);
-        const escColumns = [ptM1,ptM2].flatMap(p => [p.measuredCurrent,p.measuredPeakCurrent,p.escVoltage,p.escTemperature,p.escFlags,p.escAgeUs]).map(v => v ?? '').join(',');
+        const sourceName = v => v === 2 ? 'DShot' : v === 1 ? 'UART' : '';
+        const escColumns = [ptM1,ptM2].flatMap(p => [p.measuredCurrent,p.measuredPeakCurrent,p.escVoltage,p.escTemperature,p.escFlags,p.escAgeUs])
+          .concat([ptM1,ptM2].flatMap(p => [p.escDuty, sourceName(p.escSource)])).map(v => v ?? '').join(',');
         csv += `${ptM1.x.toFixed(1)},${ptM1.y},${ptM2.y},${ptM1.throttle ?? ''},${ptM2.throttle ?? ''},${ptM1.targetCurrent ?? ''},${ptM1.estimatedCurrent ?? ''},${ptM2.targetCurrent ?? ''},${ptM2.estimatedCurrent ?? ''},${simVal},${Math.round(rowTarget || 0)},${pidColumns},${escColumns}\n`;
       }
       
@@ -15122,7 +15824,7 @@ function updateWriteButtonText() {
       scheduleHudLiveMirror();
     }
 
-    function renderHudCanvas({ forcePreview = false } = {}) {
+    function renderHudCanvas({ forcePreview = false, skipMirror = false } = {}) {
       if (!hudCtx || !hudCursorCtx) return;
 
       hudCtx.fillStyle = '#000';
@@ -15561,7 +16263,7 @@ function updateWriteButtonText() {
       }
 
       updateHudParityViewButtons();
-      if (!forcePreview) scheduleHudLiveMirror();
+      if (!forcePreview && !skipMirror) scheduleHudLiveMirror();
     }
 
     function normalizeHudFrameHex(rawHex) {
@@ -17325,18 +18027,67 @@ function updateWriteButtonText() {
       await readLaunchComparison();
       lpIngestLaunch();
     }
+    async function lpStartTelemetry() {
+      if (!port || !port.writable) { lpSetStatus('Connect the blaster to stream launch telemetry.', 'pending'); return; }
+      try {
+        await sendSerialCommand('stream fast', { requireSuccess: true });
+        logToConsole('Launch telemetry enabled. Capture a launch with USB connected, then Read last launch.');
+      } catch (error) { lpSetStatus('Telemetry failed: ' + error.message, 'crit'); }
+    }
     // Called after any launch read (launch comparison card or planner).
     function lpIngestLaunch() {
       const run = typeof launchComparison !== 'undefined' ? launchComparison : null;
-      if (!run || !Array.isArray(run.samples) || run.samples.length < 5) return;
-      lp.last = { samples: run.samples.map(s => ({ ms: s.ms, rpm1: s.rpm1, rpm2: s.rpm2, thr1: s.thr1, thr2: s.thr2, volts: s.volts, ref: s.ref })),
-                  config: run.config || null };
+      if (!run || !Array.isArray(run.samples)) return;
+      lp.last = run.samples.length ? { source: run.source, samples: run.samples.map(s => ({ ms: s.ms, target: s.target, rpm1: s.rpm1, rpm2: s.rpm2, thr1: s.thr1, thr2: s.thr2, volts: s.volts, ref: s.ref,
+                    shot: s.shot, age1: s.age1, age2: s.age2, lim1: s.lim1, lim2: s.lim2 })),
+                  config: run.config || null, escSamples: lpLaunchCurrentSamples(run) } : null;
       const cfg = run.config;
       if (cfg && Array.isArray(cfg.lockMs) && Number.isFinite(cfg.startMs) && !lp.locks.some(v => v.start === cfg.startMs)) {
         cfg.lockMs.forEach((ms, i) => { if (Number.isFinite(ms) && ms > 0 && ms < 400) lp.locks.push({ start: cfg.startMs, motor: i + 1, ms }); });
         lp.locks = lp.locks.slice(-40); lpSave();
       }
       lp.fit = null; lp.domain = null; lpSyncControls(); lpScheduleRender();
+    }
+    function lpLaunchCurrentSamples(run) {
+      return (run.escSamples || run.samples || []).filter(s => Number.isFinite(s.ms) && s.ms >= 0 && s.ms <= 320).map(s => ({
+        ms: s.ms, motors: [0, 1].map(i => {
+          const m = s.escTelemetry?.motors?.[i];
+          if (!s.escTelemetry?.supported || s.escTelemetry.state !== 2 || !m?.connected || !m.currentValid ||
+              !Number.isFinite(m.averageA) || !Number.isFinite(m.ageUs) || m.ageUs > 20000 || m.ageUs < 0 || (m.flags & 24)) return null;
+          return { currentA: m.averageA, source: m.source };
+        })
+      }));
+    }
+    function lpMeasuredCurrentStats() {
+      const rows = lp.last?.escSamples || [], peaks = [null, null], counts = [0, 0], sources = new Set();
+      let combinedPeak = null, firstMs = null, lastMs = null;
+      for (const row of rows) {
+        const values = [0, 1].map(i => row.motors[i]?.currentA);
+        values.forEach((a, i) => {
+          if (!Number.isFinite(a)) return;
+          peaks[i] = peaks[i] === null ? a : Math.max(peaks[i], a); counts[i]++;
+          sources.add(row.motors[i].source === 2 ? 'DShot' : row.motors[i].source === 1 ? 'UART' : 'ESC');
+          firstMs = firstMs === null ? row.ms : Math.min(firstMs, row.ms);
+          lastMs = lastMs === null ? row.ms : Math.max(lastMs, row.ms);
+        });
+        if (values.every(Number.isFinite)) {
+          const total = values[0] + values[1];
+          combinedPeak = combinedPeak === null ? total : Math.max(combinedPeak, total);
+        }
+      }
+      return { peaks, counts, sources: [...sources], combinedPeak, firstMs, lastMs };
+    }
+    function lpMeasuredCurrentPath(rows, motorIndex, sx, sy) {
+      let d = '', pen = false, lastMs = null;
+      for (const row of rows) {
+        const a = row.motors[motorIndex]?.currentA;
+        if (!Number.isFinite(a)) { pen = false; continue; }
+        // USB samples are discrete observations. Break the trace on invalid data or a >100 ms gap.
+        if (lastMs !== null && (row.ms - lastMs > 100 || row.ms <= lastMs)) pen = false;
+        d += (pen ? 'L' : 'M') + sx(row.ms).toFixed(1) + ' ' + sy(a).toFixed(1);
+        pen = true; lastMs = row.ms;
+      }
+      return d;
     }
     function lpLockStats() {
       const v = lp.locks.map(x => x.ms).sort((a, b) => a - b);
@@ -17635,10 +18386,14 @@ function updateWriteButtonText() {
     function lpRenderCurrent(sim) {
       const svg = document.getElementById('lp_svg_current'), D = lp.domain, G = LP_CUR, s = lp.s;
       [...svg.querySelectorAll(':scope > :not(title)')].forEach(n => n.remove());
-      const top = lpNice(Math.max(s.current_limit_a || 0, sim.peak, 20) * 1.15, 10);
-      const sx = t => G.l + (t / D.x) * (G.w - G.l - G.r), sy = a => G.h - G.b - (a / top) * (G.h - G.t - G.b);
+      const measured = lpMeasuredCurrentStats(), rows = lp.last?.escSamples || [];
+      const measuredValues = rows.flatMap(row => row.motors.map(m => m?.currentA)).filter(Number.isFinite);
+      const top = lpNice(Math.max(s.current_limit_a || 0, sim.peak, ...measured.peaks.filter(Number.isFinite), 20) * 1.15, 10);
+      const bottom = -lpNice(Math.max(0, ...measuredValues.map(a => -a)) * 1.15, 10);
+      const sx = t => G.l + (t / D.x) * (G.w - G.l - G.r), sy = a => G.h - G.b - ((a - bottom) / (top - bottom)) * (G.h - G.t - G.b);
       const step = top > 100 ? 25 : top > 50 ? 20 : 10;
-      for (let a = 0; a <= top; a += step) {
+      for (let a = Math.floor(bottom / step) * step; a <= top; a += step) {
+        if (a < bottom) continue;
         lpNode('line', { x1: G.l, x2: G.w - G.r, y1: sy(a), y2: sy(a), stroke: a ? 'var(--lp-grid)' : 'var(--lp-axis)' }, svg);
         lpNode('text', { x: G.l - 8, y: sy(a) + 4, 'text-anchor': 'end' }, svg, `${a}`);
       }
@@ -17650,12 +18405,41 @@ function updateWriteButtonText() {
       const ampPre = sim.amps.slice(0, lockIdx + 1), ampPost = sim.amps.slice(lockIdx);
       const area = lpPath(post, ampPost, sx, sy) + `L${sx(post[post.length - 1]).toFixed(1)} ${sy(0)}L${sx(post[0]).toFixed(1)} ${sy(0)}Z`;
       lpNode('path', { d: area, fill: 'rgba(139,92,246,0.16)' }, svg);
-      lpNode('path', { d: lpPath(post, ampPost, sx, sy), fill: 'none', stroke: 'var(--lp-pred)', 'stroke-width': 2 }, svg);
+      lpNode('path', { d: lpPath(post, ampPost, sx, sy), fill: 'none', stroke: 'var(--lp-pred)', 'stroke-width': 2, 'stroke-dasharray': '6 4' }, svg);
       lpNode('path', { d: lpPath(pre, ampPre, sx, sy), fill: 'none', stroke: 'var(--lp-pred)', 'stroke-width': 1.5, 'stroke-dasharray': '2 3', opacity: 0.7 }, svg);
       if (lockIdx > 4) lpNode('text', { x: sx(pre[Math.floor(pre.length / 2)]), y: G.t + 10, 'text-anchor': 'middle', class: 'lp-band-label' }, svg, 'startup ≈');
       if (s.current_limit_a > 0) {
         lpNode('line', { x1: G.l, x2: G.w - G.r, y1: sy(s.current_limit_a), y2: sy(s.current_limit_a), stroke: 'var(--lp-warn)', 'stroke-dasharray': '5 4', opacity: 0.8 }, svg);
-        lpNode('text', { x: G.w - G.r - 4, y: sy(s.current_limit_a) - 5, 'text-anchor': 'end', class: 'lp-axis-label' }, svg, `cap ${s.current_limit_a} A`);
+        lpNode('text', { x: G.w - G.r - 4, y: sy(s.current_limit_a) - 5, 'text-anchor': 'end', class: 'lp-axis-label' }, svg, `estimated cap ${s.current_limit_a} A`);
+      }
+      for (const motorIndex of [0, 1]) {
+        const color = motorIndex === 0 ? 'var(--lp-m1)' : 'var(--lp-m2)';
+        lpNode('path', { d: lpMeasuredCurrentPath(rows, motorIndex, sx, sy), fill: 'none', stroke: color,
+          'stroke-width': 2, 'data-measured-motor': motorIndex + 1 }, svg);
+        for (const row of rows) {
+          const a = row.motors[motorIndex]?.currentA;
+          if (Number.isFinite(a)) lpNode('circle', { cx: sx(row.ms), cy: sy(a), r: 1.8, fill: color }, svg);
+        }
+      }
+      const legend = document.getElementById('lp_current_legend');
+      if (legend) {
+        const items = [['Predicted current / motor', 'var(--lp-pred)', true],
+          ['M1 measured ESC current', 'var(--lp-m1)', false], ['M2 measured ESC current', 'var(--lp-m2)', false]];
+        legend.replaceChildren(...items.map(([name, color, dash]) => {
+          const span = document.createElement('span'), key = document.createElement('i');
+          key.style.borderTopColor = color; if (dash) key.className = 'dash'; span.append(key, name); return span;
+        }));
+      }
+      if (measured.firstMs !== null) {
+        const target = lp.last.config?.target;
+        const total = measured.combinedPeak === null ? 'Combined peak unavailable: both ESCs must have a valid sample together.' :
+          `Highest combined sample: ${measured.combinedPeak.toFixed(2)} A.`;
+        lpSetText('lp_measured_note', `Last launch${Number.isFinite(target) ? ` at ${target.toLocaleString()} RPM` : ''} · ${measured.sources.join(' / ')} · ` +
+          `${measured.counts[0]} M1 / ${measured.counts[1]} M2 valid samples between ${measured.firstMs}–${measured.lastMs} ms. ${total} ` +
+          'Sampled ESC readings can miss brief peaks; filtering and current-sensor placement can differ from the model. Heat and the current cap remain estimates.');
+      } else {
+        lpSetText('lp_measured_note', 'No measured current captured for this launch. Click Stream telemetry and capture a new launch with USB connected. ' +
+          'Current is compared within the first 320 ms; an earlier offline launch has no USB current samples. Heat and the current cap remain estimates.');
       }
       if (lp.hoverT !== null && !lp.drag) lpNode('line', { x1: sx(lp.hoverT), x2: sx(lp.hoverT), y1: G.t, y2: G.h - G.b, stroke: 'rgba(229,231,235,0.4)' }, svg);
     }
@@ -17669,7 +18453,7 @@ function updateWriteButtonText() {
       }));
       const marks = document.createElement('span');
       marks.style.color = 'var(--lp-ink-3)';
-      marks.textContent = 'Bars on the time axis: yellow = current cap holding · orange = AM32 low-RPM duty limit · red = out of pack voltage';
+      marks.textContent = 'Model limiter bars: yellow = estimated current cap · orange = AM32 low-RPM duty limit · red = pack voltage';
       el.append(marks);
     }
     function lpKpi(id, value, unit, chip) {
@@ -17680,6 +18464,7 @@ function updateWriteButtonText() {
     }
     function lpRenderKpis(sim, simLo, simHi) {
       const s = lp.s, m = lp.m;
+      lpRenderMeasuredTiming();
       if (sim.t90 === null) lpKpi('lp_kpi_t90', 'Never', '', ['crit', '✕ misses 90 %']);
       else lpKpi('lp_kpi_t90', String(Math.round(sim.t90)), 'ms', sim.t90 <= LP_GOAL_MS ? ['good', '✓ goal'] : ['warn', `▲ ${Math.round(sim.t90 - LP_GOAL_MS)} ms over`]);
       const range = [simLo.t90, simHi.t90].every(v => v !== null) ? `${Math.round(simLo.t90)}–${Math.round(simHi.t90)} ms over locks ${Math.max(5, m.lockMs - m.lockSpread)}–${m.lockMs + m.lockSpread} ms` : 'some locks in the spread miss 90 %';
@@ -17688,15 +18473,35 @@ function updateWriteButtonText() {
       lpKpi('lp_kpi_ramp', String(Math.round(plan.a1 === plan.a2 ? plan.a1 : (plan.a1 + plan.a2) / 2)), plan.a1 === plan.a2 ? 'RPM/ms' : 'RPM/ms avg');
       lpSetText('lp_kpi_ramp_sub', `${Math.round(plan.tEnd)} ms from lock to target${scale > 1.001 ? ` · steepened ×${scale.toFixed(2)} for the deadline` : ''}`);
       const capHit = s.current_limit_a > 0 && sim.peak >= s.current_limit_a - 0.5;
+      const measured = lpMeasuredCurrentStats(), peaks = measured.peaks.filter(Number.isFinite);
+      lpKpi('lp_kpi_measured_peak', peaks.length ? Math.max(...peaks).toFixed(2) : '—', peaks.length ? 'A / ESC' : '');
+      lpSetText('lp_kpi_measured_peak_sub', peaks.length ?
+        measured.peaks.map((a, i) => `M${i + 1} ${a === null ? 'unavailable' : a.toFixed(2) + ' A'}`).join(' · ') + ' · last captured launch, 0–320 ms' :
+        'Unavailable · capture a launch with USB telemetry streaming');
       lpKpi('lp_kpi_peak', String(Math.round(sim.peak)), 'A / motor', capHit ? ['warn', 'at cap'] : null);
-      lpSetText('lp_kpi_peak_sub', `${s.current_limit_a ? `cap ${s.current_limit_a} A` : 'no cap'} · after lock · pack dips to ${sim.minBus.toFixed(1)} V`);
+      lpSetText('lp_kpi_peak_sub', `Model estimate · ${s.current_limit_a ? `estimated cap ${s.current_limit_a} A` : 'no cap'} · after lock · predicted pack dip ${sim.minBus.toFixed(1)} V`);
       lpKpi('lp_kpi_heat', sim.heat.toFixed(1), 'J / motor');
-      lpSetText('lp_kpi_heat_sub', `startup ≈ ${sim.startupHeat.toFixed(1)} J of it · ${(sim.heat * 10).toFixed(0)} J per 10-shot burst · flywheel stores ${sim.ke.toFixed(0)} J`);
+      lpSetText('lp_kpi_heat_sub', `Model estimate · startup ≈ ${sim.startupHeat.toFixed(1)} J · ${(sim.heat * 10).toFixed(0)} J per 10-shot burst · flywheel stores ${sim.ke.toFixed(0)} J`);
       if (lp.cache.minV === undefined) lp.cache.minV = lpMinCellVoltage();
       const minV = lp.cache.minV;
       if (minV === null) lpKpi('lp_kpi_minv', 'Not reached', '', ['crit', 'even full']);
       else lpKpi('lp_kpi_minv', minV <= 3.0 ? '≤ 3.00' : minV.toFixed(2), 'V/cell', minV <= 3.5 ? ['good', '✓ whole pack'] : minV <= m.cellV ? ['warn', 'not when low'] : ['crit', 'not at this pack']);
       lpSetText('lp_kpi_minv_sub', minV === null ? `90 % takes longer than ${LP_GOAL_MS} ms even on a full ${m.cells}S pack` : `resting voltage at which 90 % still comes within ${LP_GOAL_MS} ms (${m.cells}S, this lock)`);
+    }
+    function lpRenderMeasuredTiming() {
+      const timing = comparisonMeasuredTiming(lp.last), both = timing.both;
+      for (const [id, key] of [['actual90', 'first90'], ['actual100', 'first100']]) {
+        const crossing = both?.[key];
+        lpKpi(`lp_kpi_${id}`, crossing ? `${crossing.interpolated ? '≈ ' : 'by '}${Math.round(crossing.ms)}` : '—', crossing ? 'ms' : '');
+        lpSetText(`lp_kpi_${id}_sub`, both ?
+          timing.motors.map(t => `M${t.motor} ${comparisonTimingText(t[key])}`).join(' · ') +
+          ` · recorded target ${timing.target.toLocaleString()} RPM${crossing?.bracketMs ? ` · crossing bracket ${crossing.bracketMs} ms` : ' · no continuous crossing bracket'}` :
+          'Unavailable · read last launch for measured timing');
+      }
+      lpKpi('lp_kpi_actualsettle', Number.isFinite(both?.settleMs) ? String(Math.round(both.settleMs)) : '—', Number.isFinite(both?.settleMs) ? 'ms' : '');
+      lpSetText('lp_kpi_actualsettle_sub', both ?
+        `${Number.isFinite(both.settleMs) ? `Both stayed within ±2% through ${both.observedThroughMs} ms of this capture` : 'Not confirmed · requires both within ±2% for at least 20 ms'} · ${timing.source} · largest usable RPM gap ${both.maxGapMs} ms. First 100% crossing does not establish settling.` :
+        'At least 20 ms observed in band, before a shot. Missing or stale RPM stays unavailable.');
     }
     function lpRenderAlerts(sim) {
       const box = document.getElementById('lp_alerts'); if (!box) return;
@@ -17704,10 +18509,10 @@ function updateWriteButtonText() {
       const add = (kind, ico, strong, rest) => { const d = document.createElement('div'); d.className = 'lp-alert ' + kind;
         const i = document.createElement('span'); i.className = 'lp-ico'; i.textContent = ico; i.setAttribute('aria-hidden', 'true');
         const t = document.createElement('div'); const b = document.createElement('b'); b.textContent = strong; t.append(b, ' ' + rest); d.append(i, t); out.push(d); };
-      if (sim.voltMs > 2 && sim.lagTop > 300) add('crit', '!', 'Out of pack voltage near the top.', `At ${m.cellV.toFixed(2)} V/cell the motors fall up to ${Math.round(sim.lagTop).toLocaleString()} RPM behind the reference (worst at ${Math.round(sim.lagTopAt)} ms). Use two slopes with a gentler upper one, a longer ramp, or plan for a fuller pack.`);
-      if (sim.am32Ms > 2 && sim.lagLow > 300) add('warn', '!', 'AM32 low-RPM limit.', `Below ~19k RPM AM32 caps duty, so the motors trail the start of the ramp by up to ${Math.round(sim.lagLow).toLocaleString()} RPM (at ${Math.round(sim.lagLowAt)} ms) and then catch up. Use two slopes with a gentler lower one, or turn off the ESC's low-RPM protection now that the blaster has its own current cap.`);
-      if (sim.capMs > 2) add('warn', '!', 'Current cap holding.', `The ramp asks for more than ${s.current_limit_a} A for ${Math.round(sim.capMs)} ms, so the motors trail the reference there. Lower the acceleration or raise the cap.`);
-      if (m.am32Low && s.startup_drive_mv / 1000 > 0.2 * m.cells * m.cellV + 0.05) add('info', 'i', 'Startup power above the ESC clip.', `AM32 limits duty to about 20 % (${(0.2 * m.cells * m.cellV).toFixed(1)} V here) until ~2,300 RPM, so anything above that does nothing at this pack voltage.`);
+      if (sim.voltMs > 2 && sim.lagTop > 300) add('crit', '!', 'Predicted pack-voltage shortfall.', `At ${m.cellV.toFixed(2)} V/cell the model trails the reference by up to ${Math.round(sim.lagTop).toLocaleString()} RPM (worst at ${Math.round(sim.lagTopAt)} ms). Compare the recorded RPM and voltage before trying a gentler upper slope, a longer ramp, or a fuller pack.`);
+      if (sim.am32Ms > 2 && sim.lagLow > 300) add('warn', '!', 'Predicted AM32 low-RPM limiting.', `With the modeled duty limit below ~19k RPM, the motors trail by up to ${Math.round(sim.lagLow).toLocaleString()} RPM (at ${Math.round(sim.lagLowAt)} ms). Compare the recorded launch and ESC duty; a gentler lower slope can reduce this lag.`);
+      if (sim.capMs > 2) add('warn', '!', 'Predicted estimated-current cap holding.', `The model requests more than ${s.current_limit_a} A for ${Math.round(sim.capMs)} ms. Compare measured current and recorded limiter flags before changing the cap; lower acceleration also reduces the modeled demand.`);
+      if (m.am32Low && s.startup_drive_mv / 1000 > 0.2 * m.cells * m.cellV + 0.05) add('info', 'i', 'Startup power above the modeled ESC clip.', `The modeled AM32 limit is about 20 % duty (${(0.2 * m.cells * m.cellV).toFixed(1)} V here) until ~2,300 RPM. Higher startup power is clipped in this prediction.`);
       if (s.launch_leash_rpm > 0) add('info', 'i', 'Sync leash on.', 'The planner models identical motors, so the leash never holds here. On the blaster it holds the ramp while one motor trails by more than the leash, which trades a later finish for less catch-up current.');
       if (s.launch_pacing === 1 && lpPlanFor().scale >= 1.999) add('warn', '!', 'Deadline out of reach.', 'Even at twice the set slope the ramp cannot finish by the deadline after this lock. Raise the slope or move the deadline.');
       box.replaceChildren(...out);
@@ -17811,7 +18616,15 @@ function updateWriteButtonText() {
         S.forEach((sm, k) => { const d = Math.abs(sm.ms - lp.hoverT); if (d < best) { best = d; j = k; } });
         if (best < 4) { rows.push(['var(--lp-m1)', `${Math.round(S[j].rpm1).toLocaleString()} RPM`, 'motor 1', false]); rows.push(['var(--lp-m2)', `${Math.round(S[j].rpm2).toLocaleString()} RPM`, 'motor 2', false]); }
       }
-      rows.push(['var(--lp-pred)', `${sim.amps[i].toFixed(1)} A`, 'current', true]);
+      rows.push(['var(--lp-pred)', `${sim.amps[i].toFixed(1)} A`, 'predicted current', true]);
+      const currentRows = lp.last?.escSamples || [];
+      const nearest = currentRows.reduce((best, sample) => !best || Math.abs(sample.ms - lp.hoverT) < Math.abs(best.ms - lp.hoverT) ? sample : best, null);
+      if (nearest && Math.abs(nearest.ms - lp.hoverT) <= 25) {
+        nearest.motors.forEach((motor, index) => {
+          if (Number.isFinite(motor?.currentA)) rows.push([index === 0 ? 'var(--lp-m1)' : 'var(--lp-m2)',
+            `${motor.currentA.toFixed(2)} A`, `M${index + 1} ESC @ ${nearest.ms} ms`, false]);
+        });
+      }
       tip.replaceChildren();
       const head = document.createElement('div'); head.className = 'lp-tt-head'; head.textContent = `${lp.hoverT.toFixed(1)} ms from trigger`; tip.append(head);
       for (const [color, val, name, dash] of rows) {
