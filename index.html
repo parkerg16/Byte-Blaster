@@ -901,7 +901,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.32</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.33</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -1988,7 +1988,7 @@
               <p class="guided-help">Validation applies to the saved configuration. Older profiles have no validation record; their origin cannot be inferred.</p>
             </div>
             <h4>2 · Tune</h4>
-            <p style="margin:.3rem 0 1rem">Tune FF on its own, or run a full tune. PID-only requires a complete FF calibration validated on this blaster. The launch curve sets the RPM reference, FF supplies the drive, and PID corrects tracking error. Write your launch settings first and keep them fixed during tuning. Remove the magazine and darts.</p>
+            <p style="margin:.3rem 0 1rem">Tune FF on its own, or run a full tune. FF is measured in one upward staircase of eight held speeds (a few seconds) and checked against every point. PID-only checks the saved FF with the same staircase instead of spin-ups from a stop. A staircase that cannot settle is run once more before the tune stops. PID-only requires a complete FF calibration validated on this blaster. The launch curve sets the RPM reference, FF supplies the drive, and PID corrects tracking error. Write your launch settings first and keep them fixed during tuning. Remove the magazine and darts.</p>
             <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
               <label>Stage <select id="guided_scope" onchange="guidedButtons()"><option value="full">FF + PID</option><option value="ff">FF only</option><option value="pid">PID only — validated FF required</option></select></label>
               <label>PID launch baseline <select id="guided_baseline"><option value="cold">Stopped — glide between launches</option><option value="idle">Spinning idle</option></select></label>
@@ -4297,8 +4297,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.32";
-    window.CONFIGURATOR_VERSION = "1.1.32";
+    const CONFIGURATOR_VERSION = "v1.1.33";
+    window.CONFIGURATOR_VERSION = "1.1.33";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -12027,7 +12027,8 @@ function updateWriteButtonText() {
         : (result.startRpm ? `${result.startRpm.toLocaleString()} RPM` : 'COLD');
       const row = document.createElement('tr');
       const failText = result.detail ? `FAIL (${result.detail})` : formatFailReason(result.failFlags);
-      const cells = [guidedLabels[guidedStages.indexOf(result.stage)] || result.stage, result.motor, result.target,
+      const stageLabel = result.ff && result.ff.method === 'stair' ? 'FF staircase' : result.ff && result.ff.method === 'stair_check' ? 'FF staircase check' : (guidedLabels[guidedStages.indexOf(result.stage)] || result.stage);
+      const cells = [stageLabel, result.motor, result.target,
         startLabel, result.pass, result.rpm, `${result.errorPct}%`, `${result.overshootPct}%`, result.riseMs ?? '—', result.settleMs ?? '—',
         Number.isFinite(result.kp) ? result.kp.toFixed(4) : '—', Number.isFinite(result.ki) ? result.ki.toFixed(5) : '—',
         guidedLimiterSummary(result.lim), guidedEscSummary(result.esc), result.valid ? 'PASS' : failText];
@@ -12069,7 +12070,7 @@ function updateWriteButtonText() {
         if (path === 'recalibrating') return `Existing FF was off by ${Number(event.ffErrPct || 0).toFixed(1)}%; measuring a fresh curve`;
         return 'Measuring new FF';
       }
-      if (event.stage === 'validate_ff') return path === 'reuse_check' ? 'Checking existing FF' : 'Checking new FF';
+      if (event.stage === 'validate_ff') return path === 'reuse_check' ? 'Checking existing FF (staircase)' : 'Checking new FF (staircase)';
       return null;
     }
     function handleGuidedLine(line) {
@@ -12122,7 +12123,7 @@ function updateWriteButtonText() {
         esc_overheat:'An ESC reached 90 °C.', overheat_timeout:'The motors or ESCs did not cool down within 10 minutes.' };
       if (event.phase === 'COOL' && (!old || old.phase !== 'COOL')) guidedTuning.coolSinceMs = event.ms;
       if (event.state === 'running' && event.phase === 'COOL') guidedMessage(guidedCoolingText(event, guidedTuning.coolSinceMs));
-      else if (event.state === 'running') guidedMessage(`${guidedFfMessage(event) || guidedLabels[index] || 'PID measurement'} · ${event.target.toLocaleString()} RPM · ${({FF_UP:'Sweeping upward',FF_TOP:'Holding top speed',FF_DOWN:'Sweeping downward',FF_LOW:'Holding low speed',IDENT:'Identifying motor response'})[event.phase] || (event.pidMode === 'verify' ? 'Verifying model gains with launch' : event.phase === 'PREP' ? 'Gliding to launch baseline' : event.phase === 'HOLD' ? 'Measuring steady speed' : 'Production launch / settling')} · ${event.stage === 'select_pid' ? 'Candidate' : 'Pass'} ${event.pass || 1} · ${event.done}/${event.total} paired measurements`);
+      else if (event.state === 'running') guidedMessage(`${guidedFfMessage(event) || guidedLabels[index] || 'PID measurement'} · ${event.target.toLocaleString()} RPM · ${({FF_STAIR:'Stepping through FF points',FF_UP:'Sweeping upward',FF_TOP:'Holding top speed',FF_DOWN:'Sweeping downward',FF_LOW:'Holding low speed',IDENT:'Identifying motor response'})[event.phase] || (event.pidMode === 'verify' ? 'Verifying model gains with launch' : event.phase === 'PREP' ? 'Gliding to launch baseline' : event.phase === 'HOLD' ? 'Measuring steady speed' : 'Production launch / settling')} · ${event.stage === 'select_pid' ? 'Candidate' : 'Pass'} ${event.pass || 1} · ${event.done}/${event.total} paired measurements`);
       else if (event.state === 'gliding') guidedMessage(`${reasons[event.reason] || (event.reason === 'cancelled' ? 'Cancellation requested.' : 'Measurements complete.')} Gliding down; waiting for both motors to stop.`);
       else if (event.state === 'saved') guidedMessage(resultsPending ? `Profile saved; receiving remaining results (${guidedTuning.results.length}/${expectedResults})...` : event.scope === 'ff' ? 'FF passed and saved on the blaster. Existing PID gains were retained; tune PID against this FF next.' : `Both stages passed. The validated feedforward and PID profile is saved on the blaster.${guidedWarnText(event.warn)}`);
       else if (event.state === 'cancelled') guidedMessage(`Cancelled (from the configurator or by holding FIRE on the blaster). Glide-down finished and the prior tune is back in use.${guidedResumable(event) ? ' The run\'s progress is kept: continue it below or start over.' : ''}`);
