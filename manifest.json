@@ -1,46 +1,43 @@
 {
   "schema": 1,
   "product": "Byte Blaster",
-  "version": "v1.1.34",
-  "channel": "prerelease",
+  "version": "v1.2.0",
+  "channel": "stable",
   "release_repo": "parkerg16/Byte-Blaster",
   "source_repo": "parkerg16/Byte_Blaster_RP2040",
-  "source_commit": "a310c06c931c88738d0367af21bdc769b8cd5742",
-  "created_utc": "2026-10-15T04:12:19.973Z",
+  "source_commit": "ba5c1e9d51858d04ed11d28bf2091eaa4d4de3c6",
+  "created_utc": "2026-10-15T15:16:44.7104343Z",
   "blaster": {
     "board": "waveshare_rp2040_zero",
-    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_RP2040_v1.1.34.uf2",
-    "build_source_commit": "e5d9011a1c104a2ce0d529dfd72f8554c5cd2339",
-    "build_utc": "2026-10-15T03:42:03.265Z",
-    "source_verified": true
+    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.2.0/Byte_Blaster_RP2040_v1.2.0.uf2"
   },
   "configurator": {
-    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_Configurator_v1.1.34.html"
+    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.2.0/Byte_Blaster_Configurator_v1.2.0.html"
   },
   "assets": [
     {
-      "name": "Byte_Blaster_RP2040_v1.1.34.uf2",
+      "name": "Byte_Blaster_RP2040_v1.2.0.uf2",
       "type": "blaster",
       "format": "uf2",
-      "sha256": "01e6c612a1590f18df5776b3cd0d8485a872255104d2444129d6a3485b0446dd",
+      "sha256": "84dbc68c758ce599242e68851999757f682b143f77cb2591aebb53aeae603031",
       "size": 709120,
-      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_RP2040_v1.1.34.uf2"
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.2.0/Byte_Blaster_RP2040_v1.2.0.uf2"
     },
     {
-      "name": "Byte_Blaster_RP2040_v1.1.34.bin",
+      "name": "Byte_Blaster_RP2040_v1.2.0.bin",
       "type": "blaster",
       "format": "bin",
-      "sha256": "68900b4714ab421429f87927c9c084c65db9ee8a9d6bd0fd4d323e8fb9e5403c",
+      "sha256": "518399eb64ef1c850e23e383c704845f5803587b4521162671ace53401e7868e",
       "size": 354324,
-      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_RP2040_v1.1.34.bin"
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.2.0/Byte_Blaster_RP2040_v1.2.0.bin"
     },
     {
-      "name": "Byte_Blaster_Configurator_v1.1.34.html",
+      "name": "Byte_Blaster_Configurator_v1.2.0.html",
       "type": "configurator",
       "format": "html",
-      "sha256": "0121e5e09a44d2d45f343f490e94b5b9584b39962158e35cde5a44d5910b71ce",
-      "size": 1325927,
-      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_Configurator_v1.1.34.html"
+      "sha256": "b74b4f558dc6a11b19610be3adaf23a32d47b7ed1f700605512a574a715619c9",
+      "size": 1379990,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.2.0/Byte_Blaster_Configurator_v1.2.0.html"
     }
   ]
 }
