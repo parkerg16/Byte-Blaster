@@ -1,53 +1,46 @@
 {
   "schema": 1,
   "product": "Byte Blaster",
-  "version": "v1.1.33",
+  "version": "v1.1.34",
   "channel": "prerelease",
   "release_repo": "parkerg16/Byte-Blaster",
   "source_repo": "parkerg16/Byte_Blaster_RP2040",
-  "source_commit": "f303d8b4bdca8d98913a072deeef88d1b4035cf8",
-  "created_utc": "2026-10-14T21:04:23.6621041Z",
+  "source_commit": "a310c06c931c88738d0367af21bdc769b8cd5742",
+  "created_utc": "2026-10-15T04:12:19.973Z",
   "blaster": {
     "board": "waveshare_rp2040_zero",
-    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.33/Byte_Blaster_RP2040_v1.1.33.uf2"
+    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_RP2040_v1.1.34.uf2",
+    "build_source_commit": "e5d9011a1c104a2ce0d529dfd72f8554c5cd2339",
+    "build_utc": "2026-10-15T03:42:03.265Z",
+    "source_verified": true
   },
-  "esc": {
-    "target": "F4A_4IN1_F421",
-    "am32_version": "2.21",
-    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.33/AM32_F4A_4IN1_F421_2.21_v1.1.33.hex"
+  "configurator": {
+    "artifact": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_Configurator_v1.1.34.html"
   },
   "assets": [
     {
-      "name": "Byte_Blaster_RP2040_v1.1.33.uf2",
+      "name": "Byte_Blaster_RP2040_v1.1.34.uf2",
       "type": "blaster",
       "format": "uf2",
-      "sha256": "24b5a75f198c5fb3f3972c0bce89e56968c178d5c0b333fb39546afc139c9980",
-      "size": 674304,
-      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.33/Byte_Blaster_RP2040_v1.1.33.uf2"
+      "sha256": "01e6c612a1590f18df5776b3cd0d8485a872255104d2444129d6a3485b0446dd",
+      "size": 709120,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_RP2040_v1.1.34.uf2"
     },
     {
-      "name": "Byte_Blaster_RP2040_v1.1.33.bin",
+      "name": "Byte_Blaster_RP2040_v1.1.34.bin",
       "type": "blaster",
       "format": "bin",
-      "sha256": "10a950466fedf41fb7e71a9d92ba4db6fdaae082343a6d27d178ae85a1e8459f",
-      "size": 337084,
-      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.33/Byte_Blaster_RP2040_v1.1.33.bin"
+      "sha256": "68900b4714ab421429f87927c9c084c65db9ee8a9d6bd0fd4d323e8fb9e5403c",
+      "size": 354324,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_RP2040_v1.1.34.bin"
     },
     {
-      "name": "AM32_F4A_4IN1_F421_2.21_v1.1.33.hex",
-      "type": "esc",
-      "format": "hex",
-      "sha256": "af3a494a69e1a9be09c07a9d74484593858a9dd1b8c28babc4910eab5de1c9eb",
-      "size": 62971,
-      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.33/AM32_F4A_4IN1_F421_2.21_v1.1.33.hex"
-    },
-    {
-      "name": "AM32_F4A_4IN1_F421_2.21_v1.1.33.bin",
-      "type": "esc",
-      "format": "bin",
-      "sha256": "3311d33828f5fd5b52d5b58f3e1f273f063029396de72413de209bf9feed3a45",
-      "size": 27648,
-      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.33/AM32_F4A_4IN1_F421_2.21_v1.1.33.bin"
+      "name": "Byte_Blaster_Configurator_v1.1.34.html",
+      "type": "configurator",
+      "format": "html",
+      "sha256": "0121e5e09a44d2d45f343f490e94b5b9584b39962158e35cde5a44d5910b71ce",
+      "size": 1325927,
+      "url": "https://github.com/parkerg16/Byte-Blaster/releases/download/v1.1.34/Byte_Blaster_Configurator_v1.1.34.html"
     }
   ]
 }
