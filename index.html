@@ -1018,6 +1018,58 @@
     .esc-file { font-size: 0.8rem; color: var(--text-secondary); max-width: 100%; }
     .esc-progress { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
     .esc-progress > div { height: 100%; width: 0; background: var(--accent-green); transition: width 0.2s; }
+    .hud-palette-tile {
+      min-width: 0;
+      min-height: 108px;
+      padding: 0.55rem 0.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.025);
+      color: var(--text-primary);
+      font: inherit;
+      cursor: grab;
+      user-select: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .hud-palette-tile:hover,
+    .hud-palette-tile:focus-visible {
+      background: rgba(249,115,22,0.08);
+      border-color: var(--accent-orange);
+    }
+
+    .hud-palette-tile:focus-visible {
+      outline: 2px solid var(--accent-orange);
+      outline-offset: 2px;
+    }
+
+    .hud-palette-preview {
+      width: 80px;
+      height: 28px;
+      display: block;
+      background: #000;
+      image-rendering: pixelated;
+    }
+
+    .hud-tool-icon {
+      width: 14px;
+      height: 14px;
+      display: inline-block;
+      flex-shrink: 0;
+      vertical-align: -2px;
+    }
+
+    #tab_content_hud button[data-hud-icon] {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
 </style>
 </head>
 <body>
@@ -1026,7 +1078,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.2.0</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.2.1</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -3966,15 +4018,15 @@
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <strong style="font-size: 0.85rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="color: var(--accent-orange);">■</span> Widget Library (Palette)
+                    Widget Library
                   </strong>
-                  <span style="font-size: 0.75rem; color: var(--text-secondary);">Drag any square tile onto screen to position, or click to add (independent duplicates supported)</span>
+                  <span style="font-size: 0.75rem; color: var(--text-secondary);">OLED sample previews · Drag onto the screen, or click to add</span>
                 </div>
                 <div id="hud_slot_capacity_indicator" style="font-size: 0.75rem; color: var(--accent-orange); font-weight: 600; padding: 0.2rem 0.5rem; background: rgba(249, 115, 22, 0.1); border-radius: 4px; border: 1px solid rgba(249, 115, 22, 0.25);">
                   6 / 8 Slots Active
                 </div>
               </div>
-              <div id="hud_widget_palette" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 0.5rem; width: 100%;">
+              <div id="hud_widget_palette" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 0.5rem; width: 100%;">
                 <!-- Generated dynamically via renderWidgetPalette() -->
               </div>
             </div>
@@ -3987,10 +4039,10 @@
                   <span style="font-size: 0.75rem; color: var(--text-secondary);">Click to edit in inspector, click &times; to free up slot, or drag card to reposition</span>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                  <button class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="exportHudLayoutJson()" title="Download layout as a JSON file">Export Layout</button>
-                  <button class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="document.getElementById('hud_import_file_input').click()" title="Import layout from a JSON file">Import Layout</button>
-                  <button class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="copyHudShareCode()" title="Copy shareable base64 string to clipboard">Copy Share Code</button>
-                  <button class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="pasteHudShareCode()" title="Import layout from pasted share code">Paste Code</button>
+                  <button data-hud-icon="export" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="exportHudLayoutJson()" title="Download layout as a JSON file">Export Layout</button>
+                  <button data-hud-icon="import" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="document.getElementById('hud_import_file_input').click()" title="Import layout from a JSON file">Import Layout</button>
+                  <button data-hud-icon="copy" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="copyHudShareCode()" title="Copy shareable base64 string to clipboard">Copy Share Code</button>
+                  <button data-hud-icon="paste" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="pasteHudShareCode()" title="Import layout from pasted share code">Paste Code</button>
                   <input type="file" id="hud_import_file_input" accept=".json" style="display: none;" onchange="importHudLayoutJson(event)">
                 </div>
               </div>
@@ -4025,7 +4077,7 @@
               <!-- Alignment & Grid Tools -->
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.8rem;">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <button type="button" class="preset-btn" id="btn_hud_draw_line" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-color: var(--accent-orange); color: var(--accent-orange);" onclick="toggleHudLineDrawMode()" title="Click & drag on the screen to draw a line or divider">Draw Line</button>
+                  <button data-hud-icon="line" type="button" class="preset-btn" id="btn_hud_draw_line" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-color: var(--accent-orange); color: var(--accent-orange);" onclick="toggleHudLineDrawMode()" title="Click & drag on the screen to draw a line or divider">Draw Line</button>
                   <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
                     <input type="checkbox" id="hud_show_grid" onchange="toggleHudGrid(this.checked)">
                     <span>Pixel Grid</span>
@@ -4034,8 +4086,8 @@
                     <input type="checkbox" id="hud_live_mirror" checked>
                     <span style="color: var(--accent-orange); font-weight: 600;">Live Blaster Mirror</span>
                   </label>
-                  <button type="button" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="copyHudPreviewFrameHex()" title="Copy the current preview as SSD1306 page hex">Copy Frame</button>
-                  <button type="button" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="runHudParityCheck()" title="Stage this HUD and simulator state, then compare the blaster framebuffer">Parity Test</button>
+                  <button data-hud-icon="copy" type="button" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="copyHudPreviewFrameHex()" title="Copy the current preview as SSD1306 page hex">Copy Frame</button>
+                  <button data-hud-icon="preview" type="button" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="runHudParityCheck()" title="Stage this HUD and simulator state, then compare the blaster framebuffer">Parity Test</button>
                   <div style="display: flex; gap: 0.2rem; align-items: center;" title="Switch between the configurator HUD frame, the captured blaster frame, and a pixel diff">
                     <button type="button" class="preset-btn active" id="btn_hud_view_preview" style="padding: 0.25rem 0.45rem; font-size: 0.72rem;" onclick="setHudParityViewMode('preview')">Preview</button>
                     <button type="button" class="preset-btn" id="btn_hud_view_blaster" style="padding: 0.25rem 0.45rem; font-size: 0.72rem;" onclick="setHudParityViewMode('blaster')" disabled>Blaster</button>
@@ -4434,14 +4486,14 @@
 
               <!-- Action Buttons -->
               <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                <button class="action-btn" id="btn_save_hud" style="background: linear-gradient(135deg, var(--accent-orange) 0%, #ea580c 100%); padding: 0.65rem; font-weight: 600; width: 100%; font-size: 0.85rem;" onclick="saveHudToBlaster()">
+                <button data-hud-icon="save" class="action-btn" id="btn_save_hud" style="background: linear-gradient(135deg, var(--accent-orange) 0%, #ea580c 100%); padding: 0.65rem; font-weight: 600; width: 100%; font-size: 0.85rem;" onclick="saveHudToBlaster()">
                   Save HUD Layout to Blaster Flash
                 </button>
                 <div style="display: flex; gap: 0.5rem;">
-                  <button class="preset-btn" style="flex: 1; padding: 0.5rem 0; font-size: 0.8rem;" onclick="loadHudFromBlaster()">Read from Blaster</button>
-                  <button class="preset-btn" style="flex: 1; padding: 0.5rem 0; font-size: 0.8rem;" onclick="resetHudDefaults()">Restore Default</button>
+                  <button data-hud-icon="import" class="preset-btn" style="flex: 1; padding: 0.5rem 0; font-size: 0.8rem;" onclick="loadHudFromBlaster()">Read from Blaster</button>
+                  <button data-hud-icon="reset" class="preset-btn" style="flex: 1; padding: 0.5rem 0; font-size: 0.8rem;" onclick="resetHudDefaults()">Restore Default</button>
                 </div>
-                <button class="preset-btn" style="padding: 0.45rem; font-size: 0.8rem; border-color: rgba(249, 115, 22, 0.4); color: var(--accent-orange);" onclick="executeHudLiveMirror()">
+                <button data-hud-icon="preview" class="preset-btn" style="padding: 0.45rem; font-size: 0.8rem; border-color: rgba(249, 115, 22, 0.4); color: var(--accent-orange);" onclick="executeHudLiveMirror()">
                   Mirror to Blaster Now
                 </button>
                 </div>
@@ -4477,7 +4529,7 @@
                   </div>
 
                   <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <button class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="autoPackSpriteSheet()" title="Auto-pack all active sprites onto sheet">Auto-Pack Sheet</button>
+                    <button data-hud-icon="grid" class="preset-btn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="autoPackSpriteSheet()" title="Auto-pack all active sprites onto sheet">Auto-Pack Sheet</button>
                     <label style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.8rem;">
                       <input type="checkbox" id="slicer_show_grid" checked onchange="renderSlicerCanvas()">
                       <span>Pixel Grid</span>
@@ -4559,19 +4611,19 @@
                       <!-- Individual Sprite Quick Actions -->
                       <div style="display: flex; gap: 0.35rem; margin-top: 0.2rem;">
                         <input type="file" id="hud_single_sprite_file" accept="image/*" style="display: none;" onchange="loadSingleSpriteImage(event)">
-                        <button class="preset-btn" style="flex: 1; padding: 0.3rem 0.4rem; font-size: 0.72rem; background: rgba(249, 115, 22, 0.15); border-color: var(--accent-orange); color: var(--accent-orange);" onclick="document.getElementById('hud_single_sprite_file').click()" title="Import an individual PNG (e.g. 11x4 from Photoshop) directly into this sprite slot">
+                        <button data-hud-icon="import" class="preset-btn" style="flex: 1; padding: 0.3rem 0.4rem; font-size: 0.72rem; background: rgba(249, 115, 22, 0.15); border-color: var(--accent-orange); color: var(--accent-orange);" onclick="document.getElementById('hud_single_sprite_file').click()" title="Import an individual PNG (e.g. 11x4 from Photoshop) directly into this sprite slot">
                           Import Photoshop PNG
                         </button>
-                        <button class="preset-btn" style="padding: 0.3rem 0.55rem; font-size: 0.72rem;" onclick="exportSingleSpritePng()" title="Export this individual sprite as a transparent PNG">
+                        <button data-hud-icon="export" class="preset-btn" style="padding: 0.3rem 0.55rem; font-size: 0.72rem;" onclick="exportSingleSpritePng()" title="Export this individual sprite as a transparent PNG">
                           Export PNG
                         </button>
                       </div>
 
                       <div style="display: flex; gap: 0.35rem; margin-top: 0.2rem;">
-                        <button class="action-btn" style="flex: 1; padding: 0.35rem 0.4rem; font-size: 0.72rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 600;" onclick="placeSelectedSpriteOnSheet()">
+                        <button data-hud-icon="place" class="action-btn" style="flex: 1; padding: 0.35rem 0.4rem; font-size: 0.72rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 600;" onclick="placeSelectedSpriteOnSheet()">
                           Place on Sprite Sheet
                         </button>
-                        <button class="preset-btn" style="padding: 0.35rem 0.55rem; font-size: 0.72rem;" onclick="autoPackSpriteSheet()" title="Pack all sprites neatly across the sheet">
+                        <button data-hud-icon="grid" class="preset-btn" style="padding: 0.35rem 0.55rem; font-size: 0.72rem;" onclick="autoPackSpriteSheet()" title="Pack all sprites neatly across the sheet">
                           Auto-Pack All
                         </button>
                       </div>
@@ -4634,7 +4686,7 @@
                     <button class="preset-btn" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;" onclick="setSpriteSliceGrid(16)">16×16 Grid</button>
                     <button class="preset-btn" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;" onclick="setSpriteSliceGrid(24)">24×24 Grid</button>
                     <button class="preset-btn" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;" onclick="setSpriteSliceGrid(32)">32×32 Grid</button>
-                    <button class="preset-btn" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;" onclick="resetDefaultSpriteAtlas()">Reset Default Icons</button>
+                    <button data-hud-icon="reset" class="preset-btn" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;" onclick="resetDefaultSpriteAtlas()">Reset Default Icons</button>
                   </div>
                 </div>
 
@@ -4642,17 +4694,17 @@
                 <div style="display: flex; flex-direction: column; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
                   <strong style="color: var(--text-primary); font-size: 0.85rem;">Sprite Sheet Image File</strong>
                   <input type="file" id="hud_sprite_file" accept="image/*" style="font-size: 0.75rem; width: 100%; color: var(--text-primary); background: rgba(0,0,0,0.2); padding: 0.35rem; border: 1px dashed var(--border-color); border-radius: 4px;" onchange="loadSpriteSheetImage(event)">
-                  <button class="preset-btn" style="padding: 0.4rem; font-size: 0.75rem;" onclick="exportSpriteSheetPng()">Export Sprite Sheet PNG</button>
+                  <button data-hud-icon="export" class="preset-btn" style="padding: 0.4rem; font-size: 0.75rem;" onclick="exportSpriteSheetPng()">Export Sprite Sheet PNG</button>
                 </div>
 
                 <!-- Blaster Flash Operations -->
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                  <button class="action-btn" style="padding: 0.65rem; font-size: 0.85rem; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); font-weight: 600; width: 100%;" onclick="saveAtlasAndSheetToBlaster()">
+                  <button data-hud-icon="save" class="action-btn" style="padding: 0.65rem; font-size: 0.85rem; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); font-weight: 600; width: 100%;" onclick="saveAtlasAndSheetToBlaster()">
                     Save Atlas &amp; Sheet to Blaster Flash
                   </button>
                   <div style="display: flex; gap: 0.5rem;">
-                    <button class="preset-btn" style="flex: 1; padding: 0.5rem 0; font-size: 0.8rem;" onclick="loadAtlasFromBlaster()">Read from Blaster</button>
-                    <button class="preset-btn" style="flex: 1; padding: 0.5rem 0; font-size: 0.8rem; border-color: rgba(249, 115, 22, 0.4); color: var(--accent-orange);" onclick="testBlitSelectedSpriteOnBlaster()">Test Blit on Blaster</button>
+                    <button data-hud-icon="import" class="preset-btn" style="flex: 1; padding: 0.5rem 0; font-size: 0.8rem;" onclick="loadAtlasFromBlaster()">Read from Blaster</button>
+                    <button data-hud-icon="preview" class="preset-btn" style="flex: 1; padding: 0.5rem 0; font-size: 0.8rem; border-color: rgba(249, 115, 22, 0.4); color: var(--accent-orange);" onclick="testBlitSelectedSpriteOnBlaster()">Test Blit on Blaster</button>
                   </div>
                 </div>
               </div>
@@ -4665,8 +4717,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.2.0";
-    window.CONFIGURATOR_VERSION = "1.2.0";
+    const CONFIGURATOR_VERSION = "v1.2.1";
+    window.CONFIGURATOR_VERSION = "1.2.1";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -14003,6 +14055,12 @@ function updateWriteButtonText() {
       return `https://raw.githubusercontent.com/${FIRMWARE_RELEASES_REPO}/main/${encodedPathParts.join('/')}`;
     }
 
+    function firmwareAssetVersion(release, asset) {
+      // A configurator-only release can carry an unchanged, older firmware image.
+      const match = String(asset?.name || '').match(/^Byte_Blaster_RP2040_(v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\.(?:uf2|bin)$/i);
+      return match ? match[1] : (release.tag_name || release.name);
+    }
+
     async function fetchGitHubReleases() {
       const select = document.getElementById('firmware_release_select');
       const infoSpan = document.getElementById('releases_status');
@@ -14046,7 +14104,7 @@ function updateWriteButtonText() {
         }
         
         if (validReleases.length > 0) {
-          latestGitHubReleaseVersion = validReleases[0].rel.tag_name || validReleases[0].rel.name;
+          latestGitHubReleaseVersion = firmwareAssetVersion(validReleases[0].rel, validReleases[0].blasterAssets[0]);
           updateFirmwareVersionUI();
         }
 
@@ -15669,6 +15727,7 @@ function updateWriteButtonText() {
     let hudFrameViewMode = 'preview';
 
     function initHudDesigner() {
+      initHudEditorIcons();
       hudCanvas = document.getElementById('hud_canvas');
       hudCursorCanvas = document.getElementById('hud_cursor_canvas');
       if (!hudCanvas || !hudCursorCanvas) return;
@@ -15694,23 +15753,89 @@ function updateWriteButtonText() {
     }
 
     const HUD_PALETTE_ITEMS = [
-      { type: 0, style: 0, name: "Voltage", icon: "⚡", tag: "16.8V", desc: "Battery voltage & USB power status" },
-      { type: 1, style: 0, name: "Dart Count", icon: "🎯", tag: "AMMO", desc: "Digital ammo counter numbers (count down or up)" },
-      { type: 1, style: 2, name: "Ammo Pips", icon: "▓▓", tag: "PIPS", desc: "Segmented ammo pip bar or custom sprite pips" },
-      { type: 2, style: 0, name: "Fire Mode", icon: "🔲", tag: "MODE", desc: "Single / Burst / Auto badges or text" },
-      { type: 3, style: 1, name: "Current RPM", icon: "🏎", tag: "CUR RPM", desc: "Flywheel tachometer & live RPM reading" },
-      { type: 7, style: 0, name: "Target RPM", icon: "🎯", tag: "TGT RPM", desc: "Target speed setpoint & RPM preset label" },
-      { type: 4, style: 0, name: "Status", icon: "ℹ", tag: "STATUS", desc: "Ready, Low Batt, Decel Glide, and Latency" },
-      { type: 5, style: 0, name: "Custom Sprite", icon: "★", tag: "SPRITE", desc: "Custom sprite graphic or badge from atlas" },
-      { type: 6, style: 0, name: "Line / Box", icon: "━", tag: "DIVIDER", desc: "Divider line or frame boundary" },
-      { type: 8, style: 2, name: "Est. FPS", icon: "FPS", tag: "FPS", desc: "Real-time estimated muzzle velocity (FPS)" },
-      { type:9, style:0, name:"Motor 1 ESC", icon:"A", tag:"M1", desc:"Measured motor 1 current, voltage or temperature" },
-      { type:9, style:1, name:"Motor 2 ESC", icon:"A", tag:"M2", desc:"Measured motor 2 current, voltage or temperature" },
-      { type:9, style:2, name:"ESC Stacked", icon:"≡", tag:"M1 / M2", desc:"Two measured readings stacked in one slot" },
-      { type:9, style:3, name:"ESC Pair", icon:"↔", tag:"PAIR", desc:"Measured motor readings side by side" },
-      { type:9, style:4, name:"ESC Total", icon:"Σ", tag:"SUM", desc:"Sum of both valid average currents" },
-      { type:9, style:5, name:"ESC Difference", icon:"Δ", tag:"DIFF", desc:"Signed difference between measured average currents" }
+      { type: 0, style: 0, name: "Voltage", tag: "POWER", desc: "Battery voltage & USB power status" },
+      { type: 1, style: 0, name: "Dart Count", tag: "AMMO", desc: "Digital ammo counter numbers (count down or up)" },
+      { type: 1, style: 2, name: "Ammo Pips", tag: "PIPS", desc: "Segmented ammo pip bar or custom sprite pips" },
+      { type: 2, style: 0, name: "Fire Mode", tag: "MODE", desc: "Single / Burst / Auto badges or text" },
+      { type: 3, style: 1, name: "Current RPM", tag: "CURRENT", desc: "Flywheel tachometer & live RPM reading" },
+      { type: 7, style: 0, name: "Target RPM", tag: "TARGET", desc: "Target speed setpoint & RPM preset label" },
+      { type: 4, style: 0, name: "Status", tag: "STATUS", desc: "Ready, Low Batt, Decel Glide, and Latency" },
+      { type: 5, style: 0, name: "Custom Sprite", tag: "SPRITE", desc: "Custom sprite graphic or badge from atlas" },
+      { type: 6, style: 0, name: "Line / Box", tag: "DIVIDER", desc: "Divider line or frame boundary" },
+      { type: 8, style: 2, name: "Est. FPS", tag: "VELOCITY", desc: "Real-time estimated muzzle velocity (FPS)" },
+      { type:9, style:0, name:"Motor 1 ESC", tag:"M1", desc:"Measured motor 1 current, voltage or temperature" },
+      { type:9, style:1, name:"Motor 2 ESC", tag:"M2", desc:"Measured motor 2 current, voltage or temperature" },
+      { type:9, style:2, name:"ESC Stacked", tag:"M1 / M2", desc:"Two measured readings stacked in one slot" },
+      { type:9, style:3, name:"ESC Pair", tag:"PAIR", desc:"Measured motor readings side by side" },
+      { type:9, style:4, name:"ESC Total", tag:"SUM", desc:"Sum of both valid average currents" },
+      { type:9, style:5, name:"ESC Difference", tag:"DIFF", desc:"Signed difference between measured average currents" }
     ];
+
+    function hudEditorIcon(name) {
+      const paths = {
+        import: '<path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/>',
+        export: '<path d="M12 15V3m-4 4 4-4 4 4M4 16v5h16v-5"/>',
+        copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/>',
+        paste: '<rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="3" width="6" height="4" rx="1"/>',
+        grid: '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>',
+        line: '<path d="M5 19 19 5"/><rect x="2" y="16" width="5" height="5"/><rect x="17" y="2" width="5" height="5"/>',
+        save: '<path d="M4 3h13l4 4v14H3V3h1Z"/><path d="M7 3v6h9V3M7 21v-8h10v8"/>',
+        reset: '<path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/>',
+        preview: '<rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8m-4-4v4"/>',
+        place: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 7v10M7 12h10"/>',
+        plus: '<path d="M12 5v14M5 12h14"/>'
+      };
+      return `<svg class="hud-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.preview}</svg>`;
+    }
+
+    function initHudEditorIcons() {
+      document.querySelectorAll('#tab_content_hud button[data-hud-icon]').forEach(button => {
+        if (!button.querySelector('.hud-tool-icon')) button.insertAdjacentHTML('afterbegin', hudEditorIcon(button.dataset.hudIcon));
+      });
+    }
+
+    function drawHudPalettePreview(canvas, item) {
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = ctx.strokeStyle = '#fff';
+      const text = (value, baseline = 19, size = 3) => {
+        drawHudText(ctx, value, Math.round((canvas.width - measureHudText(value, size)) / 2), baseline, size);
+      };
+      if (item.type === 1 && item.style === 2) {
+        for (let i = 0; i < 8; i++) {
+          if (i < 6) ctx.fillRect(10 + i * 8, 9, 5, 10);
+          else ctx.strokeRect(10.5 + i * 8, 9.5, 4, 9);
+        }
+      } else if (item.type === 2) {
+        ctx.strokeRect(22.5, 6.5, 35, 16);
+        text('S', 19);
+      } else if (item.type === 5) {
+        const entry = SPRITE_ATLAS[item.style];
+        const image = isolatedSpriteCanvases[item.style];
+        if (entry && entry.w > 0 && entry.h > 0 && (image || spriteSheetCanvas)) {
+          const scale = Math.min(3, Math.max(1, Math.floor(Math.min(72 / entry.w, 24 / entry.h))));
+          const x = Math.round((80 - entry.w * scale) / 2), y = Math.round((28 - entry.h * scale) / 2);
+          if (image) ctx.drawImage(image, x, y, entry.w * scale, entry.h * scale);
+          else ctx.drawImage(spriteSheetCanvas, entry.x, entry.y, entry.w, entry.h, x, y, entry.w * scale, entry.h * scale);
+        } else {
+          ctx.strokeRect(30.5, 5.5, 19, 17);
+          ctx.fillRect(34, 9, 4, 4);
+          ctx.fillRect(42, 15, 4, 4);
+        }
+      } else if (item.type === 6) {
+        ctx.fillRect(10, 14, 60, 1);
+      } else if (item.type === 9) {
+        // Examples are deliberately separate from live measured telemetry.
+        if (item.style === 2) { text('M1 12.4A', 11, 1); text('M2 12.1A', 23, 1); }
+        else if (item.style === 3) { text('12.4 12.1', 16, 1); text('M1   M2', 25, 1); }
+        else text(['M1 12.4A', 'M2 12.1A', '', '', '24.5A', '+0.3A'][item.style], 19, 2);
+      } else {
+        const samples = { 0: '16.80V', 1: '24/30', 3: '32K', 4: 'READY', 7: 'T:32K', 8: '165 FPS' };
+        text(samples[item.type] || '--');
+      }
+    }
 
     function renderWidgetPalette() {
       const container = document.getElementById('hud_widget_palette');
@@ -15726,39 +15851,12 @@ function updateWriteButtonText() {
       }
 
       HUD_PALETTE_ITEMS.forEach((item) => {
-        const tile = document.createElement('div');
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'hud-palette-tile';
+        tile.setAttribute('aria-label', `Add ${item.name}`);
         tile.draggable = true;
-        tile.style.cssText = `
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.12);
-          border-radius: 8px;
-          padding: 0.45rem 0.35rem;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: space-between;
-          gap: 0.25rem;
-          cursor: grab;
-          user-select: none;
-          min-width: 80px;
-          min-height: 72px;
-          transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-        `;
-        tile.title = `${item.name}: ${item.desc}\n• Drag onto screen to position\n• Click to add to available slot`;
-
-        tile.onmouseenter = () => {
-          tile.style.background = 'rgba(249, 115, 22, 0.12)';
-          tile.style.borderColor = 'var(--accent-orange)';
-          tile.style.transform = 'translateY(-2px)';
-          tile.style.boxShadow = '0 4px 12px rgba(249, 115, 22, 0.25)';
-        };
-        tile.onmouseleave = () => {
-          tile.style.background = 'rgba(255,255,255,0.03)';
-          tile.style.borderColor = 'rgba(255,255,255,0.12)';
-          tile.style.transform = 'none';
-          tile.style.boxShadow = 'none';
-        };
+        tile.title = `${item.name}: ${item.desc}\nSample preview · Drag onto screen or click to add`;
 
         tile.ondragstart = (e) => {
           e.dataTransfer.setData('text/plain', `palette:${item.type}:${item.style}`);
@@ -15776,14 +15874,17 @@ function updateWriteButtonText() {
         topRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center; width: 100%;';
         topRow.innerHTML = `
           <span style="font-size: 0.62rem; color: var(--accent-orange); font-weight: 800; letter-spacing: 0.5px;">${item.tag}</span>
-          <span style="font-size: 0.68rem; color: rgba(255,255,255,0.4); font-weight: 700;">+</span>
+          <span style="color: var(--text-secondary);">${hudEditorIcon('plus')}</span>
         `;
         tile.appendChild(topRow);
 
-        const iconEl = document.createElement('div');
-        iconEl.style.cssText = 'font-size: 1.25rem; line-height: 1; margin: 0.1rem 0;';
-        iconEl.textContent = item.icon;
-        tile.appendChild(iconEl);
+        const preview = document.createElement('canvas');
+        preview.width = 80;
+        preview.height = 28;
+        preview.className = 'hud-palette-preview';
+        preview.setAttribute('aria-hidden', 'true');
+        drawHudPalettePreview(preview, item);
+        tile.appendChild(preview);
 
         const labelEl = document.createElement('div');
         labelEl.style.cssText = 'font-size: 0.68rem; font-weight: 700; color: var(--text-primary); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;';
@@ -18736,19 +18837,20 @@ function updateWriteButtonText() {
         card.appendChild(header);
 
         const miniCanvas = document.createElement('canvas');
-        miniCanvas.width = 24;
-        miniCanvas.height = 24;
-        miniCanvas.style.cssText = 'width: 24px; height: 24px; background: #000; border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; image-rendering: pixelated; display: block;';
+        miniCanvas.width = 40;
+        miniCanvas.height = 40;
+        miniCanvas.style.cssText = 'width: 40px; height: 40px; background: #000; border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; image-rendering: pixelated; display: block;';
         const mctx = miniCanvas.getContext('2d');
         mctx.fillStyle = '#000';
-        mctx.fillRect(0, 0, 24, 24);
+        mctx.fillRect(0, 0, 40, 40);
 
         if (entry.w > 0 && entry.h > 0) {
-          const sc = Math.max(1, Math.min(Math.floor(22 / entry.w), Math.floor(22 / entry.h)));
+          const fit = Math.min(36 / entry.w, 36 / entry.h);
+          const sc = fit >= 1 ? Math.min(4, Math.floor(fit)) : fit;
           const dw = entry.w * sc;
           const dh = entry.h * sc;
-          const mx = Math.round((24 - dw) / 2);
-          const my = Math.round((24 - dh) / 2);
+          const mx = Math.round((40 - dw) / 2);
+          const my = Math.round((40 - dh) / 2);
           mctx.imageSmoothingEnabled = false;
 
           const isolated = (typeof isolatedSpriteCanvases !== 'undefined') ? isolatedSpriteCanvases[i] : null;
