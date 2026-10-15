@@ -97,7 +97,7 @@
     main {
       flex: 1;
       display: grid;
-      grid-template-columns: 360px 1fr;
+      grid-template-columns: 360px minmax(0, 1fr);
       height: calc(100vh - 66px);
       overflow: hidden;
     }
@@ -325,6 +325,7 @@
 
     /* Main View Area */
     .dashboard {
+      min-width: 0;
       padding: 1.5rem;
       display: flex;
       flex-direction: column;
@@ -501,6 +502,44 @@
     }
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Searchable settings workspace */
+    #tab_content_settings [hidden] { display: none !important; }
+    .settings-page-heading { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: start; }
+    .settings-page-heading h2 { margin: 0; font-size: 1.15rem; color: var(--accent-violet); }
+    .settings-page-heading p { margin: .4rem 0 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.5; }
+    .settings-profile-tools summary { cursor: pointer; color: var(--text-secondary); font-size: .8rem; padding: .4rem 0; }
+    .settings-profile-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
+    .settings-toolbar { position: sticky; top: 0; z-index: 5; padding: .85rem; border: 1px solid var(--border-color); border-radius: 10px; background: #111827; box-shadow: 0 5px 18px rgba(0,0,0,.25); }
+    .settings-filter-controls, .settings-action-controls { display: flex; gap: .65rem; align-items: center; flex-wrap: wrap; }
+    .settings-action-controls { margin-top: .65rem; padding-top: .65rem; border-top: 1px solid var(--border-color); }
+    .settings-filter-controls input[type="search"], .settings-filter-controls select { background: #0f172a; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: .55rem; font: inherit; font-size: .8rem; min-width: 0; }
+    .settings-filter-controls input[type="search"] { flex: 1 1 250px; }
+    .settings-pending-toggle { display: flex; align-items: center; gap: .4rem; font-size: .8rem; white-space: nowrap; cursor: pointer; }
+    .settings-pending-toggle input { accent-color: #f59e0b; }
+    .settings-filter-status { flex: 1 1 200px; display: flex; gap: .4rem 1rem; flex-wrap: wrap; color: var(--text-secondary); font-size: .75rem; }
+    .settings-workspace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 390px), 1fr)); align-items: start; gap: 1.25rem; width: 100%; }
+    .settings-card-row { display: contents; }
+    .settings-empty { color: var(--text-secondary); padding: 2rem; text-align: center; border: 1px dashed var(--border-color); border-radius: 10px; }
+    #tab_content_settings .settings-card { min-width: 0; }
+    #tab_content_settings .settings-row-label { gap: .5rem; flex-wrap: wrap; }
+    #tab_content_settings .settings-row-control { flex-wrap: wrap; }
+    #tab_content_settings .settings-row-control input[type="range"] { min-width: 100px; }
+    #tab_content_settings :is(input, select, button, summary):focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 3px; }
+    @media (max-width: 900px) {
+      body { height: 100dvh; min-height: 0; }
+      header { flex-shrink: 0; padding: .75rem; flex-wrap: wrap; gap: .25rem; }
+      main { min-height: 0; height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: 160px minmax(0, 1fr); }
+      .sidebar { padding: .75rem; border-right: 0; border-bottom: 1px solid var(--border-color); }
+      .dashboard { padding: .75rem; }
+    }
+    @media (max-width: 600px) {
+      .settings-toolbar { position: static; }
+      .settings-filter-controls select { flex: 1 1 100%; }
+      .settings-filter-status { flex-basis: 100%; }
+      .settings-action-controls button { flex: 1; }
+      #tab_content_settings .settings-card { padding: 1rem; }
     }
 
     /* Numbered Settings Styles */
@@ -893,7 +932,66 @@
     .lp-explain th { color: var(--lp-ink-3); font-weight: 600; text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.05em; }
     @media (prefers-reduced-motion: reduce) { .lp-tooltip, .lp-btn, .lp-handle .lp-halo { transition: none; } }
     @media (forced-colors: active) { .lp-chart .lp-ref-line { stroke: CanvasText; } .lp-chart .lp-pred-line { stroke: Highlight; } }
-  </style>
+  
+    /* ---- ESC tab ---- */
+    .esc-subnav { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0.25rem; flex-wrap: wrap; }
+    .esc-subtab { background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-secondary); padding: 0.55rem 1rem; font: inherit; font-size: 0.9rem; cursor: pointer; }
+    .esc-subtab:hover { color: var(--text-primary); }
+    .esc-subtab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); font-weight: 600; }
+    .esc-panel { display: none; flex-direction: column; gap: 1rem; }
+    .esc-panel.active { display: flex; }
+    .esc-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1.25rem 1.4rem; width: 100%; }
+    .esc-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+    .esc-h2 { font-size: 1.15rem; color: var(--text-primary); margin: 0 0 0.3rem 0; font-weight: 700; }
+    .esc-h3 { font-size: 0.95rem; color: var(--text-primary); margin: 0 0 0.3rem 0; }
+    .esc-lead { font-size: 0.83rem; color: var(--text-secondary); margin: 0; line-height: 1.45; max-width: 720px; }
+    .esc-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .esc-btn { background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.45rem 0.85rem; font: inherit; font-size: 0.83rem; cursor: pointer; }
+    .esc-btn:hover { border-color: rgba(6, 182, 212, 0.5); }
+    .esc-btn-primary { background: rgba(6, 182, 212, 0.15); border-color: rgba(6, 182, 212, 0.45); color: #67e8f9; font-weight: 600; }
+    .esc-btn-small { padding: 0.3rem 0.6rem; font-size: 0.78rem; }
+    .esc-toolbar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; padding: 0.6rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.2); margin-bottom: 0.6rem; font-size: 0.82rem; }
+    .esc-check { display: inline-flex; gap: 0.4rem; align-items: center; font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; }
+    .esc-legend { display: inline-flex; gap: 0.35rem; align-items: center; font-size: 0.75rem; color: var(--text-secondary); }
+    .esc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 0.4rem; }
+    .esc-dot-dirty { background: #fbbf24; }
+    .esc-dot-diff { background: #f472b6; }
+    .esc-muted { font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.35rem; line-height: 1.45; }
+    .esc-status { font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.6rem; min-height: 1.1rem; }
+    .esc-empty { padding: 1.25rem; text-align: center; color: var(--text-secondary); font-size: 0.85rem; border: 1px dashed var(--border-color); border-radius: 8px; }
+    .esc-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 0.75rem; }
+    @media (max-width: 520px) { .esc-groups { grid-template-columns: 1fr; } }
+    .esc-group { border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.18); overflow: hidden; }
+    .esc-group h4 { margin: 0; padding: 0.5rem 0.75rem; font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-blue); background: rgba(6,182,212,0.06); border-bottom: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 7.5rem 7.5rem; gap: 0.5rem; }
+    .esc-group h4.one-col { grid-template-columns: 1fr 9rem; }
+    .esc-group h4 span { text-align: left; color: var(--text-secondary); letter-spacing: 0; text-transform: none; font-weight: 600; }
+    .esc-field { display: grid; grid-template-columns: 1fr 7.5rem 7.5rem; gap: 0.5rem; align-items: center; padding: 0.4rem 0.75rem; border-top: 1px solid rgba(255,255,255,0.04); font-size: 0.82rem; }
+    .esc-field.one-col { grid-template-columns: 1fr 9rem; }
+    .esc-field:first-of-type { border-top: none; }
+    .esc-field-label { color: var(--text-primary); display: flex; align-items: center; gap: 0.35rem; }
+    .esc-field-help { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.65rem; cursor: help; flex: none; }
+    .esc-field.diff .esc-field-label::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #f472b6; }
+    .esc-input-wrap { display: flex; align-items: center; gap: 0.3rem; }
+    .esc-input-wrap input[type=number], .esc-input-wrap select { width: 100%; min-width: 0; background: #0f172a; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 5px; padding: 0.25rem 0.35rem; font: inherit; font-size: 0.82rem; }
+    .esc-input-wrap .unit { color: var(--text-secondary); font-size: 0.72rem; white-space: nowrap; }
+    .esc-input-wrap.dirty input, .esc-input-wrap.dirty select { border-color: #fbbf24; box-shadow: 0 0 0 1px rgba(251,191,36,0.35); }
+    .esc-input-wrap.dirty input[type=checkbox] { outline: 2px solid #fbbf24; }
+    .esc-input-wrap .off { font-size: 0.72rem; color: var(--text-secondary); display: inline-flex; gap: 0.2rem; align-items: center; }
+    .esc-banner { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 0.5rem 0 0.75rem; padding: 0.6rem 0.8rem; border: 1px solid rgba(6,182,212,0.35); border-radius: 8px; background: rgba(6,182,212,0.08); font-size: 0.83rem; }
+    .esc-details { margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem; }
+    .esc-details summary { cursor: pointer; color: var(--text-secondary); font-size: 0.85rem; }
+    .esc-quick { margin-top: 0.75rem; }
+    .esc-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; }
+    .esc-step { display: flex; gap: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.9rem; background: rgba(0,0,0,0.18); }
+    .esc-step.done { border-color: rgba(16,185,129,0.45); }
+    .esc-step-num { flex: none; width: 1.7rem; height: 1.7rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(6,182,212,0.15); color: #67e8f9; font-weight: 700; font-size: 0.85rem; }
+    .esc-step.done .esc-step-num { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+    .esc-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+    .esc-step-title { font-weight: 600; font-size: 0.9rem; }
+    .esc-file { font-size: 0.8rem; color: var(--text-secondary); max-width: 100%; }
+    .esc-progress { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .esc-progress > div { height: 100%; width: 0; background: var(--accent-green); transition: width 0.2s; }
+</style>
 </head>
 <body>
 
@@ -901,7 +999,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.33</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v1.1.34</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -1991,7 +2089,7 @@
             <p style="margin:.3rem 0 1rem">Tune FF on its own, or run a full tune. FF is measured in one upward staircase of eight held speeds (a few seconds) and checked against every point. PID-only checks the saved FF with the same staircase instead of spin-ups from a stop. A staircase that cannot settle is run once more before the tune stops. PID-only requires a complete FF calibration validated on this blaster. The launch curve sets the RPM reference, FF supplies the drive, and PID corrects tracking error. Write your launch settings first and keep them fixed during tuning. Remove the magazine and darts.</p>
             <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
               <label>Stage <select id="guided_scope" onchange="guidedButtons()"><option value="full">FF + PID</option><option value="ff">FF only</option><option value="pid">PID only — validated FF required</option></select></label>
-              <label>PID launch baseline <select id="guided_baseline"><option value="cold">Stopped — glide between launches</option><option value="idle">Spinning idle</option></select></label>
+              <label>PID launch baseline <select id="guided_baseline"><option value="idle" selected>Spinning idle (faster)</option><option value="cold">Stopped — glide between launches</option></select></label>
               <label>Fallback search passes <select id="guided_passes"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
               <label>Maximum step window <select id="guided_window"><option value="100">100 ms</option><option value="150">150 ms</option><option value="200">200 ms</option><option value="300" selected>300 ms (default)</option><option value="500">500 ms</option><option value="1000">1000 ms</option></select></label>
               <button id="guided_start" disabled class="action-btn" style="width:auto;margin:0" onclick="startGuidedTuning()">Tune Blaster</button>
@@ -2370,48 +2468,53 @@
       </div>
 
       <!-- Numbered Settings Configuration Tab Content -->
-      <div id="tab_content_settings" style="display: none; flex-direction: column; gap: 1.5rem; width: 100%;">
-        <!-- Header / Serial Settings Actions -->
-        <div style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 12px; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 300px;">
-            <h2 style="font-size: 1.1rem; color: var(--accent-violet); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-              Physical Blaster EEPROM Settings
-            </h2>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0.25rem 0 0 0; line-height: 1.45;">
-              These settings are stored in your blaster's EEPROM. You can read current parameters from the board or write values back to save them permanently.
-            </p>
+      <div id="tab_content_settings" style="display: none; flex-direction: column; gap: 1.25rem; width: 100%;">
+        <div class="settings-page-heading">
+          <div><h2>Blaster settings</h2><p>Read your blaster first. Edits stay on this page until you write them to EEPROM.</p></div>
+          <details class="settings-profile-tools">
+            <summary>Profiles &amp; defaults</summary>
+            <div class="settings-profile-actions">
+              <button class="preset-btn" onclick="exportFullBlasterProfile()">Export profile JSON</button>
+              <button class="preset-btn" onclick="document.getElementById('profile_import_file_input').click()">Import profile JSON</button>
+              <button class="preset-btn" style="color: #f87171;" onclick="restoreFactoryDefaults()">Restore Defaults</button>
+              <input type="file" id="profile_import_file_input" accept=".json" hidden onchange="importFullBlasterProfile(event)">
+            </div>
+          </details>
+        </div>
+        <div class="settings-toolbar">
+          <div class="settings-filter-controls">
+            <input id="settings_search" type="search" placeholder="Find a setting, e.g. idle, current, trigger…" aria-label="Search blaster settings" oninput="filterBlasterSettings()">
+            <select id="settings_category" aria-label="Settings category" onchange="filterBlasterSettings()">
+              <option value="">All categories</option>
+              <option value="presets">1 · RPM &amp; idle</option>
+              <option value="hardware">2 · Motor hardware</option>
+              <option value="launch">3 · Launch &amp; current</option>
+              <option value="battery">4 · Battery &amp; coast</option>
+              <option value="firing">5 · Trigger &amp; solenoid</option>
+              <option value="pid">6 · PID &amp; feedforward</option>
+              <option value="preferences">7 · Display &amp; LED</option>
+            </select>
+            <label class="settings-pending-toggle"><input id="settings_pending_only" type="checkbox" onchange="filterBlasterSettings()"> Pending only</label>
+            <button class="preset-btn" onclick="clearBlasterSettingsFilters()">Clear filters</button>
           </div>
-          <div style="display: flex; gap: 0.75rem; flex-shrink: 0;">
-            <button class="preset-btn" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" onclick="restoreFactoryDefaults()">
-              Restore Defaults
-            </button>
-            <button class="preset-btn" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);" onclick="exportFullBlasterProfile()">
-              Export Profile JSON
-            </button>
-            <button class="preset-btn" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" onclick="document.getElementById('profile_import_file_input').click()">
-              Import Profile JSON
-            </button>
-            <input type="file" id="profile_import_file_input" accept=".json" style="display: none;" onchange="importFullBlasterProfile(event)">
-            <button class="preset-btn" style="background: rgba(139, 92, 246, 0.15); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.3);" onclick="readBlasterSettings()">
-              Read from Blaster
-            </button>
-            <button id="btn_write_blaster" class="preset-btn" style="background: #10b981; color: white;" onclick="writeBlasterSettings()">
-              Write to Blaster
-            </button>
+          <div class="settings-action-controls">
+            <div class="settings-filter-status"><span id="settings_filter_count" role="status" aria-live="polite"></span><span id="settings_pending_status" role="status" aria-live="polite">No pending edits</span></div>
+            <button class="preset-btn" onclick="readBlasterSettings()">Read from Blaster</button>
+            <button id="btn_write_blaster" class="preset-btn" style="background: #10b981; color: white;" onclick="writeBlasterSettings()">Write to Blaster</button>
           </div>
         </div>
-
-        <div style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
+        <p id="settings_filter_empty" class="settings-empty" hidden>No settings match these filters. Try another search or clear the filters.</p>
+        <div id="settings_cards" class="settings-workspace">
 
           <!-- Row 1: Cards 1 & 2 -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; width: 100%;">
+          <div class="settings-card-row">
             <!-- 1. Target RPM & Idle Presets -->
-            <div class="settings-card" style="margin: 0;">
+            <div class="settings-card" data-settings-category="presets" style="margin: 0;">
               <h3>1. Target RPM & Idle Presets</h3>
               
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">01.</span> Preset 1 Speed &amp; Name (rpm0)</span>
+                  <span><span class="settings-row-num">1.01</span> Preset 1 Speed &amp; Name (rpm0)</span>
                   <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <input type="text" id="set_rpm_name0" maxlength="7" value="HVZ" style="width: 68px; padding: 0.15rem 0.35rem; font-size: 0.75rem; text-align: center; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: var(--accent-violet); border-radius: 4px; font-weight: 700;" oninput="syncBlasterField('rpm_name0', this.value, 'text')" title="Preset 1 Name">
                     <span><span id="val_set_rpm0">15000</span> RPM</span>
@@ -2425,7 +2528,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">02.</span> Preset 2 Speed &amp; Name (rpm1)</span>
+                  <span><span class="settings-row-num">1.02</span> Preset 2 Speed &amp; Name (rpm1)</span>
                   <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <input type="text" id="set_rpm_name1" maxlength="7" value="FUN" style="width: 68px; padding: 0.15rem 0.35rem; font-size: 0.75rem; text-align: center; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: var(--accent-violet); border-radius: 4px; font-weight: 700;" oninput="syncBlasterField('rpm_name1', this.value, 'text')" title="Preset 2 Name">
                     <span><span id="val_set_rpm1">20000</span> RPM</span>
@@ -2439,7 +2542,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">03.</span> Preset 3 Speed &amp; Name (rpm2)</span>
+                  <span><span class="settings-row-num">1.03</span> Preset 3 Speed &amp; Name (rpm2)</span>
                   <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <input type="text" id="set_rpm_name2" maxlength="7" value="TOUR" style="width: 68px; padding: 0.15rem 0.35rem; font-size: 0.75rem; text-align: center; background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.3); color: var(--accent-violet); border-radius: 4px; font-weight: 700;" oninput="syncBlasterField('rpm_name2', this.value, 'text')" title="Preset 3 Name">
                     <span><span id="val_set_rpm2">31000</span> RPM</span>
@@ -2453,7 +2556,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">03+</span> Max Flywheel RPM (max_rpm)</span>
+                  <span><span class="settings-row-num">1.04</span> Max Flywheel RPM (max_rpm)</span>
                   <span><span id="val_set_max_rpm">40000</span> RPM</span>
                 </div>
                 <div class="settings-row-desc">Global speed limit. Presets, Always-On and tuning are capped here and the blaster stops adding drive above 105% of it. 40,000 suits the stock motors and flywheels; only raise it for hardware rated faster.</div>
@@ -2464,7 +2567,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">04.</span> Always-On Idle Speed</span>
+                  <span><span class="settings-row-num">1.05</span> Always-On Idle Speed</span>
                   <span><span id="val_set_always_on_rpm">1500</span> RPM</span>
                 </div>
                 <div class="settings-row-desc">Speed of the flywheels in idle/revved-down state when always-on mode is active.</div>
@@ -2476,7 +2579,7 @@
               <div class="settings-row">
                 <div class="settings-row-label" style="flex-direction: row; justify-content: flex-start; gap: 0.5rem; align-items: center; cursor: pointer;">
                   <input type="checkbox" id="set_always_on" onchange="syncBlasterField('always_on', this.checked, 'checkbox')" style="width: 16px; height: 16px; accent-color: var(--accent-violet);">
-                  <span style="font-weight: 600;"><span class="settings-row-num">05.</span> Always-On Idle Enabled</span>
+                  <span style="font-weight: 600;">Always-On Idle Enabled</span>
                 </div>
                 <div class="settings-row-desc">Allows the rev trigger to toggle the always-on idle mode.</div>
               </div>
@@ -2484,20 +2587,20 @@
               <div class="settings-row">
                 <div class="settings-row-label" style="flex-direction: row; justify-content: flex-start; gap: 0.5rem; align-items: center; cursor: pointer;">
                   <input type="checkbox" id="set_freewheel" onchange="syncBlasterField('freewheel', this.checked, 'checkbox'); toggleFreewheel(this.checked);" style="width: 16px; height: 16px; accent-color: var(--accent-violet);">
-                  <span style="font-weight: 600;"><span class="settings-row-num">05b.</span> Freewheel / Coast on Trigger Release</span>
+                  <span style="font-weight: 600;">Freewheel / Coast on Trigger Release</span>
                 </div>
                 <div class="settings-row-desc">On release the blaster sends DShot 0 and the ESCs freewheel at zero current while still reporting RPM, instead of the software deceleration glide. Requires "Coast when throttle is released" in ESC Config → AM32 Settings: with AM32's default, DShot 0 brakes hard.</div>
                 <div id="freewheel_coast_warning" class="settings-row-desc" style="color:#fbbf24;display:none">The ESCs were last read with AM32 coast off: releasing will brake hard. Turn on coast in ESC Config → AM32 Settings.</div>
               </div>
             </div>
 
-            <!-- 2. Motor & Battery Hardware -->
-            <div class="settings-card" style="margin: 0;">
-              <h3>2. Motor & Battery Hardware</h3>
+            <!-- 2. Motor Hardware -->
+            <div class="settings-card" data-settings-category="hardware" style="margin: 0;">
+              <h3>2. Motor Hardware</h3>
               
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">06.</span> Motor KV Constant</span>
+                  <span><span class="settings-row-num">2.01</span> Motor KV Constant</span>
                   <span><span id="val_set_motor_kv">3200</span> RPM/V</span>
                 </div>
                 <div class="settings-row-desc">Brushless motor KV rating. Must match physical motor specifications.</div>
@@ -2508,7 +2611,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">07.</span> Battery Cell Count</span>
+                  <span><span class="settings-row-num">2.02</span> Battery Cell Count</span>
                   <span><span id="val_set_cells">4</span>S</span>
                 </div>
                 <div class="settings-row-desc">Number of LiPo series cells (0=auto-detect, 3S, 4S, 5S, 6S).</div>
@@ -2519,7 +2622,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">08.</span> Throttle Rise Limit (step_up)</span>
+                  <span><span class="settings-row-num">2.03</span> Throttle Rise Limit (step_up)</span>
                   <span><span id="val_set_step_up">45</span></span>
                 </div>
                 <div class="settings-row-desc">Maximum DShot command increase per 1 ms control tick, including RPM PID launches. Higher values allow faster acceleration when requested. Write settings to apply; keep this fixed during tuning and validation.</div>
@@ -2530,7 +2633,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">08b.</span> Spinup Motor Sync Limit</span>
+                  <span><span class="settings-row-num">2.04</span> Spinup Motor Sync Limit</span>
                   <span><span id="val_set_spinup_skew_limit">&plusmn;80 throttle</span></span>
                 </div>
                 <div class="settings-row-desc">Limits extra throttle on the leading wheel during acceleration. A clearly slower wheel can use more throttle to catch up; near-equal speeds retain the command-difference limit. Startup power remains capped until both wheels pass the startup RPM threshold. Set to 0 to disable sync coupling.</div>
@@ -2542,7 +2645,7 @@
               <div class="settings-row">
                 <div class="settings-row-label" style="flex-direction: row; justify-content: flex-start; gap: 0.5rem; align-items: center; cursor: pointer;">
                   <input type="checkbox" id="set_boot_spin_test" onchange="syncBlasterField('boot_spin_test', this.checked, 'checkbox')" style="width: 16px; height: 16px; accent-color: var(--accent-violet);">
-                  <span style="font-weight: 600;"><span class="settings-row-num">08c.</span> Boot Motor Spin Pretest</span>
+                  <span style="font-weight: 600;">Boot Motor Spin Pretest</span>
                 </div>
                 <div class="settings-row-desc">Sends a brief DShot 48 pulse on boot to gently spin both flywheels, confirming ESC communication, motor wiring, and initial telemetry.</div>
               </div>
@@ -2550,14 +2653,14 @@
               <div class="settings-row">
                 <div class="settings-row-label" style="flex-direction: row; justify-content: flex-start; gap: 0.5rem; align-items: center; cursor: pointer;">
                   <input type="checkbox" id="set_lifetime_counter" onchange="syncBlasterField('lifetime_counter', this.checked, 'checkbox')" style="width: 16px; height: 16px; accent-color: var(--accent-violet);">
-                  <span style="font-weight: 600;"><span class="settings-row-num">08d.</span> Wear-Levelled Lifetime Odometer</span>
+                  <span style="font-weight: 600;">Wear-Levelled Lifetime Odometer</span>
                 </div>
                 <div class="settings-row-desc">Tracks cumulative lifetime darts fired across reboots. Uses a 5-second idle lazy-commit buffer to eliminate Flash wear. Disabling pauses counting while preserving your stored lifetime total.</div>
               </div>
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">09.</span> DShot Signal Speed</span>
+                  <span><span class="settings-row-num">2.05</span> DShot Signal Speed</span>
                   <span><span id="val_set_dshot_rate">DShot600</span></span>
                 </div>
                 <div class="settings-row-desc">Packet bitrate sent to the ESC. Use DShot600 if your ESCs support it and telemetry remains reliable.</div>
@@ -2572,7 +2675,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">10.</span> DShot Frame Cadence</span>
+                  <span><span class="settings-row-num">2.06</span> DShot Frame Cadence</span>
                   <span><span id="val_set_frame_period_us">1000 Hz</span></span>
                 </div>
                 <div class="settings-row-desc">How often the RP2040 sends DShot throttle frames. 1000 Hz gives finer command spacing for software glide.</div>
@@ -2586,7 +2689,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">11.</span> Manual Raw Throttle Test</span>
+                  <span><span class="settings-row-num">2.07</span> Manual Raw Throttle Test</span>
                   <span><span id="val_manual_throttle_test">0</span></span>
                 </div>
                 <div class="settings-row-desc">Sends the same raw DShot throttle to both ESCs for low-speed testing. 0 stops; active throttle starts at 48 and times out unless refreshed.</div>
@@ -2600,9 +2703,12 @@
                 </div>
               </div>
 
+            </div>
+            <div class="settings-card" data-settings-category="launch" style="margin: 0;">
+              <h3>3. Launch &amp; Current</h3>
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">12.</span> Motor Control Algorithm</span>
+                  <span><span class="settings-row-num">3.01</span> Motor Control Algorithm</span>
                   <span><span id="val_set_ctrl_algo">PID</span></span>
                 </div>
                 <div class="settings-row-desc">RPM PID is supported by guided tuning. Aerospace uses the PI/FF core with additional launch assist; TBH uses take-back-half; ESC RPM Target delegates speed control to the ESC.</div>
@@ -2620,7 +2726,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">13.</span> Launch Aggressiveness · Inactive</span>
+                  <span><span class="settings-row-num">3.02</span> Launch Aggressiveness · Inactive</span>
                   <span><span id="val_set_launch_boost">70%</span></span>
                 </div>
                 <div id="launch_boost_note" class="settings-row-desc">Reserved setting. The current firmware does not use this value to change motor output in any mode. It is shown for readback only.</div>
@@ -2631,7 +2737,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">14.</span> Launch Ramp Trajectory</span>
+                  <span><span class="settings-row-num">3.03</span> Launch Ramp Trajectory</span>
                   <span><span id="val_set_launch_trajectory">Thermal Optimizer 16-Knot Curve</span></span>
                 </div>
                 <div class="settings-row-desc">Shapes the requested RPM over the launch time below, including RPM PID mode. Phased (startup &rarr; constant-acceleration ramp &rarr; landing) is set up in the Launch Planner tab and ignores the launch time below. Or choose a 16-knot curve, S-curve, or linear ramp. Actual acceleration depends on the motors, pack, feedforward, PID, and throttle rise limit. Revalidate after changing this setting.</div>
@@ -2652,7 +2758,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">14a.</span> Launch Time</span>
+                  <span><span class="settings-row-num">3.04</span> Launch Time</span>
                   <span><span id="val_set_launch_time_ms">150 ms</span></span>
                 </div>
                 <div class="settings-row-desc">How long the launch reference takes to reach the target RPM (60 to 300 ms). Importing a thermal optimizer curve sets this to the curve's simulated spin-up time. Shorter launches need more motor current and make more heat per shot.</div>
@@ -2663,7 +2769,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">14b.</span> Launch Acceleration Feed-Forward</span>
+                  <span><span class="settings-row-num">3.05</span> Launch Acceleration Feed-Forward</span>
                   <span><span id="val_set_accel_ff">100%</span></span>
                 </div>
                 <div class="settings-row-desc">Adds the voltage needed to accelerate the flywheel along the launch curve, so RPM PID does not have to lag the curve to produce it. 100% models the 39 g&middot;cm&sup2; flywheel only; raise it if launchtrace still shows the motors trailing the ref column (the motor rotor adds inertia). 0% disables it.</div>
@@ -2674,7 +2780,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">15.</span> Startup Handoff RPM</span>
+                  <span><span class="settings-row-num">3.06</span> Startup Handoff RPM</span>
                   <span><span id="val_set_startup_rpm">2500 RPM</span></span>
                 </div>
                 <div class="settings-row-desc">The shared startup drive cap ends when both filtered wheel speeds reach this threshold (default 2,500 RPM). This is a firmware speed heuristic; ESC telemetry alone does not prove commutation lock.</div>
@@ -2685,7 +2791,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span>Startup Power</span>
+                  <span><span class="settings-row-num">3.07</span> Startup Power</span>
                   <span id="val_set_startup_drive_mv">4.00 V</span>
                 </div>
                 <div class="settings-row-desc">From a stop, each motor is driven open-loop at this voltage until its ESC reports RPM (BEMF lock); the launch curve then starts from the measured speed. 1–5 V, default 4 V; the % shown is the duty at the current pack voltage. AM32 itself caps duty at about 20% until ~2,300 RPM, so on a full 5S pack anything above ~4.2 V is clipped by the ESC. After lock it stays the drive ceiling until the Startup Handoff RPM. Higher locks faster but pulls more standstill current: compare lock times (launchtrace) and pack current on the bench, e.g. 2 / 3 / 4 V.</div>
@@ -2696,7 +2802,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span>Launch Curve Start (from a stop)</span>
+                  <span><span class="settings-row-num">3.08</span> Launch Curve Start (from a stop)</span>
                   <span id="val_set_launch_clock">At trigger request</span>
                 </div>
                 <div class="settings-row-desc">At BEMF lock: the curve starts when the first motor reports RPM, from its measured speed, so the motors follow the whole curve instead of catching up after lock. Use curves exported for the after-lock part (curve tool), whose duration already leaves room for the lock time. At request: the pre-v5 timing &mdash; the curve runs during BEMF acquisition and the motors catch up after lock (higher catch-up current, especially with late locks). Uploading a curve sets this automatically: after-lock exports select BEMF lock, older curves select request.</div>
@@ -2710,7 +2816,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span>Motor Current Cap</span>
+                  <span><span class="settings-row-num">3.09</span> Motor Current Cap</span>
                   <span id="val_set_current_limit_a">60 A</span>
                 </div>
                 <div class="settings-row-desc">Estimated per-motor current limit, 0 = off. Each motor's drive is held to hold(measured RPM) + limit &times; model impedance, so a motor that falls behind the launch curve catches up at bounded current instead of surging. Amps are a model estimate (see the next setting), not a measurement.</div>
@@ -2721,18 +2827,65 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span>Current Cap Model Impedance</span>
+                  <span><span class="settings-row-num">3.10</span> Current Cap Model Impedance</span>
                   <span id="val_set_current_model_mohm">125 m&Omega;</span>
                 </div>
-                <div class="settings-row-desc">Effective impedance that turns voltage above hold into estimated amps for the cap. Default 125 m&Omega; is calibrated from launch data with the 39 g&middot;cm&sup2; flywheel (not the 31 m&Omega; copper + FET resistance, which would make a 60 A cap behave like ~15 A). Raise it to make the same amp setting more restrictive.</div>
+                <div class="settings-row-desc">Effective impedance that turns voltage above hold into estimated amps for the cap. Default 125 m&Omega; is calibrated from launch data with the 39 g&middot;cm&sup2; flywheel (not the 31 m&Omega; copper + FET resistance, which would make a 60 A cap behave like ~15 A). Lower it to make the same amp setting more restrictive.</div>
                 <div class="settings-row-control">
                   <input type="range" id="set_current_model_mohm" min="20" max="400" step="5" value="125" oninput="syncBlasterField('current_model_mohm', this.value, 'range')">
                 </div>
               </div>
 
               <div class="settings-row">
+                <div class="settings-row-label"><span><span class="settings-row-num">3.11</span> Cruise comparison</span></div>
+                <div class="settings-row-desc">With motors stopped, arm one test, then hold REV only. Records 3 seconds after speed settles; FIRE, release, stale RPM or a 3% speed departure ends it. FF-only temporarily removes PID correction. Match RPM, voltage and starting temperature between runs; input energy is not winding heat.</div>
+                <div class="settings-row-control">
+                  <button type="button" class="preset-btn" onclick="sendSerialCommand('cruise_test pid')">Arm PID hold</button>
+                  <button type="button" class="preset-btn" onclick="sendSerialCommand('cruise_test ff')">Arm FF-only hold</button>
+                  <button type="button" class="preset-btn" onclick="sendSerialCommand('cruise_test stop')">Cancel test</button>
+                  <button type="button" class="preset-btn" onclick="sendSerialCommand('cruise_test show')">Read result</button>
+                  <button type="button" class="preset-btn" onclick="downloadCruiseResults()">Download comparison</button>
+                </div>
+                <button type="button" class="preset-btn" onclick="showRecordedCurrentAudit()">Audit current from last read launch</button>
+                <pre id="stage1_current_audit" style="white-space: pre-wrap;">Read a launch first. Audit results are approximate; they never alter model impedance automatically.</pre>
+                <pre id="cruise_result" style="white-space: pre-wrap;">No cruise test captured.</pre>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-label"><span><span class="settings-row-num">3.12</span> Motor winding loss resistance</span><span id="val_set_motor_copper_mohm">31</span></div>
+                <div class="settings-row-desc">Physical line-to-line loss resistance for the approximate tuning heat model; independent of launch-model impedance.</div>
+                <div class="settings-row-control"><input type="number" id="set_motor_copper_mohm" min="5" max="200" step="1" value="31" onchange="syncBlasterField('motor_copper_mohm', this.value, 'number')"></div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-label"><span><span class="settings-row-num">3.13</span> Measured input-current budget per ESC</span><span id="val_set_input_current_limit_a">0</span></div>
+                <div class="settings-row-desc">Experimental slow supervisor. 0 disables it; 5-100 A uses fresh calibrated DC input current. It trims positive drive, falls back to existing limits on stale data, and cannot enforce PWM peaks or a budget below holding current.</div>
+                <div class="settings-row-control"><input type="number" id="set_input_current_limit_a" min="0" max="100" step="1" value="0" onchange="syncBlasterField('input_current_limit_a', this.value, 'number')"></div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-label"><span><span class="settings-row-num">3.14</span> Separate rev and fire pacing</span><span id="val_set_rev_fire_profiles">0</span></div>
+                <div class="settings-row-desc">Applies to phased launches outside autotune and supersedes deadline pacing; fire upgrades a rev immediately and stays latched for that launch.</div>
+                <div class="settings-row-control"><label><input type="checkbox" id="set_rev_fire_profiles" onchange="syncBlasterField('rev_fire_profiles', this.checked, 'checkbox')"> Enable separate rev/fire pacing</label></div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-label"><span><span class="settings-row-num">3.15</span> Rev acceleration (% of fire slope)</span><span id="val_set_rev_accel_pct">65</span></div>
+                <div class="settings-row-desc">Rev-only ceiling and rolling economy floor, relative to the configured phased slope.</div>
+                <div class="settings-row-control"><input type="number" id="set_rev_accel_pct" min="25" max="100" step="1" value="65" onchange="syncBlasterField('rev_accel_pct', this.value, 'number')"></div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-label"><span><span class="settings-row-num">3.16</span> Rolling fire pacing (ms)</span><span id="val_set_rolling_fire_ms">85</span></div>
+                <div class="settings-row-desc">Reference pacing goal, bounded by the fire slope. Actual wheel readiness must be measured.</div>
+                <div class="settings-row-control"><input type="number" id="set_rolling_fire_ms" min="40" max="250" step="1" value="85" onchange="syncBlasterField('rolling_fire_ms', this.value, 'number')"></div>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-label"><span><span class="settings-row-num">3.17</span> Rolling rev pacing (ms)</span><span id="val_set_rolling_rev_ms">120</span></div>
+                <div class="settings-row-desc">Reference pacing goal, bounded by the rev slope. Cold starts retain the configured startup power.</div>
+                <div class="settings-row-control"><input type="number" id="set_rolling_rev_ms" min="60" max="400" step="1" value="120" onchange="syncBlasterField('rolling_rev_ms', this.value, 'number')"></div>
+              </div>
+            </div>
+            <div class="settings-card" data-settings-category="battery" style="margin: 0;">
+              <h3>4. Battery &amp; Coast</h3>
+              <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">15.</span> Battery Cutoff per Cell (Match Protection)</span>
+                  <span><span class="settings-row-num">4.01</span> Battery Cutoff per Cell (Match Protection)</span>
                   <span><span id="val_set_batt_cutoff_cell">2.80V/cell</span></span>
                 </div>
                 <div class="settings-row-desc">Minimum voltage threshold per cell before protective motor shutdown. Set to 2.80V for deep burst sag headroom, or 0.00V (Tournament Mode) to completely disable low-voltage cutoffs during competitive matches.</div>
@@ -2743,7 +2896,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">16.</span> Battery Low Warning per Cell</span>
+                  <span><span class="settings-row-num">4.02</span> Battery Low Warning per Cell</span>
                   <span><span id="val_set_batt_warn_cell">3.30V/cell</span></span>
                 </div>
                 <div class="settings-row-desc">Threshold for low-battery alert badge on the OLED display and Web Configurator. Adjustable from 2.80V to 3.80V per cell (default 3.30V).</div>
@@ -2754,7 +2907,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">17.</span> Glide Rate</span>
+                  <span><span class="settings-row-num">4.03</span> Glide Rate</span>
                   <span><span id="val_set_glide_rpm_per_s">8,000 RPM/s</span></span>
                 </div>
                 <div class="settings-row-desc">How fast both flywheels wind down after you release rev. They follow one smooth shared curve, so they stay at the same speed the whole way (under about 1 A of drive or braking). 8,000 RPM/s takes about 4 s from 32,000 RPM; higher stops sooner. Also sets the fallback decay if RPM telemetry drops out.</div>
@@ -2765,7 +2918,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">18.</span> Software Glide Throttle Drop</span>
+                  <span><span class="settings-row-num">4.04</span> Software Glide Throttle Drop</span>
                   <span><span id="val_set_glide_step_down_x10">6.0</span></span>
                 </div>
                 <div class="settings-row-desc">Slew limit for the light slip braking below hold throttle during glide. Drive above hold is removed immediately on release.</div>
@@ -2776,7 +2929,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">19.</span> Post-Shot Rev Hold</span>
+                  <span><span class="settings-row-num">4.05</span> Post-Shot Rev Hold</span>
                   <span><span id="val_set_post_shot_hold">100 ms</span></span>
                 </div>
                 <div class="settings-row-desc">Duration flywheels remain powered at target firing RPM immediately following a shot. Prevents motor spin-down between rapid follow-up shots. Set to 0 to disable.</div>
@@ -2788,14 +2941,14 @@
           </div>
 
           <!-- Row 2: Cards 3 & 4 -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; width: 100%;">
-            <!-- 3. Pusher & Solenoid Control -->
-            <div class="settings-card" style="margin: 0;">
-              <h3>3. Pusher & Solenoid Control</h3>
+          <div class="settings-card-row">
+            <!-- 5. Trigger &amp; Solenoid -->
+            <div class="settings-card" data-settings-category="firing" style="margin: 0;">
+              <h3>5. Trigger &amp; Solenoid</h3>
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">15.</span> Trigger Mode</span>
+                  <span><span class="settings-row-num">5.01</span> Trigger Mode</span>
                   <span><span id="val_set_trigger_mode">Single</span></span>
                 </div>
                 <div class="settings-row-desc">Single fires once per pull, burst fires the selected count, and auto repeats while held.</div>
@@ -2810,7 +2963,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">16.</span> Burst Count</span>
+                  <span><span class="settings-row-num">5.02</span> Burst Count</span>
                   <span><span id="val_set_burst_count">3</span> shots</span>
                 </div>
                 <div class="settings-row-desc">Number of shots queued in burst mode.</div>
@@ -2821,7 +2974,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">17.</span> Magazine Capacity</span>
+                  <span><span class="settings-row-num">5.03</span> Magazine Capacity</span>
                   <span><span id="val_set_mag_capacity">17</span> darts</span>
                 </div>
                 <div class="settings-row-desc">Default full magazine capacity used by the dart counter and pip display.</div>
@@ -2832,7 +2985,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">17b.</span> Ammo Counting Direction</span>
+                  <span><span class="settings-row-num">5.04</span> Ammo Counting Direction</span>
                   <span id="val_set_count_up">Count Down (Remaining Ammo)</span>
                 </div>
                 <div class="settings-row-desc">Count Down decrements remaining ammo from magazine capacity. Count Up increments shots fired starting from 0.</div>
@@ -2846,7 +2999,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">17c.</span> Double-Click Ammo Reset</span>
+                  <span><span class="settings-row-num">5.05</span> Double-Click Ammo Reset</span>
                   <span id="val_set_double_click_reload">Enabled</span>
                 </div>
                 <div class="settings-row-desc">Double-click the Mode button to instantly reset the ammo counter to full magazine capacity (or 0 in count-up mode). When disabled, the mode button switches fire/RPM modes immediately with zero delay.</div>
@@ -2860,7 +3013,7 @@
 
               <div class="settings-row" id="row_double_click_reload_ms">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">17d.</span> Double-Click Window</span>
+                  <span><span class="settings-row-num">5.06</span> Double-Click Window</span>
                   <span><span id="val_set_double_click_reload_ms">300</span> ms</span>
                 </div>
                 <div class="settings-row-desc">Maximum time allowed between the first release and second press to recognize a double-click reload gesture (150-1000 ms).</div>
@@ -2871,7 +3024,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">18.</span> Active Calculated Rate</span>
+                  <span><span class="settings-row-num">5.07</span> Active Calculated Rate</span>
                   <span><span id="val_calculated_dps">-- DPS</span></span>
                 </div>
                 <div class="settings-row-desc">Calculated from the ON/OFF timing for the currently selected cell count.</div>
@@ -2879,63 +3032,63 @@
 
               <details class="settings-row" id="sol_tune_3s">
                 <summary class="settings-row-label" style="cursor: pointer;">
-                  <span><span class="settings-row-num">19.</span> 3S Solenoid Tune</span>
+                  <span>3S Solenoid Tune</span>
                   <span id="val_sol_rate_3s">-- DPS</span>
                 </summary>
                 <div class="settings-row-desc">Lower OFF time increases cadence; ON time controls how hard/long the pusher is energized.</div>
                 <div class="settings-row-control">
-                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_3s">35</span> ms</span></div>
+                  <div class="settings-row-label"><span><span class="settings-row-num">5.08</span> ON Time</span><span><span id="val_set_sol_on_3s">35</span> ms</span></div>
                   <input type="range" id="set_sol_on_3s" min="8" max="50" step="1" value="35" oninput="syncBlasterField('sol_on_3s', this.value, 'range')">
-                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_3s">35</span> ms</span></div>
+                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span><span class="settings-row-num">5.09</span> OFF Time</span><span><span id="val_set_sol_off_3s">35</span> ms</span></div>
                   <input type="range" id="set_sol_off_3s" min="0" max="200" step="1" value="35" oninput="syncBlasterField('sol_off_3s', this.value, 'range')">
                 </div>
               </details>
 
               <details class="settings-row" id="sol_tune_4s">
                 <summary class="settings-row-label" style="cursor: pointer;">
-                  <span><span class="settings-row-num">20.</span> 4S Solenoid Tune</span>
+                  <span>4S Solenoid Tune</span>
                   <span id="val_sol_rate_4s">-- DPS</span>
                 </summary>
                 <div class="settings-row-desc">Tune this for reliable feeding on 4S without holding the solenoid longer than needed.</div>
                 <div class="settings-row-control">
-                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_4s">30</span> ms</span></div>
+                  <div class="settings-row-label"><span><span class="settings-row-num">5.10</span> ON Time</span><span><span id="val_set_sol_on_4s">30</span> ms</span></div>
                   <input type="range" id="set_sol_on_4s" min="8" max="50" step="1" value="30" oninput="syncBlasterField('sol_on_4s', this.value, 'range')">
-                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_4s">30</span> ms</span></div>
+                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span><span class="settings-row-num">5.11</span> OFF Time</span><span><span id="val_set_sol_off_4s">30</span> ms</span></div>
                   <input type="range" id="set_sol_off_4s" min="0" max="200" step="1" value="30" oninput="syncBlasterField('sol_off_4s', this.value, 'range')">
                 </div>
               </details>
 
               <details class="settings-row" id="sol_tune_5s">
                 <summary class="settings-row-label" style="cursor: pointer;">
-                  <span><span class="settings-row-num">21.</span> 5S Solenoid Tune</span>
+                  <span>5S Solenoid Tune</span>
                   <span id="val_sol_rate_5s">-- DPS</span>
                 </summary>
                 <div class="settings-row-desc">Higher-voltage packs can usually run shorter timing, but tune against your actual pusher and darts.</div>
                 <div class="settings-row-control">
-                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_5s">25</span> ms</span></div>
+                  <div class="settings-row-label"><span><span class="settings-row-num">5.12</span> ON Time</span><span><span id="val_set_sol_on_5s">25</span> ms</span></div>
                   <input type="range" id="set_sol_on_5s" min="8" max="50" step="1" value="25" oninput="syncBlasterField('sol_on_5s', this.value, 'range')">
-                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_5s">25</span> ms</span></div>
+                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span><span class="settings-row-num">5.13</span> OFF Time</span><span><span id="val_set_sol_off_5s">25</span> ms</span></div>
                   <input type="range" id="set_sol_off_5s" min="0" max="200" step="1" value="25" oninput="syncBlasterField('sol_off_5s', this.value, 'range')">
                 </div>
               </details>
 
               <details class="settings-row" id="sol_tune_6s">
                 <summary class="settings-row-label" style="cursor: pointer;">
-                  <span><span class="settings-row-num">22.</span> 6S Solenoid Tune</span>
+                  <span>6S Solenoid Tune</span>
                   <span id="val_sol_rate_6s">-- DPS</span>
                 </summary>
                 <div class="settings-row-desc">Use the shortest timing that still feeds cleanly and does not overheat the solenoid.</div>
                 <div class="settings-row-control">
-                  <div class="settings-row-label"><span>ON Time</span><span><span id="val_set_sol_on_6s">20</span> ms</span></div>
+                  <div class="settings-row-label"><span><span class="settings-row-num">5.14</span> ON Time</span><span><span id="val_set_sol_on_6s">20</span> ms</span></div>
                   <input type="range" id="set_sol_on_6s" min="8" max="50" step="1" value="20" oninput="syncBlasterField('sol_on_6s', this.value, 'range')">
-                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span>OFF Time</span><span><span id="val_set_sol_off_6s">20</span> ms</span></div>
+                  <div class="settings-row-label" style="margin-top: 0.6rem;"><span><span class="settings-row-num">5.15</span> OFF Time</span><span><span id="val_set_sol_off_6s">20</span> ms</span></div>
                   <input type="range" id="set_sol_off_6s" min="0" max="200" step="1" value="20" oninput="syncBlasterField('sol_off_6s', this.value, 'range')">
                 </div>
               </details>
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span>Dynamic Voltage Compensation <span style="font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); margin-left: 0.35rem; font-weight: 700;">BETA</span></span>
+                  <span><span class="settings-row-num">5.16</span> Dynamic Voltage Compensation <span style="font-size: 0.68rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); margin-left: 0.35rem; font-weight: 700;">BETA</span></span>
                   <span id="val_set_sol_volt_comp">Disabled (Fixed Cell Table)</span>
                 </div>
                 <div class="settings-row-desc">Automatically expands solenoid on-time (+1.25 ms/V) as pack voltage drops or sags below nominal 4.0V/cell to guarantee full pusher extension across the entire battery discharge.</div>
@@ -2949,7 +3102,7 @@
 
               <details class="settings-row" id="dart_detect_section" open style="display: block;">
                 <summary class="settings-row-label" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                  <span><span class="settings-row-num">23.</span> Closed-Loop Dart Detection</span>
+                  <span>Closed-Loop Dart Detection</span>
                   <span id="val_dart_detect_badge" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; font-size: 0.72rem; padding: 0.2rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); transition: all 0.2s ease;">
                     ○ Disabled (Legacy)
                   </span>
@@ -2982,7 +3135,7 @@
                 <div id="dart_detect_params" style="transition: opacity 0.25s ease, filter 0.25s ease;">
                   <div style="margin-top: 0.9rem;">
                     <div class="settings-row-label">
-                      <span>RPM Drop Threshold</span>
+                      <span><span class="settings-row-num">5.17</span> RPM Drop Threshold</span>
                       <span><span id="val_set_dart_drop_rpm">800 RPM</span></span>
                     </div>
                     <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Minimum flywheel RPM deceleration required to confirm a dart.</div>
@@ -2993,7 +3146,7 @@
 
                   <div style="margin-top: 0.9rem;">
                     <div class="settings-row-label">
-                      <span>Detection Window</span>
+                      <span><span class="settings-row-num">5.18</span> Detection Window</span>
                       <span><span id="val_set_dart_window_ms">50 ms</span></span>
                     </div>
                     <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Duration after solenoid fires within which dart deceleration must occur. Automatically capped to the active solenoid cycle in full auto so shots never overlap.</div>
@@ -3004,7 +3157,7 @@
 
                   <div style="margin-top: 0.9rem;">
                     <div class="settings-row-label">
-                      <span>Minimum Detection RPM</span>
+                      <span><span class="settings-row-num">5.19</span> Minimum Detection RPM</span>
                       <span><span id="val_set_dart_min_rpm">6000 RPM</span></span>
                     </div>
                     <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Minimum wheel speed to engage dart detection, preventing false triggers during spin-down.</div>
@@ -3015,7 +3168,7 @@
 
                   <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid rgba(255,255,255,0.08);">
                     <div class="settings-row-label">
-                      <span>Dart Recovery Assist</span>
+                      <span><span class="settings-row-num">5.20</span> Dart Recovery Assist</span>
                       <span id="val_set_dart_recovery_assist">Enabled</span>
                     </div>
                     <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Adds a capped transient throttle boost only during confirmed dart RPM recovery. Normal PID tuning remains unchanged.</div>
@@ -3029,7 +3182,7 @@
 
                   <div style="margin-top: 0.9rem;">
                     <div class="settings-row-label">
-                      <span>Recovery Boost Gain</span>
+                      <span><span class="settings-row-num">5.21</span> Recovery Boost Gain</span>
                       <span><span id="val_set_dart_recovery_gain_x100">0.08</span> throttle/RPM</span>
                     </div>
                     <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Scales boost from dart-induced RPM error. Higher values recover faster but can overshoot.</div>
@@ -3040,7 +3193,7 @@
 
                   <div style="margin-top: 0.9rem;">
                     <div class="settings-row-label">
-                      <span>Recovery Boost Cap</span>
+                      <span><span class="settings-row-num">5.22</span> Recovery Boost Cap</span>
                       <span><span id="val_set_dart_recovery_boost_max">180</span> throttle</span>
                     </div>
                     <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Maximum extra throttle allowed during the recovery pulse.</div>
@@ -3051,7 +3204,7 @@
 
                   <div style="margin-top: 0.9rem;">
                     <div class="settings-row-label">
-                      <span>Recovery Step-Up Cap</span>
+                      <span><span class="settings-row-num">5.23</span> Recovery Step-Up Cap</span>
                       <span><span id="val_set_dart_recovery_step_up">140</span> / tick</span>
                     </div>
                     <div class="settings-row-desc" style="margin-bottom: 0.35rem;">Temporary slew allowance while recovering from a dart hit.</div>
@@ -3088,10 +3241,10 @@
               </div>
             </div>
 
-            <!-- 4. PID Loop Tuning -->
-            <div class="settings-card" style="margin: 0;">
+            <!-- 6. PID &amp; Feedforward -->
+            <div class="settings-card" data-settings-category="pid" style="margin: 0;">
               <div class="settings-card-titlebar">
-                <h3>4. PID Loop Tuning</h3>
+                <h3>6. PID &amp; Feedforward</h3>
                 <button type="button" id="pid_link_toggle" data-pid-link-toggle="1" class="pid-link-toggle active" onclick="togglePidLoopLink()" title="Motor 1 and Motor 2 PID values are linked" aria-label="PID values linked">
                   <svg class="pid-link-icon-linked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.43"></path>
@@ -3109,7 +3262,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">22.</span> Motor 1 - Kp</span>
+                  <span><span class="settings-row-num">6.01</span> Motor 1 - Kp</span>
                   <span><span id="val_set_pid1_kp">0.051000</span></span>
                 </div>
                 <div class="settings-row-desc">Proportional gain constant for Motor 1 speed tracking.</div>
@@ -3120,7 +3273,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">23.</span> Motor 1 - Ki</span>
+                  <span><span class="settings-row-num">6.02</span> Motor 1 - Ki</span>
                   <span><span id="val_set_pid1_ki">0.002000</span></span>
                 </div>
                 <div class="settings-row-desc">Integral gain constant for Motor 1 speed tracking.</div>
@@ -3131,7 +3284,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">24.</span> Motor 1 - Feedforward (FF)</span>
+                  <span><span class="settings-row-num">6.03</span> Motor 1 - Feedforward (FF)</span>
                   <span><span id="val_set_pid1_ff">1.0000</span></span>
                 </div>
                 <div class="settings-row-desc">Fallback multiplier for Motor 1 when no calibrated feedforward curve is available. A calibrated curve takes precedence.</div>
@@ -3142,7 +3295,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">25.</span> Motor 2 - Kp</span>
+                  <span><span class="settings-row-num">6.04</span> Motor 2 - Kp</span>
                   <span><span id="val_set_pid2_kp">0.051000</span></span>
                 </div>
                 <div class="settings-row-desc">Proportional gain constant for Motor 2 speed tracking.</div>
@@ -3153,7 +3306,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">26.</span> Motor 2 - Ki</span>
+                  <span><span class="settings-row-num">6.05</span> Motor 2 - Ki</span>
                   <span><span id="val_set_pid2_ki">0.002000</span></span>
                 </div>
                 <div class="settings-row-desc">Integral gain constant for Motor 2 speed tracking.</div>
@@ -3164,7 +3317,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">27.</span> Motor 2 - Feedforward (FF)</span>
+                  <span><span class="settings-row-num">6.06</span> Motor 2 - Feedforward (FF)</span>
                   <span><span id="val_set_pid2_ff">1.0000</span></span>
                 </div>
                 <div class="settings-row-desc">Fallback multiplier for Motor 2 when no calibrated feedforward curve is available. A calibrated curve takes precedence.</div>
@@ -3180,14 +3333,14 @@
           </div>
 
           <!-- Row 3: Card 5 -->
-          <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; width: 100%;">
-            <!-- 5. User Preferences -->
-            <div class="settings-card" style="margin: 0;">
-              <h3>5. User Preferences</h3>
+          <div class="settings-card-row">
+            <!-- 7. Display &amp; LED -->
+            <div class="settings-card" data-settings-category="preferences" style="margin: 0;">
+              <h3>7. Display &amp; LED</h3>
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">28.</span> LED Status NeoPixel</span>
+                  <span><span class="settings-row-num">7.01</span> LED Status NeoPixel</span>
                   <span id="val_set_led_enabled">Enabled</span>
                 </div>
                 <div class="settings-row-desc">Enable or completely disable the onboard RGB NeoPixel status LED to prevent any timing impact.</div>
@@ -3201,7 +3354,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">29.</span> LED Status Brightness</span>
+                  <span><span class="settings-row-num">7.02</span> LED Status Brightness</span>
                   <span><span id="val_set_brightness">50</span>%</span>
                 </div>
                 <div class="settings-row-desc">Brightness of status buttons / NeoPixels on the blaster.</div>
@@ -3212,7 +3365,7 @@
 
               <div class="settings-row">
                 <div class="settings-row-label">
-                  <span><span class="settings-row-num">30.</span> Temperature Unit</span>
+                  <span><span class="settings-row-num">7.03</span> Temperature Unit</span>
                   <span><span id="val_set_temp_unit">Fahrenheit</span></span>
                 </div>
                 <div class="settings-row-desc">Display temperature in Fahrenheit (0) or Celsius (1).</div>
@@ -3270,12 +3423,48 @@
 
       <!-- ESC Tool Launcher Tab Content -->
       <div id="tab_content_esc" style="display: none; flex-direction: column; gap: 1rem; width: 100%;">
-        <div id="esc_settings_card" style="background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: 8px; padding: 1.5rem; width: 100%;">
+        <nav class="esc-subnav" role="tablist" aria-label="ESC sections">
+          <button class="esc-subtab" data-panel="settings" onclick="escSubtab('settings')">Settings</button>
+          <button class="esc-subtab" data-panel="sounds" onclick="escSubtab('sounds')">Sounds</button>
+          <button class="esc-subtab" data-panel="firmware" onclick="escSubtab('firmware')">Firmware</button>
+          <button class="esc-subtab" data-panel="tools" onclick="escSubtab('tools')">Tools</button>
+        </nav>
+        <section class="esc-panel" data-panel="settings">
+        <div class="esc-card">
+          <div class="esc-card-head">
+            <div>
+              <h2 class="esc-h2">ESC Settings</h2>
+              <p class="esc-lead">Every AM32 setting in real units. Reading and writing go through the blaster's passthrough with the flywheels stopped; the ESCs restart once after a write.</p>
+            </div>
+            <div class="esc-row">
+              <button class="esc-btn" onclick="readEscSettings()">Read from ESCs</button>
+              <button class="esc-btn esc-btn-primary" onclick="writeAllEscSettings()">Write to ESCs</button>
+            </div>
+          </div>
+          <div class="esc-toolbar">
+            <label class="esc-check"><input type="checkbox" id="am32_same_both" onchange="renderAm32FullSettings()"> Same settings for both ESCs</label>
+            <span class="esc-legend"><span class="esc-dot esc-dot-dirty"></span> changed, not written <span class="esc-dot esc-dot-diff"></span> ESCs differ</span>
+            <span style="flex:1"></span>
+            <button class="esc-btn esc-btn-small" onclick="resetAm32Edits()">Undo edits</button>
+            <button class="esc-btn esc-btn-small" onclick="backupEscSettings()">Back up</button>
+            <button class="esc-btn esc-btn-small" onclick="document.getElementById('am32_restore_file').click()">Restore</button>
+            <input type="file" id="am32_restore_file" accept=".json" style="display:none" onchange="restoreEscSettings(this.files[0]); this.value=''">
+          </div>
+          <div id="am32_esc_info" class="esc-muted"></div>
+          <div id="am32_byte_defaults" class="esc-banner" style="display:none">
+            <span id="am32_byte_defaults_text"></span>
+            <button class="esc-btn esc-btn-primary esc-btn-small" onclick="applyByteEscDefaults()">Use Byte defaults</button>
+          </div>
+          <div id="am32_full_rows" class="esc-groups"><div class="esc-empty">Read the ESCs to load their settings.</div></div>
+          <div id="am32_full_status" role="status" class="esc-status"></div>
+          <details class="esc-details">
+            <summary>Quick changes over DShot (coast, direction, volume)</summary>
+        <div id="esc_settings_card" class="esc-quick">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
             <div>
-              <h2 style="font-size: 1.2rem; color: #22d3ee; margin: 0 0 0.4rem 0;">AM32 Settings</h2>
+              <h3 class="esc-h3">Quick changes over DShot</h3>
               <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.45; max-width: 760px;">
-                Change AM32 settings from the blaster over the DShot signal wire, with the flywheels stopped. Reading uses ESC passthrough and stops the motors for a few seconds.
+                Coast, direction and beeper volume, sent over the DShot signal without restarting the ESCs.
               </p>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -3308,6 +3497,113 @@
           </div>
           <div id="esc_cfg_status" role="status" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">Read the ESCs to load their current settings.</div>
         </div>
+          </details>
+        </div>
+        </section>
+        <section class="esc-panel" data-panel="sounds">
+        <div id="tune_studio_card" class="esc-card">
+          <h2 style="font-size: 1.2rem; color: #a855f7; margin: 0 0 0.4rem 0;">ESC Startup Tune</h2>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 1rem 0; line-height: 1.45;">
+            Paste a ringtone (RTTTL or a bare note list), pick the part that fits in the ESC, listen to it as AM32 will play it, then send it to the ESCs.
+          </p>
+          <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 1rem; align-items: start;">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <select id="tune_preset" onchange="loadTunePreset()" style="padding: 0.4rem; background: #0f172a; color: white; border: 1px solid var(--border-color); border-radius: 6px;"><option value="">Presets…</option></select>
+              <textarea id="tune_input" rows="4" oninput="tuneStudio.bpmOverride = null; tuneStudioUpdate()" placeholder="BarbieGirl:b=120,o=5,d=8:g#,e,g#,c#6,4a,f#,d#,f#,b,4g#  or  g#,e,g#,c#6,4a,..." style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-family: monospace; font-size: 0.78rem; resize: vertical;"></textarea>
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--text-secondary); align-items: center;">
+                <label>Tempo <input type="number" id="tune_bpm" min="40" max="255" value="120" oninput="tuneStudio.bpmOverride = Number(this.value) || null; tuneStudioUpdate()" style="width: 4.5rem; background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:4px;"></label>
+                <label>Transpose <input type="number" id="tune_transpose" min="-24" max="24" value="0" oninput="tuneStudioUpdate()" style="width: 4rem; background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:4px;"> semitones</label>
+                <label>Plain note length <select id="tune_default_len" onchange="tuneStudioUpdate()" style="background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:4px;"><option value="4">1/4</option><option value="8" selected>1/8</option><option value="16">1/16</option></select></label>
+              </div>
+              <canvas id="tune_strip" width="640" height="90" style="width: 100%; height: 90px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 6px; cursor: grab; touch-action: none;"></canvas>
+              <input type="range" id="tune_window_start" min="0" max="0" value="0" oninput="tuneStudioSetStart(Number(this.value))" style="width: 100%;">
+              <div id="tune_summary" style="font-size: 0.78rem; color: var(--text-secondary);">Paste a tune to begin.</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="preset-btn" id="tune_play_btn" onclick="tuneStudioPlayPause()">▶ Play</button>
+                <button class="preset-btn" onclick="tuneStudioRestart()">⏮ Start</button>
+                <label style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem;"><input type="checkbox" id="tune_loop"> Loop</label>
+              </div>
+              <div id="tune_issues" style="font-size: 0.75rem; color: #fbbf24; min-height: 1rem;"></div>
+              <label style="font-size: 0.75rem; color: var(--text-muted);">Fitting tune (RTTTL)</label>
+              <textarea id="tune_output" rows="3" readonly style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-family: monospace; font-size: 0.72rem;"></textarea>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                <button class="preset-btn" onclick="copyTuneOutput()">Copy RTTTL</button>
+                <select id="tune_target" style="background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:6px; padding:0.3rem;"><option value="all">Both ESCs</option><option value="1">ESC 1</option><option value="2">ESC 2</option></select>
+                <button class="action-btn" onclick="sendTuneToEscs()" style="width: auto; padding: 0.45rem 0.8rem; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">Send to ESCs</button>
+              </div>
+              <div id="tune_esc_tunes" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+              <div id="tune_status" role="status" style="font-size: 0.78rem; color: var(--text-secondary);">The ESC plays the new tune at its next power-up. Writing takes about 2 s with the flywheels stopped.</div>
+            </div>
+          </div>
+          <div id="arm_tone_panel" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.2);">
+            <h3 style="font-size: 1rem; color: #c084fc; margin: 0 0 0.35rem 0;">Arming sound</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 0.6rem 0; line-height: 1.45;">
+              The short sound AM32 plays when it arms, after the startup tune. Needs the Byte AM32 build (stock AM32 ignores this and keeps its own sound). Read the ESCs on the Settings tab first; this is written through passthrough with the flywheels stopped.
+            </p>
+            <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; font-size: 0.8rem; color: var(--text-secondary);">
+              <label>Sound <select id="arm_tone_mode" onchange="armToneUi()" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:4px;padding:0.2rem"><option value="stock">AM32 default</option><option value="silent">Silent</option><option value="custom">Custom notes</option></select></label>
+              <label>Preset <select id="arm_tone_preset" onchange="applyArmTonePreset(this.value); this.value=''" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:4px;padding:0.2rem"><option value="">Pick…</option><option value="chirp">Chirp lock (goes with the Chirp tune)</option><option value="ready">Ready-go (goes with the Ready tune)</option></select></label>
+              <span id="arm_tone_notes" style="display: none; gap: 0.4rem; align-items: center;">
+                <input id="arm_note_0" value="c6" size="3" title="Note, e.g. c6 or f#5" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:4px;padding:0.15rem 0.3rem;width:3.2rem"><input id="arm_ms_0" type="number" value="80" min="10" max="500" step="10" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:4px;width:4rem"> ms
+                <input id="arm_note_1" value="e6" size="3" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:4px;padding:0.15rem 0.3rem;width:3.2rem"><input id="arm_ms_1" type="number" value="80" min="0" max="500" step="10" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:4px;width:4rem"> ms
+                <input id="arm_note_2" value="g6" size="3" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:4px;padding:0.15rem 0.3rem;width:3.2rem"><input id="arm_ms_2" type="number" value="120" min="0" max="500" step="10" style="background:#0f172a;color:white;border:1px solid var(--border-color);border-radius:4px;width:4rem"> ms
+              </span>
+              <button class="preset-btn" onclick="previewArmTone()">▶ Preview</button>
+              <button class="action-btn" onclick="writeArmTone()" style="width: auto; margin: 0; padding: 0.4rem 0.8rem; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">Write to ESCs</button>
+            </div>
+            <div id="arm_tone_status" role="status" style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.4rem;">Uses the ESC choice above (Both / ESC 1 / ESC 2). A 0 ms note ends the sound early.</div>
+          </div>
+        </div>
+        </section>
+        <section class="esc-panel" data-panel="firmware">
+        <div id="esc_fw_card" class="esc-card">
+          <div class="esc-card-head">
+            <div>
+              <h2 class="esc-h2">ESC Firmware</h2>
+              <p class="esc-lead">Flash AM32 from the blaster: no PC passthrough tool needed. Settings on the ESC are kept.</p>
+            </div>
+          </div>
+          <ol class="esc-steps">
+            <li class="esc-step" id="esc_fw_step1">
+              <div class="esc-step-num">1</div>
+              <div class="esc-step-body">
+                <div class="esc-step-title">Load a .hex</div>
+                <input type="file" id="esc_fw_file" accept=".hex" onchange="loadEscFirmwareHex(this.files[0])" class="esc-file">
+                <div id="esc_fw_file_info" class="esc-muted">No file loaded.</div>
+              </div>
+            </li>
+            <li class="esc-step" id="esc_fw_step2">
+              <div class="esc-step-num">2</div>
+              <div class="esc-step-body">
+                <div class="esc-step-title">Store on the blaster</div>
+                <div class="esc-row">
+                  <button class="esc-btn esc-btn-primary" onclick="storeEscFirmwareOnBlaster()">Store on blaster</button>
+                  <button class="esc-btn" onclick="sendSerialCommand('escimg info')">Check stored image</button>
+                </div>
+                <div id="esc_fw_stored" class="esc-muted">The blaster keeps one image, also across its own firmware updates.</div>
+              </div>
+            </li>
+            <li class="esc-step" id="esc_fw_step3">
+              <div class="esc-step-num">3</div>
+              <div class="esc-step-body">
+                <div class="esc-step-title">Flash</div>
+                <div class="esc-row">
+                  <button class="esc-btn esc-btn-primary" onclick="flashEscsFromBlaster('1')">ESC 1</button>
+                  <button class="esc-btn esc-btn-primary" onclick="flashEscsFromBlaster('2')">ESC 2</button>
+                  <button class="esc-btn esc-btn-primary" onclick="flashEscsFromBlaster('all')">Both</button>
+                  <label class="esc-check" title="Flash even if the ESC reports a different target name than the image"><input type="checkbox" id="esc_fw_force"> Override target check</label>
+                </div>
+                <div class="esc-progress"><div id="esc_fw_progress"></div></div>
+                <div class="esc-muted">About 20–40 s per ESC. Every page is read back after writing; if a flash fails the bootloader is intact, so just flash again.</div>
+              </div>
+            </li>
+          </ol>
+          <div id="esc_fw_status" role="status" class="esc-status"></div>
+        </div>
+        </section>
+        <section class="esc-panel" data-panel="tools">
         <div style="background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.18); border-radius: 8px; padding: 1.5rem; width: 100%;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
             <div>
@@ -3347,6 +3643,7 @@
             </div>
           </div>
         </div>
+        </section>
       </div>
 
       <!-- Boot Screen Customizer Tab Content -->
@@ -3527,43 +3824,6 @@
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        <div id="tune_studio_card" style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 1100px;">
-          <h2 style="font-size: 1.2rem; color: #a855f7; margin: 0 0 0.4rem 0;">ESC Startup Tune</h2>
-          <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 1rem 0; line-height: 1.45;">
-            Paste a ringtone (RTTTL or a bare note list), pick the part that fits in the ESC, listen to it as AM32 will play it, then send it to the ESCs.
-          </p>
-          <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 1rem; align-items: start;">
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <select id="tune_preset" onchange="loadTunePreset()" style="padding: 0.4rem; background: #0f172a; color: white; border: 1px solid var(--border-color); border-radius: 6px;"><option value="">Presets…</option></select>
-              <textarea id="tune_input" rows="4" oninput="tuneStudio.bpmOverride = null; tuneStudioUpdate()" placeholder="BarbieGirl:b=120,o=5,d=8:g#,e,g#,c#6,4a,f#,d#,f#,b,4g#  or  g#,e,g#,c#6,4a,..." style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-family: monospace; font-size: 0.78rem; resize: vertical;"></textarea>
-              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--text-secondary); align-items: center;">
-                <label>Tempo <input type="number" id="tune_bpm" min="40" max="255" value="120" oninput="tuneStudio.bpmOverride = Number(this.value) || null; tuneStudioUpdate()" style="width: 4.5rem; background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:4px;"></label>
-                <label>Transpose <input type="number" id="tune_transpose" min="-24" max="24" value="0" oninput="tuneStudioUpdate()" style="width: 4rem; background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:4px;"> semitones</label>
-                <label>Plain note length <select id="tune_default_len" onchange="tuneStudioUpdate()" style="background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:4px;"><option value="4">1/4</option><option value="8" selected>1/8</option><option value="16">1/16</option></select></label>
-              </div>
-              <canvas id="tune_strip" width="640" height="90" style="width: 100%; height: 90px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 6px; cursor: grab; touch-action: none;"></canvas>
-              <input type="range" id="tune_window_start" min="0" max="0" value="0" oninput="tuneStudioSetStart(Number(this.value))" style="width: 100%;">
-              <div id="tune_summary" style="font-size: 0.78rem; color: var(--text-secondary);">Paste a tune to begin.</div>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <button class="preset-btn" id="tune_play_btn" onclick="tuneStudioPlayPause()">▶ Play</button>
-                <button class="preset-btn" onclick="tuneStudioRestart()">⏮ Start</button>
-                <label style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem;"><input type="checkbox" id="tune_loop"> Loop</label>
-              </div>
-              <div id="tune_issues" style="font-size: 0.75rem; color: #fbbf24; min-height: 1rem;"></div>
-              <label style="font-size: 0.75rem; color: var(--text-muted);">Fitting tune (RTTTL)</label>
-              <textarea id="tune_output" rows="3" readonly style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-family: monospace; font-size: 0.72rem;"></textarea>
-              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-                <button class="preset-btn" onclick="copyTuneOutput()">Copy RTTTL</button>
-                <select id="tune_target" style="background:#0f172a; color:white; border:1px solid var(--border-color); border-radius:6px; padding:0.3rem;"><option value="all">Both ESCs</option><option value="1">ESC 1</option><option value="2">ESC 2</option></select>
-                <button class="action-btn" onclick="sendTuneToEscs()" style="width: auto; padding: 0.45rem 0.8rem; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">Send to ESCs</button>
-              </div>
-              <div id="tune_esc_tunes" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
-              <div id="tune_status" role="status" style="font-size: 0.78rem; color: var(--text-secondary);">The ESC plays the new tune at its next power-up. Writing takes about 2 s with the flywheels stopped.</div>
             </div>
           </div>
         </div>
@@ -4297,8 +4557,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v1.1.33";
-    window.CONFIGURATOR_VERSION = "1.1.33";
+    const CONFIGURATOR_VERSION = "v1.1.34";
+    window.CONFIGURATOR_VERSION = "1.1.34";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -4358,6 +4618,7 @@
         }
       } else if (tab === 'settings') {
         set.style.display = 'flex';
+        filterBlasterSettings();
         btnSet.classList.add('active');
         if (typeof syncSettingsTabFromSidebar === 'function') {
             syncSettingsTabFromSidebar();
@@ -4371,6 +4632,7 @@
       } else if (tab === 'esc') {
         if(esc) esc.style.display = 'flex';
         if(btnEsc) btnEsc.classList.add('active');
+        maybeAutoReadEscSettings();
       } else if (tab === 'bootscreen') {
         if(boot) boot.style.display = 'flex';
         if(btnBoot) btnBoot.classList.add('active');
@@ -4429,7 +4691,50 @@
       });
     }
 
+    function filterBlasterSettings() {
+      const root = document.getElementById('tab_content_settings');
+      if (!root) return;
+      const terms = (document.getElementById('settings_search')?.value || '').toLowerCase().trim().split(/\s+/).filter(Boolean);
+      const category = document.getElementById('settings_category')?.value || '';
+      const pendingOnly = document.getElementById('settings_pending_only')?.checked || false;
+      let total = 0, visible = 0;
+      root.querySelectorAll('[data-settings-category]').forEach(card => {
+        let matches = 0;
+        card.querySelectorAll('.settings-row').forEach(row => {
+          total++;
+          const keys = Array.from(row.querySelectorAll('[id]'), el => el.id).join(' ');
+          const searchable = (row.textContent + ' ' + keys + ' ' + card.querySelector('h3').textContent).toLowerCase();
+          const show = (!category || card.dataset.settingsCategory === category) && terms.every(term => searchable.includes(term)) && (!pendingOnly || row.classList.contains('setting-dirty'));
+          row.hidden = !show;
+          if (show) { matches++; visible++; }
+          if (row.tagName === 'DETAILS') {
+            if (show && (terms.length || pendingOnly)) {
+              if (!row.hasAttribute('data-filter-was-open')) row.dataset.filterWasOpen = String(row.open);
+              row.open = true;
+            } else if (row.hasAttribute('data-filter-was-open')) {
+              row.open = row.dataset.filterWasOpen === 'true';
+              delete row.dataset.filterWasOpen;
+            }
+          }
+        });
+        card.hidden = matches === 0;
+      });
+      document.getElementById('settings_filter_count').textContent = `${visible} of ${total} settings`;
+      const status = document.getElementById('settings_pending_status');
+      status.textContent = dirtySettings.size ? `${dirtySettings.size} pending edits · write to save` : 'No pending edits';
+      status.style.color = dirtySettings.size ? '#fbbf24' : '';
+      document.getElementById('settings_filter_empty').hidden = visible > 0;
+    }
+
+    function clearBlasterSettingsFilters() {
+      document.getElementById('settings_search').value = '';
+      document.getElementById('settings_category').value = '';
+      document.getElementById('settings_pending_only').checked = false;
+      filterBlasterSettings();
+    }
+
 function updateWriteButtonText() {
+      filterBlasterSettings();
       if (typeof renderGuidedSetup === 'function') renderGuidedSetup();
       document.querySelectorAll('#btn_write_blaster, #btn_write_blaster_pid_card').forEach((btn) => {
         if (dirtySettings.size > 0) {
@@ -5244,6 +5549,11 @@ function updateWriteButtonText() {
       if (key === 'launch_accel' || key === 'launch_accel2') return `${Math.round(Number(val))} RPM/ms`;
       if (key === 'launch_knee_rpm') return Number(val) > 0 ? `${Math.round(Number(val)).toLocaleString()} RPM` : 'Off';
       if (key === 'launch_landing_ms' || key === 'launch_deadline_ms') return `${Math.round(Number(val))} ms`;
+      if (key === 'motor_copper_mohm') return `${val} mΩ`;
+      if (key === 'input_current_limit_a') return Number(val) === 0 ? 'Off' : `${val} A per ESC`;
+      if (key === 'rev_fire_profiles') return Number(val) ? 'Enabled' : 'Off';
+      if (key === 'rev_accel_pct') return `${val}%`;
+      if (key === 'rolling_fire_ms' || key === 'rolling_rev_ms') return `${val} ms`;
       if (key === 'launch_pacing') return Math.round(Number(val)) === 1 ? 'Hit a deadline' : 'Fixed acceleration';
       if (key === 'launch_leash_rpm') return Number(val) > 0 ? `${Math.round(Number(val)).toLocaleString()} RPM` : 'Off';
       if (key === 'launch_clock') {
@@ -5836,6 +6146,13 @@ function updateWriteButtonText() {
         startup_drive_mv: 4000,
         current_limit_a: 60,
         current_model_mohm: 125,
+        motor_copper_mohm: 31,
+        input_current_limit_a: 0,
+        rev_fire_profiles: 0,
+        rev_accel_pct: 65,
+        rolling_fire_ms: 85,
+        rolling_rev_ms: 120,
+
         launch_clock: 0,
         launch_accel: 280,
         launch_accel2: 280,
@@ -5937,7 +6254,7 @@ function updateWriteButtonText() {
           'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
           'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
           'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
-          'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv', 'current_limit_a', 'current_model_mohm', 'launch_clock',
+          'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv', 'current_limit_a', 'current_model_mohm', 'motor_copper_mohm', 'input_current_limit_a', 'rev_fire_profiles', 'rev_accel_pct', 'rolling_fire_ms', 'rolling_rev_ms', 'launch_clock',
           'launch_accel', 'launch_accel2', 'launch_knee_rpm', 'launch_landing_ms', 'launch_pacing', 'launch_deadline_ms', 'launch_leash_rpm',
           'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
           'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
@@ -6307,7 +6624,7 @@ function updateWriteButtonText() {
     function blasterSupportsSetting(key) {
       // These settings were introduced after v1.1.28. Readback is scoped to
       // the current USB connection and cleared when connecting/disconnecting.
-      const newKeys = ['current_limit_a', 'current_model_mohm', 'launch_clock',
+      const newKeys = ['current_limit_a', 'current_model_mohm', 'motor_copper_mohm', 'input_current_limit_a', 'rev_fire_profiles', 'rev_accel_pct', 'rolling_fire_ms', 'rolling_rev_ms', 'launch_clock',
         'launch_accel', 'launch_accel2', 'launch_knee_rpm', 'launch_landing_ms',
         'launch_pacing', 'launch_deadline_ms', 'launch_leash_rpm'];
       return !newKeys.includes(key) || Object.prototype.hasOwnProperty.call(boardSettingsSnapshot, key);
@@ -6326,7 +6643,7 @@ function updateWriteButtonText() {
         'dshot_rate', 'frame_period_us', 'trigger_mode', 'burst_count', 'mag_capacity', 'count_up', 'double_click_reload', 'double_click_reload_ms',
         'sol_on_3s', 'sol_off_3s', 'sol_on_4s', 'sol_off_4s',
         'sol_on_5s', 'sol_off_5s', 'sol_on_6s', 'sol_off_6s', 'sol_volt_comp',
-        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv', 'current_limit_a', 'current_model_mohm', 'launch_clock',
+        'always_on_rpm', 'always_on', 'motor_kv', 'ctrl_algo', 'launch_trajectory', 'launch_time_ms', 'accel_ff', 'startup_rpm', 'startup_drive_mv', 'current_limit_a', 'current_model_mohm', 'motor_copper_mohm', 'input_current_limit_a', 'rev_fire_profiles', 'rev_accel_pct', 'rolling_fire_ms', 'rolling_rev_ms', 'launch_clock',
           'launch_accel', 'launch_accel2', 'launch_knee_rpm', 'launch_landing_ms', 'launch_pacing', 'launch_deadline_ms', 'launch_leash_rpm',
         'batt_cutoff_cell', 'batt_warn_cell', 'post_shot_hold', 'step_up', 'spinup_skew_limit', 'boot_spin_test',
         'pid1_kp', 'pid1_ki', 'pid1_ff', 'pid2_kp', 'pid2_ki', 'pid2_ff',
@@ -7703,7 +8020,7 @@ function updateWriteButtonText() {
     const launchLimitNames = {
       2:'P correction clamp', 3:'startup voltage cap', 4:'acceleration headroom cap', 5:'pack voltage ceiling',
       6:'minimum running throttle', 7:'command clamp', 11:'stale RPM telemetry', 12:'STOP/fault/coast',
-      13:'throttle rise limit', 14:'throttle fall limit', 15:'motor synchronization', 16:'hard RPM limit'
+      13:'throttle rise limit', 14:'throttle fall limit', 15:'motor synchronization', 16:'hard RPM limit', 18:'estimated current cap', 19:'startup kick', 20:'measured input-current supervisor'
     };
     function comparisonStatus(message) {
       const el = document.getElementById('launch_comparison_status'); if (el) el.textContent = message;
@@ -7926,7 +8243,23 @@ function updateWriteButtonText() {
         comparisonSimulation=data;launchComparison.simulation=copyComparisonSimulation();renderLaunchComparison();comparisonStatus('Simulation loaded for comparison. This does not upload it to the blaster.');
       }catch(error){comparisonStatus(`Simulation load failed: ${error.message}`);}
     }
+    let cruiseResults = [];
+    function downloadCruiseResults() {
+      if (!cruiseResults.length) { logToConsole('Read a cruise result first.'); return; }
+      const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 'ByteBlaster_cruise_v1', results: cruiseResults }, null, 2)], { type: 'application/json' }));
+      const a = document.createElement('a'); a.href = url; a.download = 'cruise_comparison.json'; a.click(); URL.revokeObjectURL(url);
+    }
     function consumeLaunchComparisonLine(line) {
+      if (line.startsWith('CRUISE_TEST:')) {
+        try {
+          const result = JSON.parse(line.slice(12));
+          if (!['pid','ff'].includes(result.mode) || !Array.isArray(result.motors) || result.motors.length !== 2) throw new Error('Invalid cruise result');
+          result.readAt = new Date().toISOString(); result.firmware = connectedBlasterVersion; result.connectionGeneration = serialConnectionGeneration;
+          cruiseResults.push(result); cruiseResults = cruiseResults.slice(-10);
+          const el = document.getElementById('cruise_result'); if (el) el.textContent = JSON.stringify(result, null, 2);
+        } catch (e) { logToConsole('Cruise result: ' + e.message, true); }
+        return true;
+      }
       if (line.startsWith('launch_config ')) {
         try { const data=JSON.parse(line.slice(14)); validateBoardLaunchConfiguration(data);
           boardLaunchConfiguration={data,readAt:new Date().toISOString(),generation:serialConnectionGeneration};
@@ -7949,6 +8282,7 @@ function updateWriteButtonText() {
           const row={};pending.columns.forEach((key,i)=>row[key]=key.startsWith('bind')?values[i]:key.startsWith('lim')?parseInt(values[i],16):Number(values[i]));
           if(Object.entries(row).some(([k,v])=>!k.startsWith('bind')&&!Number.isFinite(v)))throw new Error('Nonfinite launch row');
           if(row.idx!==pending.run.samples.length||row.ms<0||row.ms>320||row.ms< (pending.run.samples.at(-1)?.ms||0))throw new Error('Out-of-order launch row');
+          const measured = recorderEscTelemetry(row); if (measured) row.escTelemetry = measured;
           pending.run.samples.push(row);
           // Legacy firmware had no end marker.
           if(!pending.run.config && pending.run.samples.length===pending.expected)pending.resolve(pending.run);
@@ -7968,6 +8302,12 @@ function updateWriteButtonText() {
           (data.lockMs !== undefined && (!Array.isArray(data.lockMs) || data.lockMs.length !== 2 || !data.lockMs.every(u16OrNull))) ||
           (data.interp !== undefined && !['linear','pchip'].includes(data.interp)) ||
           (data.clock !== undefined && !['request','lock'].includes(data.clock))) throw new Error('Invalid board startup configuration');
+      if (data.stage1 !== undefined) {
+        const x = data.stage1, inRange = (v,a,b) => Number.isInteger(v) && v >= a && v <= b;
+        if (!x || !inRange(x.copperMohm,5,200) || !(x.inputBudgetA === 0 || inRange(x.inputBudgetA,5,100)) ||
+            typeof x.intentEnabled !== 'boolean' || !inRange(x.revPct,25,100) || !inRange(x.rollingFireMs,40,250) ||
+            !inRange(x.rollingRevMs,60,400)) throw new Error('Invalid Stage 1 configuration');
+      }
       if (data.phased !== undefined) {
         const ph = data.phased, intIn = (v, a, b) => Number.isInteger(v) && v >= a && v <= b;
         if (!ph || typeof ph !== 'object' || !intIn(ph.accel, 40, 1500) || !intIn(ph.accel2, 40, 1500) || !(ph.kneeRpm === 0 || intIn(ph.kneeRpm, 2000, 60000)) ||
@@ -7998,7 +8338,70 @@ function updateWriteButtonText() {
     }
     // Recorder rows contain RPM/commands but not ESC current. Retain browser samples only for the
     // exact same launch on the same connection; equal board uptime after a reconnect is insufficient.
+    function auditRecordedCurrent(run) {
+      const rows = run?.samples || [], report = { source: 'recorded_ESC_input', units: 'A / J',
+        phaseEstimate: 'DC input current / actual duty; approximate mean, not RMS or a torque measurement', motors: [] };
+      const ff = run?.config?.feedforward;
+      const holdVolts = (m, rpm) => {
+        const c = ff?.motors?.[m]; if (!c || c.validMask !== 31 || !Array.isArray(ff.rpm)) return null;
+        if (c.fit && rpm >= c.fit.minRpm && rpm <= c.fit.maxRpm) {
+          const x = rpm / 10000, a = c.fit.c;
+          return ((a[3] * x + a[2]) * x + a[1]) * x / 1999 + a[0] / 1999;
+        }
+        const xs = [0, ...ff.rpm], ys = [0, ...c.drive];
+        for (let i = 1; i < xs.length; i++) if (rpm <= xs[i])
+          return (ys[i - 1] + (ys[i] - ys[i - 1]) * (rpm - xs[i - 1]) / (xs[i] - xs[i - 1])) / 1999;
+        return null;
+      };
+      for (let m = 0; m < 2; m++) {
+        let previous = null, energyJ = 0, coverageMs = 0, count = 0, peakA = null;
+        const impedances = [], ratios = [];
+        for (const row of rows) {
+          if (row.shot) break;
+          const e = row.escTelemetry?.motors?.[m], i = m + 1;
+          if (!e?.currentValid || !Number.isFinite(e.averageA) || e.averageA < 0 ||
+              !Number.isFinite(e.voltageV) || e.voltageV <= 1 || e.ageUs > 5000) { previous = null; continue; }
+          // Local receive age only: acquisition/filter latency is a separate bench measurement.
+          const stamp = row.ms - e.ageUs / 1000, watts = e.averageA * e.voltageV;
+          if (previous && stamp === previous.stamp) continue;
+          if (previous && stamp > previous.stamp && stamp - previous.stamp <= 5) {
+            const dt = stamp - previous.stamp;
+            energyJ += (watts + previous.watts) * 0.5 * dt / 1000; coverageMs += dt;
+          }
+          previous = { stamp, watts }; count++; peakA = peakA === null ? e.averageA : Math.max(peakA, e.averageA);
+          const duty = e.duty / 2000, rpm = row['rpm' + i], ffV = holdVolts(m, rpm), estimate = row['ie' + i];
+          if (!(Number.isFinite(duty) && duty >= 0.15 && duty <= 1 && rpm > 3000 && e.averageA >= 2) ||
+              row['age' + i] > 20 || (row['lim' + i] & (1 << 11))) continue;
+          const meanA = e.averageA / duty;
+          const headroom = (row['thr' + i] - 48) / 1999 * row.volts - ffV;
+          if (ffV !== null && headroom > 0.5) impedances.push(1000 * headroom / meanA);
+          if (Number.isFinite(estimate) && estimate > 5) ratios.push(meanA / estimate);
+        }
+        const median = a => { a.sort((x,y) => x-y); return a.length ? a[Math.floor(a.length / 2)] : null; };
+        report.motors.push({ samples: count, samplePeakA: peakA, observedInputEnergyJ: count > 1 ? energyJ : null,
+          coverageMs, approximateHeadroomMohm: median(impedances), impedanceSamples: impedances.length,
+          approximatePhaseToModelRatio: median(ratios) });
+      }
+      return report;
+    }
+    function showRecordedCurrentAudit() {
+      const report = auditRecordedCurrent(launchComparison); launchComparison.currentAudit = report;
+      const el = document.getElementById('stage1_current_audit'); if (el) el.textContent = JSON.stringify(report, null, 2);
+    }
+    function recorderEscTelemetry(row) {
+      if (!Number.isFinite(row.ex1) || !Number.isFinite(row.ex2)) return null;
+      return { supported: true, state: 2, captureSource: 'board_recorder', motors: [1, 2].map(i => {
+        const valid = row['ex' + i], ageUs = row['ea' + i], flags = row['ef' + i];
+        const fresh = Number.isFinite(ageUs) && ageUs >= 0 && ageUs <= 20000;
+        return { connected: row['es' + i] > 0, source: row['es' + i], flags, ageUs,
+          currentValid: fresh && Boolean(valid & 1), averageA: valid & 1 ? row['ec' + i] / 100 : null,
+          peakA: null, duty: fresh && (valid & 8) ? row['ed' + i] : null,
+          voltageV: fresh && (valid & 2) ? row['ev' + i] / 100 : null,
+          temperatureC: fresh && (valid & 4) ? row['et' + i] : null };
+      }) };
+    }
     function preserveLaunchEscCapture(run, previous) {
+      if (run.samples.some(s => s.escTelemetry?.captureSource === 'board_recorder')) return;
       if (!Number.isInteger(run.config?.startMs) || !Number.isInteger(run.connectionGeneration) || run.connectionGeneration !== previous?.connectionGeneration ||
           run.config.startMs !== previous?.config?.startMs || run.config.target !== previous?.config?.target) return;
       const rows = previous.escSamples || previous.samples || [];
@@ -8018,7 +8421,7 @@ function updateWriteButtonText() {
     }
     function exportLaunchComparison() {
       if(!launchComparison.samples.length){comparisonStatus('Record or read a launch first.');return;}
-      downloadLaunchObject({format:'ByteBlasterLaunchComparison_v1',exportedAt:new Date().toISOString(),firmware:connectedBlasterVersion,...launchComparison,analysis:analyzeLaunchComparison(launchComparison)},'byte-blaster-launch-comparison.json');
+      downloadLaunchObject({format:'ByteBlasterLaunchComparison_v1',exportedAt:new Date().toISOString(),firmware:connectedBlasterVersion,...launchComparison,currentAudit:auditRecordedCurrent(launchComparison),analysis:analyzeLaunchComparison(launchComparison)},'byte-blaster-launch-comparison.json');
     }
     async function exportVerifiedLaunchConfiguration() {
       try {const config=await requestBoardLaunchConfiguration();downloadLaunchObject({format:'ByteBlasterDefaultsCandidate_v1',exportedAt:new Date().toISOString(),firmware:connectedBlasterVersion,
@@ -8691,6 +9094,8 @@ function updateWriteButtonText() {
         document.getElementById(`esc_cfg_m${n}_volume_val`).textContent = String(s.volume);
       });
       updateFreewheelCoastWarning();
+      renderAm32FullSettings();
+      showArmTone(escSettingsRead.find(Boolean));
       const tunes = document.getElementById('tune_esc_tunes');
       if (tunes) {
         tunes.innerHTML = '';
@@ -8705,6 +9110,8 @@ function updateWriteButtonText() {
     async function readEscSettings() {
       const status = document.getElementById('esc_cfg_status');
       if (status) status.textContent = 'Reading through passthrough… the motors stop for a few seconds.';
+      const full = document.getElementById('am32_full_status');
+      if (full) full.textContent = 'Reading the ESCs… the flywheels stop for a few seconds.';
       escSettingsPending = 'read';
       await sendSerialCommand('esc_settings');
     }
@@ -8718,13 +9125,501 @@ function updateWriteButtonText() {
       if (a === b) await sendSerialCommand(`esc_set all ${a}`);
       else { escSettingsQueue = [`esc_set 2 ${b}`]; await sendSerialCommand(`esc_set 1 ${a}`); }
     }
+    // ---- All AM32 settings in real units (AM32 eeprom.h layout; conversions as AM32's loadEEpromSettings) ----
+    // kind: bool | select (options [raw, label]) | num (toUser/fromUser between the raw byte and the shown
+    // value) | numOff (num with an Off box; off = the raw value AM32 treats as disabled).
+    const AM32_GROUPS = ['Motor', 'Startup', 'Braking & coast', 'Protection', 'Input & beeper'];
+    const AM32_SETTINGS = [
+      { byte: 26, group: 'Motor', label: 'Motor KV', kind: 'num', unit: 'KV', min: 20, max: 10220, step: 40, toUser: r => r * 40 + 20, fromUser: v => Math.round((v - 20) / 40), help: 'Your motor\'s KV rating. Stored in steps of 40 KV; AM32 uses it for its low-speed power limit.' },
+      { byte: 27, group: 'Motor', label: 'Motor poles', kind: 'num', min: 2, max: 36, step: 2, help: 'Magnet poles on the bell (14 for a 2207).' },
+      { byte: 17, group: 'Motor', label: 'Reversed direction', kind: 'bool' },
+      { byte: 18, group: 'Motor', label: 'Bidirectional (3D)', kind: 'bool' },
+      { byte: 23, group: 'Motor', label: 'Timing advance', kind: 'num', unit: '°', min: 0, max: 30, step: 0.9375, toUser: r => r < 4 ? r * 7.5 : (r - 10) * 0.9375, fromUser: v => Math.round(v / 0.9375) + 10, decimals: 1, help: 'Commutation timing. 15° suits most flywheel motors.' },
+      { byte: 47, group: 'Motor', label: 'Auto timing', kind: 'bool' },
+      { byte: 24, group: 'Motor', label: 'PWM frequency', kind: 'num', unit: 'kHz', min: 8, max: 144, step: 1 },
+      { byte: 21, group: 'Motor', label: 'Variable PWM', kind: 'select', options: [[0, 'Off'], [1, 'On'], [2, 'By RPM']] },
+      { byte: 20, group: 'Motor', label: 'Complementary PWM', kind: 'bool', help: 'Active freewheeling. Needed for braking and for the blaster\'s driven glide.' },
+      { byte: 25, group: 'Startup', label: 'Startup power', kind: 'num', min: 50, max: 150, step: 1, help: 'AM32 startup power, 50–150.' },
+      { byte: 6, group: 'Startup', label: 'Minimum duty', kind: 'num', unit: '%', min: 0, max: 25, step: 0.5, toUser: r => r * 0.5, fromUser: v => Math.round(v / 0.5), decimals: 1 },
+      { byte: 5, group: 'Startup', label: 'Maximum ramp', kind: 'num', unit: '%/ms', min: 0.1, max: 25, step: 0.1, toUser: r => r * 0.1, fromUser: v => Math.round(v / 0.1), decimals: 1, help: 'Fastest throttle change AM32 allows. The blaster ramps slower than this anyway.' },
+      { byte: 19, group: 'Startup', label: 'Sine startup', kind: 'bool' },
+      { byte: 40, group: 'Startup', label: 'Sine changeover', kind: 'num', unit: '%', min: 5, max: 25, step: 1 },
+      { byte: 45, group: 'Startup', label: 'Sine power', kind: 'num', min: 1, max: 10, step: 1 },
+      { byte: 22, group: 'Startup', label: 'Stuck rotor protection', kind: 'bool' },
+      { byte: 29, group: 'Startup', label: 'Stall protection', kind: 'select', options: [[0, 'Off'], [1, 'On']] },
+      { byte: 13, group: 'Braking & coast', label: 'At zero throttle', kind: 'select', options: [[0, 'Normal'], [1, 'Coast'], [2, 'Motor brake'], ...[1, 2, 3, 4, 5, 6, 7].map(n => [n + 2, `Brake after ${n} s`])], help: 'Coast is what the blaster\'s freewheel option expects.' },
+      { byte: 28, group: 'Braking & coast', label: 'Brake on stop', kind: 'select', options: [[0, 'Off'], [1, 'On']] },
+      { byte: 12, group: 'Braking & coast', label: 'Active brake power', kind: 'num', unit: '%', min: 0, max: 5, step: 1 },
+      { byte: 41, group: 'Braking & coast', label: 'Drag brake strength', kind: 'num', min: 1, max: 10, step: 1 },
+      { byte: 42, group: 'Braking & coast', label: 'Driving brake strength', kind: 'num', min: 1, max: 10, step: 1 },
+      { byte: 43, group: 'Protection', label: 'Temperature limit', kind: 'numOff', unit: '°C', min: 70, max: 140, step: 1, off: 255, help: 'ESC throttles back above this. 100 °C is a sensible safety net.' },
+      { byte: 44, group: 'Protection', label: 'Current limit', kind: 'numOff', unit: 'A', min: 2, max: 200, step: 2, off: 102, toUser: r => r * 2, fromUser: v => Math.round(v / 2), help: 'AM32\'s own current limit, from the ESC\'s current sensor. Slow-acting: test it against launch time.' },
+      { byte: 9, group: 'Protection', label: 'Current limit P', kind: 'num', min: 0, max: 255, step: 1 },
+      { byte: 10, group: 'Protection', label: 'Current limit I', kind: 'num', min: 0, max: 255, step: 1 },
+      { byte: 11, group: 'Protection', label: 'Current limit D', kind: 'num', min: 0, max: 255, step: 1 },
+      { byte: 36, group: 'Protection', label: 'Low voltage cutoff', kind: 'select', options: [[0, 'Off'], [1, 'Per cell'], [2, 'Absolute']], help: 'The blaster already handles battery cutoff.' },
+      { byte: 37, group: 'Protection', label: 'Cell cutoff voltage', kind: 'num', unit: 'V', min: 2.5, max: 3.5, step: 0.01, toUser: r => (r + 250) / 100, fromUser: v => Math.round(v * 100) - 250, decimals: 2 },
+      { byte: 8, group: 'Protection', label: 'Absolute cutoff voltage', kind: 'num', unit: 'V', min: 0.5, max: 50, step: 0.5, toUser: r => r * 0.5, fromUser: v => Math.round(v / 0.5), decimals: 1 },
+      { byte: 46, group: 'Input & beeper', label: 'Input type', kind: 'select', options: [[0, 'Auto'], [1, 'DShot'], [2, 'Servo PWM'], [3, 'Serial'], [4, 'EDT arming']] },
+      { byte: 30, group: 'Input & beeper', label: 'Beeper volume', kind: 'num', min: 0, max: 11, step: 1 },
+      { byte: 31, group: 'Input & beeper', label: 'KISS telemetry interval', kind: 'num', min: 0, max: 255, step: 1 },
+      { byte: 7, group: 'Input & beeper', label: 'Disable stick calibration', kind: 'bool' },
+      { byte: 38, group: 'Input & beeper', label: 'RC car reverse', kind: 'bool' },
+      { byte: 39, group: 'Input & beeper', label: 'Hall sensors', kind: 'bool' },
+      { byte: 32, group: 'Input & beeper', label: 'Servo low threshold', kind: 'num', unit: 'µs', min: 750, max: 1260, step: 2, toUser: r => 750 + 2 * r, fromUser: v => Math.round((v - 750) / 2) },
+      { byte: 33, group: 'Input & beeper', label: 'Servo high threshold', kind: 'num', unit: 'µs', min: 1750, max: 2260, step: 2, toUser: r => 1750 + 2 * r, fromUser: v => Math.round((v - 1750) / 2) },
+      { byte: 34, group: 'Input & beeper', label: 'Servo neutral', kind: 'num', unit: 'µs', min: 1374, max: 1629, step: 1, toUser: r => 1374 + r, fromUser: v => Math.round(v - 1374) },
+      { byte: 35, group: 'Input & beeper', label: 'Servo dead band', kind: 'num', min: 0, max: 255, step: 1 },
+    ];
+    let escSettingsAddress = [null, null];
+    let am32Edits = [{}, {}];   // byte -> raw value not yet written, per ESC
+    const am32Raw = (i, byte) => (am32Edits[i][byte] !== undefined ? am32Edits[i][byte] : escSettingsRead[i]?.bytes[byte]);
+    const am32Show = (f, raw) => {
+      if (f.kind === 'numOff' && raw === f.off) return null;
+      const v = f.toUser ? f.toUser(raw) : raw;
+      return f.decimals ? Number(v.toFixed(f.decimals)) : v;
+    };
+    function escSubtab(name) {
+      document.querySelectorAll('#tab_content_esc .esc-subtab').forEach(b => b.classList.toggle('active', b.dataset.panel === name));
+      document.querySelectorAll('#tab_content_esc .esc-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
+      try { localStorage.setItem('byteEscSubtab', name); } catch (_) {}
+      if (name === 'firmware' && port && port.writable && !escFwStoredChecked) { escFwStoredChecked = true; sendSerialCommand('escimg info'); }
+    }
+    let escFwStoredChecked = false;
+    function initEscSubtabs() {
+      let name = 'settings';
+      try { name = localStorage.getItem('byteEscSubtab') || name; } catch (_) {}
+      escSubtab(['settings', 'sounds', 'firmware', 'tools'].includes(name) ? name : 'settings');
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initEscSubtabs); else setTimeout(initEscSubtabs, 0);
+
+    function am32InputFor(f, value, onChange) {
+      const wrap = document.createElement('div'); wrap.className = 'esc-input-wrap';
+      if (f.kind === 'bool') {
+        const box = document.createElement('input'); box.type = 'checkbox'; box.checked = value === 1;
+        box.onchange = () => onChange(box.checked ? 1 : 0); wrap.appendChild(box);
+      } else if (f.kind === 'select') {
+        const sel = document.createElement('select');
+        const opts = f.options.some(([raw]) => raw === value) ? f.options : [...f.options, [value, `Other (${value})`]];
+        for (const [raw, label] of opts) { const o = document.createElement('option'); o.value = raw; o.textContent = label; sel.appendChild(o); }
+        sel.value = String(value); sel.onchange = () => onChange(Number(sel.value)); wrap.appendChild(sel);
+      } else {
+        const shown = am32Show(f, value);
+        const num = document.createElement('input'); num.type = 'number'; num.min = f.min; num.max = f.max; num.step = f.step;
+        num.value = shown === null ? '' : String(shown);
+        const commit = () => {
+          const v = Number(num.value);
+          if (num.value === '' || !Number.isFinite(v)) return;
+          const raw = f.fromUser ? f.fromUser(v) : Math.round(v);
+          onChange(Math.max(0, Math.min(255, raw)));
+        };
+        num.onchange = commit; wrap.appendChild(num);
+        if (f.unit) { const u = document.createElement('span'); u.className = 'unit'; u.textContent = f.unit; wrap.appendChild(u); }
+        if (f.kind === 'numOff') {
+          const off = document.createElement('label'); off.className = 'off';
+          const box = document.createElement('input'); box.type = 'checkbox'; box.checked = shown === null; num.disabled = shown === null;
+          box.onchange = () => {
+            num.disabled = box.checked;
+            if (box.checked) onChange(f.off);
+            else { if (num.value === '') num.value = String(f.min); commit(); }
+          };
+          off.append(box, 'Off'); wrap.appendChild(off);
+        }
+      }
+      return wrap;
+    }
+    function renderAm32FullSettings() {
+      const host = document.getElementById('am32_full_rows');
+      if (!host || !escSettingsRead.some(Boolean)) return;
+      const both = document.getElementById('am32_same_both')?.checked && escSettingsRead[0] && escSettingsRead[1];
+      const escs = [0, 1].filter(i => escSettingsRead[i]);
+      host.innerHTML = '';
+      const info = document.getElementById('am32_esc_info');
+      if (info) info.textContent = escs.map(i => `ESC ${i + 1}: AM32 ${escSettingsRead[i].version}, EEPROM v${escSettingsRead[i].eepromVersion}`).join(' · ');
+      for (const group of AM32_GROUPS) {
+        const card = document.createElement('div'); card.className = 'esc-group';
+        const head = document.createElement('h4'); head.textContent = group;
+        if (both) { head.classList.add('one-col'); const c = document.createElement('span'); c.textContent = 'Both ESCs'; head.appendChild(c); }
+        else for (const i of [0, 1]) { const c = document.createElement('span'); c.textContent = `ESC ${i + 1}`; head.appendChild(c); }
+        card.appendChild(head);
+        for (const f of AM32_SETTINGS.filter(x => x.group === group)) {
+          const row = document.createElement('div'); row.className = 'esc-field' + (both ? ' one-col' : '');
+          const label = document.createElement('div'); label.className = 'esc-field-label'; label.textContent = f.label;
+          if (f.help) { const h = document.createElement('span'); h.className = 'esc-field-help'; h.textContent = '?'; h.title = f.help; label.appendChild(h); }
+          row.appendChild(label);
+          const values = [0, 1].map(i => escSettingsRead[i] ? am32Raw(i, f.byte) : undefined);
+          if (escs.length === 2 && values[0] !== values[1]) { row.classList.add('diff'); row.title = 'The two ESCs differ'; }
+          const cols = both ? ['both'] : [0, 1];
+          for (const col of cols) {
+            const i = col === 'both' ? 0 : col;
+            if (!escSettingsRead[i]) { const d = document.createElement('div'); d.className = 'esc-muted'; d.textContent = '—'; row.appendChild(d); continue; }
+            const targets = col === 'both' ? [0, 1] : [col];
+            const input = am32InputFor(f, values[i], raw => {
+              for (const t of targets) {
+                if (raw === escSettingsRead[t].bytes[f.byte]) delete am32Edits[t][f.byte]; else am32Edits[t][f.byte] = raw;
+              }
+              renderAm32FullSettings();
+            });
+            if (targets.some(t => am32Edits[t][f.byte] !== undefined)) input.classList.add('dirty');
+            row.appendChild(input);
+          }
+          card.appendChild(row);
+        }
+        host.appendChild(card);
+      }
+      updateByteDefaultsBanner();
+      const pending = [0, 1].reduce((n, i) => n + Object.keys(am32Edits[i]).length, 0);
+      const status = document.getElementById('am32_full_status');
+      if (status && !escWritePending) status.textContent = pending ? `${pending} change(s) not written yet.` : '';
+    }
+    function resetAm32Edits() { am32Edits = [{}, {}]; renderAm32FullSettings(); }
+    // Byte defaults for its 3200 KV flywheel motors: the real KV (stored in 40 KV steps, so 3180) and a 100 °C
+    // temperature limit as a safety net. Offered after a read whenever an ESC differs; staged as edits.
+    const BYTE_ESC_DEFAULTS = [{ byte: 26, raw: 79, text: 'motor KV 3180 (3200 KV motors, stored in 40 KV steps)' },
+                               { byte: 43, raw: 100, text: 'temperature limit 100 °C' }];
+    function byteDefaultsMissing() {
+      return BYTE_ESC_DEFAULTS.filter(d => [0, 1].some(i => escSettingsRead[i] && am32Raw(i, d.byte) !== d.raw));
+    }
+    function updateByteDefaultsBanner() {
+      const banner = document.getElementById('am32_byte_defaults');
+      if (!banner) return;
+      const missing = escSettingsRead.some(Boolean) ? byteDefaultsMissing() : [];
+      banner.style.display = missing.length ? 'flex' : 'none';
+      document.getElementById('am32_byte_defaults_text').textContent = missing.length ? `Byte recommends ${missing.map(d => d.text).join(' and ')}.` : '';
+    }
+    function applyByteEscDefaults() {
+      for (const d of BYTE_ESC_DEFAULTS) for (const i of [0, 1]) {
+        if (!escSettingsRead[i]) continue;
+        if (escSettingsRead[i].bytes[d.byte] === d.raw) delete am32Edits[i][d.byte]; else am32Edits[i][d.byte] = d.raw;
+      }
+      renderAm32FullSettings();
+      document.getElementById('am32_full_status').textContent = 'Byte defaults staged. Review, then Write to ESCs.';
+    }
+    // Opening the ESC page while connected reads the ESCs once per connection, so the table is never empty.
+    let escAutoReadGeneration = -1;
+    function maybeAutoReadEscSettings() {
+      if (!port || !port.writable || escAutoReadGeneration === serialConnectionGeneration) return;
+      if (escSettingsPending || escWritePending || escSettingsRead.some(Boolean)) return;
+      escAutoReadGeneration = serialConnectionGeneration;
+      readEscSettings();
+    }
+    // The settings block to write for one ESC: what was read, with the pending edits laid over it.
+    function am32EditedBytes(index) {
+      const s = escSettingsRead[index];
+      if (!s) return null;
+      const bytes = Uint8Array.from(s.bytes);
+      for (const [byte, raw] of Object.entries(am32Edits[index])) bytes[Number(byte)] = raw;
+      return bytes;
+    }
+    const toHex = bytes => Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    // Settings writes go out as one command, so the blaster writes every ESC in a single passthrough session:
+    // the ESCs restart once afterwards (one startup tune and arming sound) and are not read again, since the
+    // blaster already read each page back. statusId: where the result is reported.
+    let escWritePending = null;
+    async function sendEscSettingsWrite(blocks, statusId, busyText) {
+      const status = document.getElementById(statusId);
+      const ids = Object.keys(blocks).map(Number);
+      if (!ids.length) { status.textContent = 'Read the ESCs first.'; return; }
+      const hex = i => { const b = blocks[i]; return toHex(b.slice(0, b.length - (b.length % 4))); };
+      const both = ids.length === 2 && escSettingsAddress[0] === escSettingsAddress[1];
+      const commands = both ? [`esc_settings_write all ${escSettingsAddress[0]} ${hex(0)} ${hex(1)}`]
+                            : ids.map(i => `esc_settings_write ${i + 1} ${escSettingsAddress[i]} ${hex(i)}`);
+      escWritePending = { blocks, statusId, failed: [], commands: commands.slice(1) };
+      status.textContent = busyText;
+      await sendSerialCommand(commands[0]);
+    }
+    async function writeAllEscSettings() {
+      const status = document.getElementById('am32_full_status');
+      try {
+        const blocks = {};
+        for (let i = 0; i < 2; i++) { const b = am32EditedBytes(i); if (b && escSettingsAddress[i] != null) blocks[i] = b; }
+        await sendEscSettingsWrite(blocks, 'am32_full_status', 'Writing settings through passthrough… keep the flywheels stopped.');
+      } catch (error) { status.textContent = `Not written: ${error.message}`; }
+    }
+    function backupEscSettings() {
+      const status = document.getElementById('am32_full_status');
+      if (!escSettingsRead.some(Boolean)) { status.textContent = 'Read the ESCs first.'; return; }
+      const data = { kind: 'byte-blaster-am32-settings', v: 1, savedAt: new Date().toISOString(),
+        escs: escSettingsRead.map((s, i) => s ? { address: escSettingsAddress[i], version: s.version, eeprom: s.eepromVersion, hex: toHex(am32EditedBytes(i)) } : null) };
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+      const a = document.createElement('a'); a.href = url; a.download = `am32-settings-${data.savedAt.slice(0, 19).replace(/[:T]/g, '-')}.json`;
+      a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      status.textContent = 'Settings saved to a file (including unwritten edits).';
+    }
+    // Restore lays a backup's settings bytes (5-47) over what was read; nothing is written until Write.
+    async function restoreEscSettings(file) {
+      const status = document.getElementById('am32_full_status');
+      try {
+        const data = JSON.parse(await file.text());
+        if (data.kind !== 'byte-blaster-am32-settings' || !Array.isArray(data.escs)) throw new Error('not an AM32 settings backup');
+        let restored = 0;
+        data.escs.forEach((e, i) => {
+          if (!e || !escSettingsRead[i]) return;
+          const saved = parseEscSettingsHex(e.hex);
+          for (let b = 5; b <= 47; b++) {
+            if (saved.bytes[b] !== escSettingsRead[i].bytes[b]) am32Edits[i][b] = saved.bytes[b]; else delete am32Edits[i][b];
+          }
+          restored++;
+        });
+        renderAm32FullSettings();
+        status.textContent = restored ? `Loaded ${restored} ESC backup(s). Review, then Write to ESCs.` : 'Read the ESCs first, then restore.';
+      } catch (error) { status.textContent = `Restore failed: ${error.message}`; }
+    }
+
+    // Intel HEX to the flat AM32 application the blaster stores: offset from the ESC's flash start,
+    // padded with 0xFF to whole 1 KB pages, plus its CRC-32 and target name (the 32 bytes before the
+    // EEPROM page, 0x7BE0 on 32 KB-bootloader parts).
+    function parseIntelHex(text) {
+      const data = new Map();
+      let upper = 0, min = Infinity, max = -Infinity;
+      for (const raw of text.split(/\r?\n/)) {
+        const line = raw.trim();
+        if (!line) continue;
+        if (line[0] !== ':') throw new Error('not an Intel HEX file');
+        const bytes = line.slice(1).match(/../g).map(h => parseInt(h, 16));
+        const sum = bytes.reduce((a, b) => a + b, 0) & 0xFF;
+        if (sum !== 0) throw new Error('HEX checksum error');
+        const [count, hi, lo, type] = bytes;
+        if (type === 0) {
+          const addr = upper + (hi << 8 | lo);
+          for (let i = 0; i < count; i++) data.set(addr + i, bytes[4 + i]);
+          min = Math.min(min, addr); max = Math.max(max, addr + count);
+        } else if (type === 4) upper = (bytes[4] << 8 | bytes[5]) << 16;
+        else if (type === 2) upper = (bytes[4] << 8 | bytes[5]) << 4;
+        else if (type === 1) break;
+      }
+      if (!data.size) throw new Error('no data in HEX');
+      const flashBase = 0x08000000;
+      const offset = (min - flashBase) & ~0x3FF;
+      const size = Math.ceil((max - flashBase - offset) / 1024) * 1024;
+      if (min < flashBase || offset < 0x1000 || size <= 0 || size > 60 * 1024) throw new Error('not an AM32 application image (expected 0x08001000 onward, at most 60 KB)');
+      const image = new Uint8Array(size).fill(0xFF);
+      for (const [addr, value] of data) image[addr - flashBase - offset] = value;
+      return { offset, image };
+    }
+    function crc32(bytes) {
+      let crc = ~0;
+      for (const b of bytes) { crc ^= b; for (let k = 0; k < 8; k++) crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1)); }
+      return (~crc) >>> 0;
+    }
+    let escFirmware = null;
+    async function loadEscFirmwareHex(file) {
+      const info = document.getElementById('esc_fw_file_info');
+      try {
+        const { offset, image } = parseIntelHex(await file.text());
+        const nameOffset = 0x7BE0 >= offset && 0x7BE0 + 32 <= offset + image.length ? 0x7BE0 : 0;
+        let target = '';
+        if (nameOffset) for (let i = 0; i < 32; i++) { const c = image[nameOffset - offset + i]; if (c < 0x21 || c > 0x7E) break; target += String.fromCharCode(c); }
+        escFirmware = { name: file.name, offset, image, crc: crc32(image), nameOffset, target };
+        info.textContent = `${file.name}: ${(image.length / 1024).toFixed(0)} KB, target ${target || 'unknown'}, CRC ${escFirmware.crc.toString(16).toUpperCase().padStart(8, '0')}`;
+        document.getElementById('esc_fw_step1')?.classList.add('done');
+      } catch (error) { escFirmware = null; info.textContent = `Not loaded: ${error.message}`; }
+    }
+    let escImgWaiter = null;
+    function waitEscImg(expect, ms = 8000) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { escImgWaiter = null; reject(new Error('no reply from the blaster')); }, ms);
+        escImgWaiter = { expect, resolve: v => { clearTimeout(timer); resolve(v); }, reject: e => { clearTimeout(timer); reject(e); } };
+      });
+    }
+    async function storeEscFirmwareOnBlaster() {
+      const status = document.getElementById('esc_fw_status'), bar = document.getElementById('esc_fw_progress');
+      if (!escFirmware) { status.textContent = 'Load a .hex first.'; return; }
+      const { offset, image, crc, nameOffset, name } = escFirmware;
+      try {
+        status.textContent = 'Erasing the blaster image store…';
+        const ready = waitEscImg('ready');
+        await sendSerialCommand(`escimg begin ${offset.toString(16)} ${image.length} ${crc.toString(16)} ${nameOffset.toString(16)} ${name.replace(/\s+/g, '_').slice(0, 40)}`);
+        await ready;
+        const chunk = 512;
+        for (let pos = 0; pos < image.length; pos += chunk) {
+          const next = waitEscImg('ready');
+          await sendSerialCommand(`escimg data ${pos} ${toHex(image.subarray(pos, pos + chunk))}`);
+          const at = await next;
+          if (at !== Math.min(pos + chunk, image.length)) throw new Error(`blaster is at ${at}, expected ${pos + chunk}`);
+          bar.style.width = `${Math.round(100 * (pos + chunk) / image.length)}%`;
+          status.textContent = `Uploading to the blaster… ${Math.min(pos + chunk, image.length)} / ${image.length} bytes`;
+        }
+        const stored = waitEscImg('stored');
+        await sendSerialCommand('escimg end');
+        await stored;
+        status.textContent = 'Stored on the blaster. Flash ESC 1, ESC 2 or both.';
+      } catch (error) { status.textContent = `Store failed: ${error.message}`; }
+    }
+    async function flashEscsFromBlaster(which) {
+      const status = document.getElementById('esc_fw_status');
+      document.getElementById('esc_fw_progress').style.width = '0%';
+      status.textContent = 'Flashing from the blaster… keep the flywheels stopped and the battery connected.';
+      await sendSerialCommand(`esc_flash ${which}${document.getElementById('esc_fw_force').checked ? ' force' : ''}`);
+    }
+    function handleEscFirmwareLine(line) {
+      const text = line.trim();
+      if (text.startsWith('ESC_IMG:')) {
+        const body = text.slice(8), status = document.getElementById('esc_fw_status');
+        const ready = /^ready (\d+)/.exec(body);
+        if (escImgWaiter) {
+          if (ready && escImgWaiter.expect === 'ready') { const w = escImgWaiter; escImgWaiter = null; w.resolve(Number(ready[1])); return true; }
+          if (body.startsWith('stored') && escImgWaiter.expect === 'stored') { const w = escImgWaiter; escImgWaiter = null; w.resolve(body); }
+          else if (body.startsWith('error')) { const w = escImgWaiter; escImgWaiter = null; w.reject(new Error(body.slice(6))); return true; }
+        }
+        const stored = document.getElementById('esc_fw_stored'), step2 = document.getElementById('esc_fw_step2');
+        if (body.startsWith('stored')) {
+          const fields = Object.fromEntries(body.slice(7).split(' ').map(kv => kv.split('=')));
+          if (stored) stored.textContent = `On the blaster: ${fields.label || 'image'} · target ${fields.target || 'unknown'} · ${Math.round(Number(fields.size || 0) / 1024)} KB`;
+          step2?.classList.add('done');
+        } else if (body === 'none') {
+          if (stored) stored.textContent = 'Nothing stored on the blaster yet.';
+          step2?.classList.remove('done');
+        }
+        if (status && !ready && !body.startsWith('stored') && body !== 'none') status.textContent = body;
+        return true;
+      }
+      if (text.startsWith('ESC_FLASH:')) {
+        const body = text.slice(10), status = document.getElementById('esc_fw_status');
+        const progress = /^(\d):progress (\d+)/.exec(body);
+        if (progress) document.getElementById('esc_fw_progress').style.width = `${progress[2]}%`;
+        if (/^\d:ok/.test(body)) document.getElementById('esc_fw_step3')?.classList.add('done');
+        if (body === 'done') status.textContent += ' · Done. Read the ESCs to confirm.';
+        else if (status) status.textContent = body.replace(/^(\d):/, 'ESC $1: ');
+        return true;
+      }
+      if (text.startsWith('ESC_SETTINGS_WRITE:')) {
+        const pending = escWritePending;
+        const status = document.getElementById(pending ? pending.statusId : 'am32_full_status');
+        const body = text.slice(19);
+        const perEsc = /^(\d):(ok|error)\s*(.*)$/.exec(body);
+        if (perEsc && pending) {
+          const i = Number(perEsc[1]) - 1;
+          // Verified on the ESC: keep what was written as the settings we show.
+          if (perEsc[2] === 'ok' && escSettingsRead[i] && pending.blocks[i]) { escSettingsRead[i].bytes = Uint8Array.from(pending.blocks[i]); am32Edits[i] = {}; }
+          if (perEsc[2] === 'error') pending.failed.push(`ESC ${i + 1}: ${perEsc[3]}`);
+          return true;
+        }
+        if (body === 'done' && pending) {
+          if (pending.commands.length && !pending.failed.length) { sendSerialCommand(pending.commands.shift()); return true; }
+          escWritePending = null;
+          showEscSettings();
+          status.textContent = pending.failed.length ? `Not written: ${pending.failed.join('; ')}`
+            : 'Written and verified. The ESCs restarted once: listen for the startup tune and arming sound.';
+          return true;
+        }
+        if (/^error/.test(body)) { escWritePending = null; status.textContent = `Not written: ${body.slice(6)}`; }
+        return true;
+      }
+      return false;
+    }
+    // ---- Arming sound (Byte AM32 build): settings bytes 184-190, see Src/sounds.c playArmingTune ----
+    // 184: 0xFF stock, 0 silent, 1 custom; 185-190: three (Bluejay pitch byte, duration in 10 ms) notes.
+    function armToneUi() {
+      document.getElementById('arm_tone_notes').style.display = document.getElementById('arm_tone_mode').value === 'custom' ? 'inline-flex' : 'none';
+    }
+    // Arming sounds that answer the two short startup tunes: Chirp (c6 e6 g6 c7, rising) ends on a quick
+    // high g6-c7 "locked" pair; Ready (a5 · e6) is answered by e6-a6, a fourth up into the octave.
+    const ARM_TONE_PRESETS = {
+      chirp: [['g6', 60], ['c7', 120], ['', 0]],
+      ready: [['e6', 70], ['a6', 140], ['', 0]],
+    };
+    function applyArmTonePreset(name) {
+      const preset = ARM_TONE_PRESETS[name];
+      if (!preset) return;
+      document.getElementById('arm_tone_mode').value = 'custom';
+      preset.forEach(([note, ms], i) => {
+        if (note) document.getElementById(`arm_note_${i}`).value = note;
+        document.getElementById(`arm_ms_${i}`).value = ms;
+      });
+      armToneUi();
+      previewArmTone();
+    }
+    function armToneNotes() {
+      const notes = [];
+      for (let i = 0; i < 3; i++) {
+        const ms = Math.round(Number(document.getElementById(`arm_ms_${i}`).value) / 10) * 10;
+        if (!ms) break;
+        const m = /^([a-g])(#?)(\d)$/i.exec(document.getElementById(`arm_note_${i}`).value.trim());
+        if (!m) throw new Error(`note ${i + 1}: use a name like c6 or f#5`);
+        const note = { semi: TUNE_SEMITONE[m[1].toLowerCase()] + (m[2] ? 1 : 0), oct: Number(m[3]) };
+        const pitch = tunePeriodByte(note);
+        if (pitch < 1 || pitch > 254) throw new Error(`note ${i + 1} is outside what AM32 can play (about D#3 to D7)`);
+        if (ms < 10 || ms > 500) throw new Error(`note ${i + 1}: 10-500 ms`);
+        notes.push({ pitch, ms, freq: 1e7 / (pitch * 247 + 4000) });
+      }
+      return notes;
+    }
+    function armToneBytes() {
+      const mode = document.getElementById('arm_tone_mode').value;
+      const bytes = new Uint8Array(7).fill(0xFF);
+      if (mode === 'silent') bytes[0] = 0;
+      if (mode === 'custom') {
+        bytes[0] = 1;
+        armToneNotes().forEach((n, i) => { bytes[1 + 2 * i] = n.pitch; bytes[2 + 2 * i] = n.ms / 10; });
+        const used = armToneNotes().length;
+        if (used < 3) bytes[1 + 2 * used] = 0;  // end marker
+      }
+      return bytes;
+    }
+    function previewArmTone() {
+      const status = document.getElementById('arm_tone_status');
+      try {
+        const mode = document.getElementById('arm_tone_mode').value;
+        if (mode === 'silent') { status.textContent = 'Silent: nothing plays when the ESC arms.'; return; }
+        // The stock sound is three 100 ms notes (AM32 playInputTune); shown here at approximate pitch.
+        const notes = mode === 'custom' ? armToneNotes() : [{ freq: 1047, ms: 100 }, { freq: 1175, ms: 100 }, { freq: 2093, ms: 100 }];
+        if (!tunePlayer.ctx) tunePlayer.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = tunePlayer.ctx; let t = ctx.currentTime + 0.05;
+        for (const n of notes) {
+          const osc = ctx.createOscillator(), gain = ctx.createGain();
+          osc.type = 'square'; osc.frequency.value = n.freq; gain.gain.value = 0.05;
+          osc.connect(gain).connect(ctx.destination); osc.start(t); osc.stop(t + n.ms / 1000); t += n.ms / 1000;
+        }
+        status.textContent = mode === 'custom' ? `Playing ${notes.length} note(s), ${notes.reduce((a, n) => a + n.ms, 0)} ms.` : 'Playing an approximation of the AM32 default.';
+      } catch (error) { status.textContent = error.message; }
+    }
+    async function writeArmTone() {
+      const status = document.getElementById('arm_tone_status');
+      try {
+        const bytes = armToneBytes();
+        const target = document.getElementById('tune_target').value;
+        const escs = target === 'all' ? [0, 1] : [Number(target) - 1];
+        const blocks = {};
+        for (const i of escs) {
+          const s = escSettingsRead[i];
+          if (!s || s.bytes.length < 192 || escSettingsAddress[i] == null) throw new Error(`read ESC ${i + 1} on the Settings tab first (needs the full settings block)`);
+          const block = am32EditedBytes(i);
+          block.set(bytes, 184);
+          blocks[i] = block;
+        }
+        await sendEscSettingsWrite(blocks, 'arm_tone_status', 'Writing the arming sound… keep the flywheels stopped. The ESCs restart once and play it.');
+      } catch (error) { status.textContent = `Not written: ${error.message}`; }
+    }
+    // Show what an ESC has, once its settings are read.
+    function showArmTone(s) {
+      if (!s || s.bytes.length < 192) return;
+      const b = s.bytes.slice(184, 191), mode = b[0] === 0 ? 'silent' : b[0] === 1 ? 'custom' : 'stock';
+      document.getElementById('arm_tone_mode').value = mode;
+      if (mode === 'custom') for (let i = 0; i < 3; i++) {
+        const pitch = b[1 + 2 * i], d = b[2 + 2 * i];
+        if (!pitch || pitch === 0xFF) { document.getElementById(`arm_ms_${i}`).value = 0; continue; }
+        const midi = Math.round(57 + 12 * Math.log2(1e7 / (pitch * 247 + 4000) / 440));
+        document.getElementById(`arm_note_${i}`).value = `${['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'][midi % 12]}${Math.floor(midi / 12)}`;
+        document.getElementById(`arm_ms_${i}`).value = d * 10;
+      }
+      armToneUi();
+    }
     let escSettingsQueue = [];
     function handleEscSettingsLine(line) {
       if (line.startsWith('ESC_SETTINGS:')) {
         const status = document.getElementById('esc_cfg_status');
         const m = /^ESC_SETTINGS:([12]):([0-9A-F]+):([0-9A-F]+)$/i.exec(line.trim());
-        if (m) { escSettingsRead[Number(m[1]) - 1] = parseEscSettingsHex(m[3]); showEscSettings(); }
-        else if (/^ESC_SETTINGS:done/.test(line)) { if (status && escSettingsPending === 'read') status.textContent = escSettingsRead.some(Boolean) ? 'Settings read from the ESCs.' : 'No AM32 settings could be read.'; escSettingsPending = null; }
+        if (m) { const i = Number(m[1]) - 1; escSettingsRead[i] = parseEscSettingsHex(m[3]); escSettingsAddress[i] = m[2]; am32Edits[i] = {}; showEscSettings(); }
+        else if (/^ESC_SETTINGS:done/.test(line)) {
+          if (escSettingsPending === 'read') {
+            const text = escSettingsRead.some(Boolean) ? 'Settings read from the ESCs.' : 'No AM32 settings could be read.';
+            if (status) status.textContent = text;
+            const full = document.getElementById('am32_full_status');
+            if (full) full.textContent = text;
+          }
+          escSettingsPending = null;
+        }
         else if (status) status.textContent = line.replace('ESC_SETTINGS:', 'Read: ');
         return true;
       }
@@ -9390,6 +10285,7 @@ function updateWriteButtonText() {
     function parseSerialLine(line) {
       if (consumeEscTelemetry(line)) return;
       if (handleEscSettingsLine(line)) return;
+      if (handleEscFirmwareLine(line)) return;
       if (consumeLaunchComparisonLine(line)) return;
       handleSerialCommandResponse(line);
       if (handleLaunchCurveSerialResponse(line)) return;
