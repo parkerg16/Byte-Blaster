@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Preserve versioned release assets and their recorded hashes byte for byte.
+byte-blaster-v2.0.0/* -text
+byte-blaster-v*/byte_am32_*.hex binary
+byte-blaster-v*/byte_am32_*.bin binary
+byte-blaster-v*/byte_am32_*.zip binary
