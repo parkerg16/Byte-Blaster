@@ -975,6 +975,8 @@
     .esc-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
     .esc-btn { background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.45rem 0.85rem; font: inherit; font-size: 0.83rem; cursor: pointer; }
     .esc-btn:hover { border-color: rgba(6, 182, 212, 0.5); }
+    .esc-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .esc-select { min-width: 0; max-width: 100%; background: #0f172a; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.4rem 0.5rem; font: inherit; font-size: 0.82rem; }
     .esc-btn-primary { background: rgba(6, 182, 212, 0.15); border-color: rgba(6, 182, 212, 0.45); color: #67e8f9; font-weight: 600; }
     .esc-btn-small { padding: 0.3rem 0.6rem; font-size: 0.78rem; }
     .esc-toolbar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; padding: 0.6rem 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.2); margin-bottom: 0.6rem; font-size: 0.82rem; }
@@ -1015,6 +1017,11 @@
     .esc-step.done .esc-step-num { background: rgba(16,185,129,0.2); color: #6ee7b7; }
     .esc-step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.45rem; }
     .esc-step-title { font-weight: 600; font-size: 0.9rem; }
+    #esc_fw_card .esc-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #esc_fw_step1 { grid-column: 1 / -1; }
+    #esc_fw_card .esc-muted { overflow-wrap: anywhere; }
+    #esc_fw_release { flex: 1 1 250px; }
+    @media (max-width: 600px) { #esc_fw_card .esc-steps { grid-template-columns: minmax(0, 1fr); } }
     .esc-file { font-size: 0.8rem; color: var(--text-secondary); max-width: 100%; }
     .esc-progress { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
     .esc-progress > div { height: 100%; width: 0; background: var(--accent-green); transition: width 0.2s; }
@@ -1078,7 +1085,7 @@
     <div>
       <div style="display: flex; align-items: baseline; gap: 0.6rem;">
         <h1 style="margin: 0;">Byte <span>Configurator</span></h1>
-        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v2.0.0</span>
+        <span id="configurator_version_badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(139, 92, 246, 0.2); color: var(--accent-violet); border: 1px solid rgba(139, 92, 246, 0.4); font-family: monospace;">v2.0.1</span>
       </div>
       <div class="subtitle">Hardware Management & Telemetry Interface</div>
     </div>
@@ -3525,7 +3532,7 @@
 
       <!-- ESC Tool Launcher Tab Content -->
       <div id="tab_content_esc" style="display: none; flex-direction: column; gap: 1rem; width: 100%;">
-        <div class="esc-banner" role="note"><span><strong>Byte Blaster v2 beta requires byte_am32 on both ESCs.</strong> Use the matching ESC build from the same beta release and the correct hardware target. Stock AM32 does not support the full Byte telemetry and custom settings. Update the RP2040 and both ESCs together, then check settings and re-run Tune Blaster.</span></div>
+        <div class="esc-banner" role="note"><span><strong>Byte Blaster V2 requires byte_am32 on both ESCs.</strong> Use the matching ESC build for your hardware. Stock AM32 does not support the full Byte telemetry and custom settings. Update the RP2040 and both ESCs together, then check settings and re-run Tune Blaster.</span></div>
         <nav class="esc-subnav" role="tablist" aria-label="ESC sections">
           <button class="esc-subtab" data-panel="settings" onclick="escSubtab('settings')">Settings</button>
           <button class="esc-subtab" data-panel="sounds" onclick="escSubtab('sounds')">Sounds</button>
@@ -3733,16 +3740,35 @@
           <div class="esc-card-head">
             <div>
               <h2 class="esc-h2">ESC Firmware</h2>
-              <p class="esc-lead">Flash the matching byte_am32 .hex from the blaster. Choose the image for your exact ESC hardware target from the same v2 beta release. Existing ESC settings are retained; review them after updating.</p>
+              <p class="esc-lead">Load byte_am32 from GitHub, store it on the blaster, then flash either ESC or both. Choose the build for your exact hardware. Existing ESC settings are retained; review them after updating.</p>
             </div>
           </div>
           <ol class="esc-steps">
             <li class="esc-step" id="esc_fw_step1">
               <div class="esc-step-num">1</div>
               <div class="esc-step-body">
-                <div class="esc-step-title">Load a .hex</div>
-                <input type="file" id="esc_fw_file" accept=".hex" onchange="loadEscFirmwareHex(this.files[0])" class="esc-file">
+                <div class="esc-step-title">Choose and load firmware</div>
+                <div class="esc-row">
+                  <label for="esc_fw_source">Source</label>
+                  <select id="esc_fw_source" class="esc-select" onchange="toggleEscFirmwareSource()">
+                    <option value="github">GitHub releases</option>
+                    <option value="local">Local .hex file</option>
+                  </select>
+                </div>
+                <div id="esc_fw_github" style="margin-top:0.65rem">
+                  <div class="esc-row">
+                    <select id="esc_fw_release" class="esc-select" aria-label="byte_am32 release" onchange="selectEscFirmwareRelease()" style="max-width:100%"><option value="">Checking GitHub…</option></select>
+                    <button id="esc_fw_refresh" class="esc-btn" onclick="fetchEscFirmwareReleases()">Refresh releases</button>
+                    <button id="esc_fw_load" class="esc-btn esc-btn-primary" onclick="loadEscFirmwareRelease()" disabled>Load from GitHub</button>
+                  </div>
+                  <div id="esc_fw_release_info" class="esc-muted" role="status">Stable byte_am32 releases are checked when this page opens.</div>
+                  <a id="esc_fw_release_link" class="esc-muted" target="_blank" rel="noopener noreferrer" hidden>Release notes &amp; source</a>
+                </div>
+                <div id="esc_fw_local" hidden style="margin-top:0.65rem">
+                  <input type="file" id="esc_fw_file" accept=".hex" onchange="loadEscFirmwareHex(this.files[0])" class="esc-file">
+                </div>
                 <div id="esc_fw_file_info" class="esc-muted">No file loaded.</div>
+                <div id="esc_fw_compatibility" class="esc-muted" role="status"></div>
               </div>
             </li>
             <li class="esc-step" id="esc_fw_step2">
@@ -3750,10 +3776,11 @@
               <div class="esc-step-body">
                 <div class="esc-step-title">Store on the blaster</div>
                 <div class="esc-row">
-                  <button class="esc-btn esc-btn-primary" onclick="storeEscFirmwareOnBlaster()">Store on blaster</button>
-                  <button class="esc-btn" onclick="sendSerialCommand('escimg info')">Check stored image</button>
+                  <button id="esc_fw_store" class="esc-btn esc-btn-primary" onclick="storeEscFirmwareOnBlaster()" disabled>Store on blaster</button>
+                  <button id="esc_fw_check" class="esc-btn" onclick="requestEscStoredImage()" disabled>Check stored image</button>
                 </div>
                 <div id="esc_fw_stored" class="esc-muted">The blaster keeps one image, also across its own firmware updates.</div>
+                <div class="esc-muted">Once stored, you can disconnect USB and use the blaster's <strong>Firmware → Flash ESCs</strong> menu, or continue below.</div>
               </div>
             </li>
             <li class="esc-step" id="esc_fw_step3">
@@ -3761,13 +3788,14 @@
               <div class="esc-step-body">
                 <div class="esc-step-title">Flash</div>
                 <div class="esc-row">
-                  <button class="esc-btn esc-btn-primary" onclick="flashEscsFromBlaster('1')">ESC 1</button>
-                  <button class="esc-btn esc-btn-primary" onclick="flashEscsFromBlaster('2')">ESC 2</button>
-                  <button class="esc-btn esc-btn-primary" onclick="flashEscsFromBlaster('all')">Both</button>
+                  <button id="esc_fw_flash_1" class="esc-btn esc-btn-primary" onclick="flashEscsFromBlaster('1')" disabled>ESC 1</button>
+                  <button id="esc_fw_flash_2" class="esc-btn esc-btn-primary" onclick="flashEscsFromBlaster('2')" disabled>ESC 2</button>
+                  <button id="esc_fw_flash_all" class="esc-btn esc-btn-primary" onclick="flashEscsFromBlaster('all')" disabled>Both</button>
                   <label class="esc-check" title="Flash even if the ESC reports a different target name than the image"><input type="checkbox" id="esc_fw_force"> Override target check</label>
                 </div>
                 <div class="esc-progress"><div id="esc_fw_progress"></div></div>
-                <div class="esc-muted">About 20–40 s per ESC. Every page is read back after writing; if a flash fails the bootloader is intact, so just flash again.</div>
+                <div class="esc-muted">Keep the battery connected and the flywheels stopped. Every written page is read back and checked. Remove the magazine and darts before flashing.</div>
+                <div id="esc_fw_esc_versions" class="esc-muted">Read the ESCs for their AM32 version. Byte build versions are confirmed by a verified flash in this connection.</div>
               </div>
             </li>
           </ol>
@@ -4728,8 +4756,8 @@
   </main>
 
   <script>
-    const CONFIGURATOR_VERSION = "v2.0.0";
-    window.CONFIGURATOR_VERSION = "2.0.0";
+    const CONFIGURATOR_VERSION = "v2.0.1";
+    window.CONFIGURATOR_VERSION = "2.0.1";
 
     // === FLASHER LIBRARY REMOVED ===
     // =================================
@@ -8651,6 +8679,7 @@ function updateWriteButtonText() {
     }
 
     function updateFirmwareVersionUI() {
+      updateEscFirmwareUI();
       const sidebarVal = document.getElementById('sidebar_connected_version_val');
       const flasherInstalled = document.getElementById('flasher_installed_version');
       const flasherLatest = document.getElementById('flasher_latest_version');
@@ -9727,7 +9756,11 @@ function updateWriteButtonText() {
       document.querySelectorAll('#tab_content_esc .esc-subtab').forEach(b => b.classList.toggle('active', b.dataset.panel === name));
       document.querySelectorAll('#tab_content_esc .esc-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
       try { localStorage.setItem('byteEscSubtab', name); } catch (_) {}
-      if (name === 'firmware' && port && port.writable && !escFwStoredChecked) { escFwStoredChecked = true; sendSerialCommand('escimg info'); }
+      if (name === 'firmware') {
+        if (!escReleaseChoices.length && !escReleaseFetching && escFwElement('esc_fw_source').value === 'github') fetchEscFirmwareReleases();
+        if (port?.writable && !escFwStoredChecked) requestEscStoredImage();
+        updateEscFirmwareUI();
+      }
     }
     let escFwStoredChecked = false;
     function initEscSubtabs() {
@@ -9933,30 +9966,33 @@ function updateWriteButtonText() {
     // Intel HEX to the flat AM32 application the blaster stores: offset from the ESC's flash start,
     // padded with 0xFF to whole 1 KB pages, plus its CRC-32 and target name (the 32 bytes before the
     // EEPROM page, 0x7BE0 on 32 KB-bootloader parts).
+    // BEGIN ESC_FIRMWARE_RELEASES
     function parseIntelHex(text) {
       const data = new Map();
-      let upper = 0, min = Infinity, max = -Infinity;
+      let upper = 0, min = Infinity, max = -Infinity, ended = false;
       for (const raw of text.split(/\r?\n/)) {
         const line = raw.trim();
         if (!line) continue;
-        if (line[0] !== ':') throw new Error('not an Intel HEX file');
+        if (ended || !/^:(?:[0-9a-f]{2})+$/i.test(line)) throw new Error('invalid Intel HEX record');
         const bytes = line.slice(1).match(/../g).map(h => parseInt(h, 16));
-        const sum = bytes.reduce((a, b) => a + b, 0) & 0xFF;
-        if (sum !== 0) throw new Error('HEX checksum error');
-        const [count, hi, lo, type] = bytes;
+        if (bytes.length < 5 || bytes.length !== bytes[0] + 5) throw new Error('HEX record length error');
+        if ((bytes.reduce((a, b) => a + b, 0) & 0xFF) !== 0) throw new Error('HEX checksum error');
+        const [count, hi, lo, type] = bytes, address = hi * 256 + lo;
         if (type === 0) {
-          const addr = upper + (hi << 8 | lo);
-          for (let i = 0; i < count; i++) data.set(addr + i, bytes[4 + i]);
-          min = Math.min(min, addr); max = Math.max(max, addr + count);
-        } else if (type === 4) upper = (bytes[4] << 8 | bytes[5]) << 16;
-        else if (type === 2) upper = (bytes[4] << 8 | bytes[5]) << 4;
-        else if (type === 1) break;
+          const addr = upper + address;
+          for (let i = 0; i < count; i++) {
+            if (data.has(addr + i) && data.get(addr + i) !== bytes[4 + i]) throw new Error('conflicting HEX records');
+            data.set(addr + i, bytes[4 + i]);
+          }
+          if (count) { min = Math.min(min, addr); max = Math.max(max, addr + count); }
+        } else if (type === 1 && count === 0 && address === 0) ended = true;
+        else if ((type === 2 || type === 4) && count === 2 && address === 0) upper = (bytes[4] * 256 + bytes[5]) * (type === 4 ? 65536 : 16);
+        else if (!((type === 3 || type === 5) && count === 4 && address === 0)) throw new Error('unsupported HEX record');
       }
-      if (!data.size) throw new Error('no data in HEX');
-      const flashBase = 0x08000000;
-      const offset = (min - flashBase) & ~0x3FF;
+      if (!ended || !data.size) throw new Error('incomplete HEX file');
+      const flashBase = 0x08000000, offset = Math.floor((min - flashBase) / 1024) * 1024;
       const size = Math.ceil((max - flashBase - offset) / 1024) * 1024;
-      if (min < flashBase || offset < 0x1000 || size <= 0 || size > 60 * 1024) throw new Error('not an AM32 application image (expected 0x08001000 onward, at most 60 KB)');
+      if (offset < 0x1000 || size <= 0 || size > 60 * 1024 || offset + size > 0x10000) throw new Error('not an AM32 application image');
       const image = new Uint8Array(size).fill(0xFF);
       for (const [addr, value] of data) image[addr - flashBase - offset] = value;
       return { offset, image };
@@ -9966,87 +10002,317 @@ function updateWriteButtonText() {
       for (const b of bytes) { crc ^= b; for (let k = 0; k < 8; k++) crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1)); }
       return (~crc) >>> 0;
     }
-    let escFirmware = null;
-    async function loadEscFirmwareHex(file) {
-      const info = document.getElementById('esc_fw_file_info');
-      try {
-        const { offset, image } = parseIntelHex(await file.text());
-        const nameOffset = 0x7BE0 >= offset && 0x7BE0 + 32 <= offset + image.length ? 0x7BE0 : 0;
-        let target = '';
-        if (nameOffset) for (let i = 0; i < 32; i++) { const c = image[nameOffset - offset + i]; if (c < 0x21 || c > 0x7E) break; target += String.fromCharCode(c); }
-        escFirmware = { name: file.name, offset, image, crc: crc32(image), nameOffset, target };
-        info.textContent = `${file.name}: ${(image.length / 1024).toFixed(0)} KB, target ${target || 'unknown'}, CRC ${escFirmware.crc.toString(16).toUpperCase().padStart(8, '0')}`;
-        document.getElementById('esc_fw_step1')?.classList.add('done');
-      } catch (error) { escFirmware = null; info.textContent = `Not loaded: ${error.message}`; }
+    function makeEscFirmware(name, text, release = null) {
+      const { offset, image } = parseIntelHex(text);
+      const nameOffset = offset <= 0x7BE0 && offset + image.length >= 0x7C00 ? 0x7BE0 : 0;
+      let target = '';
+      if (nameOffset) for (let i = 0; i < 32; i++) { const c = image[nameOffset - offset + i]; if (c < 0x21 || c > 0x7E) break; target += String.fromCharCode(c); }
+      if (release && target !== release.target) throw new Error('HEX hardware target differs from the release manifest');
+      return { name, offset, image, crc: crc32(image), nameOffset, target, release };
     }
-    let escImgWaiter = null;
+    function escImageMatches(stored, firmware) {
+      return !!stored && !!firmware && stored.offset === firmware.offset && stored.size === firmware.image.length &&
+        stored.crc === firmware.crc && !!firmware.target && stored.target === firmware.target;
+    }
+    function escVersion(value) { return String(value || '').trim().replace(/^v/i, ''); }
+    function escFirmwareCompatibility(firmware, boardVersion) {
+      if (!firmware) return { ok: false, message: 'Load an image to check compatibility.' };
+      if (!boardVersion) return { ok: false, message: 'Connect the blaster and wait for its firmware version.' };
+      if (!firmware.release) return { ok: true, message: 'Local image: release version and controller pairing are unverified. Confirm hardware compatibility before storing.' };
+      const expected = firmware.release.compatibleBlaster;
+      return escVersion(boardVersion) === expected
+        ? { ok: true, message: `Compatible with connected blaster v${escVersion(boardVersion)}. Confirm your board revision matches this hardware-specific build.` }
+        : { ok: false, message: `Requires blaster firmware v${expected}; connected v${escVersion(boardVersion)}. Update the blaster before storing or flashing.` };
+    }
+    function validateEscRelease(release, manifest) {
+      const esc = manifest?.esc, semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+      if (manifest?.version !== release.tag_name || esc?.product !== 'byte_am32' || esc.protocol !== 'byte-dshot-long-v1' ||
+          !semver.test(esc.version) || !semver.test(esc.compatible_blaster) || !/^[A-Z0-9_]+$/.test(esc.target)) throw new Error('release has no supported byte_am32 pairing');
+      const name = `byte_am32_${esc.target}_v${esc.version}.hex`;
+      const records = (manifest.assets || []).filter(a => a.type === 'esc' && a.format === 'hex' && a.name === name);
+      const assets = (release.assets || []).filter(a => a.name === name);
+      if (records.length !== 1 || assets.length !== 1) throw new Error('release HEX is missing or ambiguous');
+      const asset = records[0], published = assets[0];
+      if (!/^[a-f0-9]{64}$/i.test(asset.sha256) || !Number.isInteger(asset.size) || asset.size < 1 || asset.size > 512 * 1024 ||
+          published.size !== asset.size || (published.digest && published.digest.toLowerCase() !== `sha256:${asset.sha256.toLowerCase()}`)) throw new Error('release HEX integrity metadata differs');
+      if (manifest.compatibility && (manifest.compatibility.esc_product !== esc.product || manifest.compatibility.esc_version !== esc.version ||
+          manifest.compatibility.protocol !== esc.protocol)) throw new Error('release compatibility metadata differs');
+      return { version: esc.version, compatibleBlaster: esc.compatible_blaster, target: esc.target,
+        sha256: asset.sha256.toLowerCase(), size: asset.size, name, tag: release.tag_name,
+        key: `${esc.target}:${esc.version}:${asset.sha256}`, url: firmwareRawContentUrl(release.tag_name, name) };
+    }
+    async function escSha256(bytes) {
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+    }
+    async function fetchEscBytes(url, maxSize) {
+      const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        if (!response.ok) throw new Error(`GitHub HTTP ${response.status}`);
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (!bytes.length || bytes.length > maxSize) throw new Error('unexpected download size');
+        return bytes;
+      } finally { clearTimeout(timer); }
+    }
+    let escFirmware = null, escStoredImage = null, escFirmwareBusy = '', escDownloadBusy = false;
+    let escReleaseChoices = [], escReleaseGeneration = 0, escFirmwareLoadGeneration = 0, escReleaseFetching = false;
+    let escImgWaiter = null, escFlashRequest = null, escFlashProof = [null, null], escReadVersions = [null, null], escFlashErrors = [null, null];
+    const escFwElement = id => document.getElementById(id);
+    function updateEscFirmwareUI() {
+      const connected = !!port?.writable && !!connectedBlasterVersion, busy = !!escFirmwareBusy;
+      const compatible = escFirmwareCompatibility(escFirmware, connectedBlasterVersion);
+      const matching = escImageMatches(escStoredImage, escFirmware);
+      const setDisabled = (id, disabled) => { const e = escFwElement(id); if (e) e.disabled = disabled; };
+      for (const id of ['esc_fw_source', 'esc_fw_release', 'esc_fw_file', 'esc_fw_refresh']) setDisabled(id, busy || escDownloadBusy || escReleaseFetching);
+      setDisabled('esc_fw_load', busy || escDownloadBusy || escReleaseFetching || !escReleaseChoices[Number(escFwElement('esc_fw_release')?.value)]);
+      setDisabled('esc_fw_store', !connected || busy || escDownloadBusy || !compatible.ok || matching);
+      setDisabled('esc_fw_check', !connected || busy);
+      for (const id of ['esc_fw_flash_1', 'esc_fw_flash_2', 'esc_fw_flash_all']) setDisabled(id, !connected || busy || escDownloadBusy || !compatible.ok || !matching);
+      setDisabled('esc_fw_force', busy);
+      const info = escFwElement('esc_fw_file_info');
+      if (info && escFirmware) info.textContent = `${escFirmware.release ? `byte_am32 v${escFirmware.release.version} · SHA-256 verified` : 'Local HEX · release unverified'} · ${escFirmware.target || 'unknown target'} · ${(escFirmware.image.length / 1024).toFixed(0)} KB`;
+      const compatibility = escFwElement('esc_fw_compatibility');
+      if (compatibility) compatibility.textContent = escFirmware ? compatible.message : '';
+      const stored = escFwElement('esc_fw_stored');
+      if (stored) stored.textContent = escStoredImage
+        ? matching ? `${escFirmware.release ? `byte_am32 v${escFirmware.release.version}` : escFirmware.name} stored · image CRC, size and target match. Ready for browser or on-blaster flashing.`
+          : `${escStoredImage.label || 'Image'} stored · ${escStoredImage.target || 'unknown target'}. Load a release to verify its match before browser flashing.`
+        : port?.writable ? 'No image confirmed on this connection. Check stored image or store the loaded firmware.' : 'Connect the blaster to check its stored image.';
+      escFwElement('esc_fw_step2')?.classList.toggle('done', matching);
+      const versions = escFwElement('esc_fw_esc_versions');
+      if (versions) versions.textContent = [0, 1].map(i => {
+        const proof = escFlashProof[i], read = escReadVersions[i];
+        return `ESC ${i + 1}: ${escFlashErrors[i] ? `flash failed · ${escFlashErrors[i]}` : proof ? `${proof} · last flash verified in this connection` : read ? `AM32 ${read} read; Byte build not identified` : 'not read'}`;
+      }).join(' · ');
+    }
+    function selectEscFirmwareRelease() {
+      if (escFirmwareBusy) return;
+      ++escFirmwareLoadGeneration; escDownloadBusy = false; escFirmware = null;
+      escFwElement('esc_fw_step1')?.classList.remove('done');
+      escFwElement('esc_fw_step3')?.classList.remove('done');
+      const choice = escReleaseChoices[Number(escFwElement('esc_fw_release').value)];
+      escFwElement('esc_fw_file_info').textContent = 'No file loaded.';
+      escFwElement('esc_fw_release_info').textContent = choice
+        ? `byte_am32 v${choice.version} · ${choice.target} · requires blaster v${choice.compatibleBlaster} · ${choice.tag}` : 'No matching stable ESC release available.';
+      const link = escFwElement('esc_fw_release_link');
+      link.hidden = !choice;
+      if (choice) link.href = `https://github.com/${FIRMWARE_RELEASES_REPO}/releases/tag/${encodeURIComponent(choice.tag)}`;
+      updateEscFirmwareUI();
+    }
+    function toggleEscFirmwareSource() {
+      if (escFirmwareBusy) return;
+      ++escFirmwareLoadGeneration; escDownloadBusy = false; escFirmware = null;
+      const github = escFwElement('esc_fw_source').value === 'github';
+      escFwElement('esc_fw_github').hidden = !github; escFwElement('esc_fw_local').hidden = github;
+      escFwElement('esc_fw_file_info').textContent = 'No file loaded.';
+      escFwElement('esc_fw_file').value = '';
+      escFwElement('esc_fw_step1')?.classList.remove('done');
+      escFwElement('esc_fw_step3')?.classList.remove('done');
+      if (github && !escReleaseChoices.length && !escReleaseFetching) fetchEscFirmwareReleases();
+      updateEscFirmwareUI();
+    }
+    async function fetchEscFirmwareReleases() {
+      if (escFirmwareBusy || escReleaseFetching) return;
+      const generation = ++escReleaseGeneration;
+      ++escFirmwareLoadGeneration; escFirmware = null; escDownloadBusy = false; escReleaseFetching = true;
+      const status = escFwElement('esc_fw_release_info'); status.textContent = 'Checking GitHub releases…'; updateEscFirmwareUI();
+      try {
+        const bytes = await fetchEscBytes(`https://api.github.com/repos/${FIRMWARE_RELEASES_REPO}/releases?per_page=30`, 2 * 1024 * 1024);
+        const releases = JSON.parse(new TextDecoder().decode(bytes));
+        if (!Array.isArray(releases)) throw new Error('invalid release list');
+        const candidates = releases.filter(r => !r.draft && !r.prerelease && /^v\d+\.\d+\.\d+$/.test(r.tag_name) &&
+          (r.assets || []).some(a => /^byte_am32_.*\.hex$/i.test(a.name)))
+          .sort((a, b) => Date.parse(b.published_at || 0) - Date.parse(a.published_at || 0)).slice(0, 5);
+        const results = await Promise.allSettled(candidates.map(async release => {
+          const bytes = await fetchEscBytes(firmwareRawContentUrl(release.tag_name, 'manifest.json'), 1024 * 1024);
+          const metadata = release.assets.find(a => a.name === 'manifest.json');
+          if (!metadata) throw new Error('release manifest is missing');
+          if (metadata.digest && metadata.digest.toLowerCase() !== `sha256:${await escSha256(bytes)}`) throw new Error('release manifest hash differs');
+          return validateEscRelease(release, JSON.parse(new TextDecoder().decode(bytes).replace(/^\uFEFF/, '')));
+        }));
+        if (generation !== escReleaseGeneration) return;
+        const unique = new Map();
+        for (const result of results) if (result.status === 'fulfilled' && !unique.has(result.value.key)) unique.set(result.value.key, result.value);
+        escReleaseChoices = [...unique.values()].slice(0, 3);
+        const select = escFwElement('esc_fw_release'); select.replaceChildren();
+        escReleaseChoices.forEach((choice, i) => { const option = document.createElement('option'); option.value = String(i);
+          option.textContent = `${i === 0 ? 'Latest verified · ' : ''}byte_am32 v${choice.version} · ${choice.target}`; select.appendChild(option); });
+        select.value = escReleaseChoices.length ? '0' : '';
+        selectEscFirmwareRelease();
+        if (!escReleaseChoices.length) throw new Error('no verified stable byte_am32 releases found');
+        if (results.some(result => result.status === 'rejected')) status.textContent += ' · Some releases could not be verified; these may be older builds.';
+      } catch (error) {
+        if (generation !== escReleaseGeneration) return;
+        escReleaseChoices = []; escFwElement('esc_fw_release').replaceChildren(); escFwElement('esc_fw_release_link').hidden = true;
+        status.textContent = `${error.message}. Refresh to retry, or choose a local HEX.`;
+      } finally { if (generation === escReleaseGeneration) { escReleaseFetching = false; updateEscFirmwareUI(); } }
+    }
+    async function loadEscFirmwareRelease() {
+      if (escFirmwareBusy || escDownloadBusy || escReleaseFetching) return;
+      const choice = escReleaseChoices[Number(escFwElement('esc_fw_release').value)]; if (!choice) return;
+      const generation = ++escFirmwareLoadGeneration;
+      escFirmware = null; escDownloadBusy = true; updateEscFirmwareUI();
+      escFwElement('esc_fw_step1')?.classList.remove('done'); escFwElement('esc_fw_step3')?.classList.remove('done');
+      escFwElement('esc_fw_file_info').textContent = 'Downloading and verifying the HEX…';
+      try {
+        const bytes = await fetchEscBytes(choice.url, 512 * 1024);
+        if (bytes.length !== choice.size || await escSha256(bytes) !== choice.sha256) throw new Error('HEX SHA-256 or size differs from the published release');
+        const firmware = makeEscFirmware(choice.name, new TextDecoder().decode(bytes), choice);
+        if (generation !== escFirmwareLoadGeneration) return;
+        escFirmware = firmware; escFwElement('esc_fw_step1')?.classList.add('done');
+      } catch (error) { if (generation === escFirmwareLoadGeneration) escFwElement('esc_fw_file_info').textContent = `Not loaded: ${error.message}`; }
+      finally { if (generation === escFirmwareLoadGeneration) { escDownloadBusy = false; updateEscFirmwareUI(); } }
+    }
+    async function loadEscFirmwareHex(file) {
+      if (escFirmwareBusy || !file) return;
+      const generation = ++escFirmwareLoadGeneration; escFirmware = null; escDownloadBusy = true; updateEscFirmwareUI();
+      escFwElement('esc_fw_step1')?.classList.remove('done');
+      escFwElement('esc_fw_step3')?.classList.remove('done');
+      try {
+        if (file.size > 512 * 1024) throw new Error('HEX file is too large');
+        const firmware = makeEscFirmware(file.name, await file.text());
+        if (generation !== escFirmwareLoadGeneration) return;
+        escFirmware = firmware; escFwElement('esc_fw_step1')?.classList.add('done');
+      } catch (error) { if (generation === escFirmwareLoadGeneration) escFwElement('esc_fw_file_info').textContent = `Not loaded: ${error.message}`; }
+      finally { if (generation === escFirmwareLoadGeneration) { escDownloadBusy = false; updateEscFirmwareUI(); } }
+    }
     function waitEscImg(expect, ms = 8000) {
+      if (escImgWaiter) throw new Error('another image command is waiting');
       return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => { escImgWaiter = null; reject(new Error('no reply from the blaster')); }, ms);
-        escImgWaiter = { expect, resolve: v => { clearTimeout(timer); resolve(v); }, reject: e => { clearTimeout(timer); reject(e); } };
+        const waiter = { expect, resolve: value => { clearTimeout(timer); if (escImgWaiter === waiter) escImgWaiter = null; resolve(value); },
+          reject: error => { clearTimeout(timer); if (escImgWaiter === waiter) escImgWaiter = null; reject(error); } };
+        const timer = setTimeout(() => waiter.reject(new Error('no reply from the blaster')), ms); escImgWaiter = waiter;
       });
     }
+    async function escImageCommand(command, expect, connectionPort, generation) {
+      assertSerialConnection(connectionPort, generation);
+      const reply = waitEscImg(expect);
+      try { await sendSerialCommand(command, { requireSuccess: true }); }
+      catch (error) { escImgWaiter?.reject(error); }
+      const value = await reply; assertSerialConnection(connectionPort, generation); return value;
+    }
+    async function requestEscStoredImage() {
+      if (!port?.writable || escFirmwareBusy) return;
+      const connectionPort = port, generation = serialConnectionGeneration; escFirmwareBusy = 'checking'; updateEscFirmwareUI();
+      try { await escImageCommand('escimg info', 'info', connectionPort, generation); escFwStoredChecked = true; }
+      catch (error) { if (generation === serialConnectionGeneration) escFwElement('esc_fw_status').textContent = `Image check failed: ${error.message}`; }
+      finally { if (generation === serialConnectionGeneration) { escFirmwareBusy = ''; updateEscFirmwareUI(); } }
+    }
     async function storeEscFirmwareOnBlaster() {
-      const status = document.getElementById('esc_fw_status'), bar = document.getElementById('esc_fw_progress');
-      if (!escFirmware) { status.textContent = 'Load a .hex first.'; return; }
-      const { offset, image, crc, nameOffset, name } = escFirmware;
+      const status = escFwElement('esc_fw_status'), firmware = escFirmware;
+      if (escFirmwareBusy || escDownloadBusy) return;
+      if (!port?.writable || !escFirmwareCompatibility(firmware, connectedBlasterVersion).ok) { status.textContent = 'Connect a compatible blaster and load firmware first.'; return; }
+      const { offset, image, crc, nameOffset, name } = firmware, connectionPort = port, generation = serialConnectionGeneration;
+      escFirmwareBusy = 'storing'; escStoredImage = null; escFwElement('esc_fw_step3')?.classList.remove('done'); updateEscFirmwareUI();
       try {
-        status.textContent = 'Erasing the blaster image store…';
-        const ready = waitEscImg('ready');
-        await sendSerialCommand(`escimg begin ${offset.toString(16)} ${image.length} ${crc.toString(16)} ${nameOffset.toString(16)} ${name.replace(/\s+/g, '_').slice(0, 40)}`);
-        await ready;
-        const chunk = 512;
-        for (let pos = 0; pos < image.length; pos += chunk) {
-          const next = waitEscImg('ready');
-          await sendSerialCommand(`escimg data ${pos} ${toHex(image.subarray(pos, pos + chunk))}`);
-          const at = await next;
-          if (at !== Math.min(pos + chunk, image.length)) throw new Error(`blaster is at ${at}, expected ${pos + chunk}`);
-          bar.style.width = `${Math.round(100 * (pos + chunk) / image.length)}%`;
-          status.textContent = `Uploading to the blaster… ${Math.min(pos + chunk, image.length)} / ${image.length} bytes`;
+        status.textContent = 'Preparing the blaster image store…';
+        const ready = await escImageCommand(`escimg begin ${offset.toString(16)} ${image.length} ${crc.toString(16)} ${nameOffset.toString(16)} ${name.replace(/\s+/g, '_').slice(0, 40)}`, 'ready', connectionPort, generation);
+        if (ready !== 0) throw new Error('unexpected image-store position');
+        for (let pos = 0; pos < image.length; pos += 512) {
+          const at = await escImageCommand(`escimg data ${pos} ${toHex(image.subarray(pos, pos + 512))}`, 'ready', connectionPort, generation);
+          if (at !== Math.min(pos + 512, image.length)) throw new Error('image-store position differs');
+          escFwElement('esc_fw_progress').style.width = `${Math.round(100 * at / image.length)}%`;
+          status.textContent = `Storing on blaster… ${at} / ${image.length} bytes`;
         }
+        // Keep the final command explicit: the board validates CRC before committing its header.
         const stored = waitEscImg('stored');
-        await sendSerialCommand('escimg end');
-        await stored;
-        status.textContent = 'Stored on the blaster. Flash ESC 1, ESC 2 or both.';
-      } catch (error) { status.textContent = `Store failed: ${error.message}`; }
+        try { await sendSerialCommand('escimg end', { requireSuccess: true }); } catch (error) { escImgWaiter?.reject(error); }
+        await stored; assertSerialConnection(connectionPort, generation);
+        if (!escImageMatches(escStoredImage, firmware)) throw new Error('stored image does not match the loaded firmware');
+        status.textContent = 'Stored image verified. Flash below, or use Firmware → Flash ESCs on the blaster.';
+      } catch (error) { if (generation === serialConnectionGeneration) { escStoredImage = null; status.textContent = `Store failed: ${error.message}`; } }
+      finally { if (generation === serialConnectionGeneration) { escFirmwareBusy = ''; updateEscFirmwareUI(); } }
+    }
+    function escFlashWatchdog() {
+      if (!escFlashRequest) return;
+      clearTimeout(escFlashRequest.timer);
+      escFlashRequest.timer = setTimeout(() => {
+        escFlashRequest = null; escFirmwareBusy = 'unknown'; escStoredImage = null; updateEscFirmwareUI();
+        escFwElement('esc_fw_status').textContent = 'No flash completion report. Reconnect and check the stored image before retrying.';
+      }, 120000);
     }
     async function flashEscsFromBlaster(which) {
-      const status = document.getElementById('esc_fw_status');
-      document.getElementById('esc_fw_progress').style.width = '0%';
-      status.textContent = 'Flashing from the blaster… keep the flywheels stopped and the battery connected.';
-      await sendSerialCommand(`esc_flash ${which}${document.getElementById('esc_fw_force').checked ? ' force' : ''}`);
+      const status = escFwElement('esc_fw_status');
+      if (escFirmwareBusy || escDownloadBusy || !['1', '2', 'all'].includes(which)) return;
+      if (!port?.writable || !escFirmwareCompatibility(escFirmware, connectedBlasterVersion).ok) { status.textContent = 'Connect a compatible blaster and load firmware first.'; return; }
+      const connectionPort = port, generation = serialConnectionGeneration, firmware = escFirmware;
+      escFirmwareBusy = 'checking'; updateEscFirmwareUI();
+      try {
+        await escImageCommand('escimg info', 'info', connectionPort, generation);
+        if (!escImageMatches(escStoredImage, firmware)) throw new Error('stored image differs; store the loaded firmware before flashing');
+        escFlashRequest = { generation, firmware, mask: which === 'all' ? 3 : Number(which), okMask: 0, failMask: 0 };
+        for (let i = 0; i < 2; i++) if (escFlashRequest.mask & (1 << i)) { escFlashProof[i] = null; escFlashErrors[i] = null; }
+        escFirmwareBusy = 'flashing'; escFlashWatchdog(); updateEscFirmwareUI();
+        escFwElement('esc_fw_step3')?.classList.remove('done'); escFwElement('esc_fw_progress').style.width = '0%';
+        status.textContent = 'Flashing… keep the battery connected and flywheels stopped.';
+        await sendSerialCommand(`esc_flash ${which}${escFwElement('esc_fw_force').checked ? ' force' : ''}`, { requireSuccess: true });
+      } catch (error) {
+        if (generation !== serialConnectionGeneration) return;
+        clearTimeout(escFlashRequest?.timer); escFlashRequest = null; escFirmwareBusy = ''; status.textContent = `Not flashed: ${error.message}`; updateEscFirmwareUI();
+      }
     }
+    function handleEscImageReply(body) {
+      const ready = /^ready (\d+)$/.exec(body);
+      if (ready && escImgWaiter?.expect === 'ready') escImgWaiter.resolve(Number(ready[1]));
+      else if (body.startsWith('stored ')) {
+        escFwStoredChecked = true;
+        const fields = Object.fromEntries(body.slice(7).split(' ').map(kv => kv.split('=')));
+        const parsed = { offset: parseInt(fields.offset, 16), size: Number(fields.size), crc: parseInt(fields.crc, 16), target: fields.target === '-' ? '' : fields.target, label: fields.label };
+        escStoredImage = [parsed.offset, parsed.size, parsed.crc].every(Number.isFinite) ? parsed : null;
+        if (escImgWaiter && ['info', 'stored'].includes(escImgWaiter.expect)) escImgWaiter.resolve(escStoredImage);
+      } else if (body === 'none' || body === 'erased') {
+        escFwStoredChecked = true;
+        escStoredImage = null; if (escImgWaiter?.expect === 'info') escImgWaiter.resolve(null);
+      } else if (body.startsWith('error')) {
+        escStoredImage = null;
+        escImgWaiter?.reject(new Error(body.slice(6))); escFwElement('esc_fw_status').textContent = body;
+      }
+      updateEscFirmwareUI();
+    }
+    function handleEscFlashReply(body) {
+      const status = escFwElement('esc_fw_status');
+      if (!escFlashRequest && /^[12]:(start|error)\s/.test(body)) {
+        escFlashRequest = { generation: serialConnectionGeneration, firmware: escImageMatches(escStoredImage, escFirmware) ? escFirmware : null, mask: 0, okMask: 0, failMask: 0 };
+        escFirmwareBusy = 'flashing'; escFwElement('esc_fw_step3')?.classList.remove('done');
+      }
+      const request = escFlashRequest;
+      if (!request || request.generation !== serialConnectionGeneration) { if (body.startsWith('error')) status.textContent = body; return; }
+      escFlashWatchdog();
+      const perEsc = /^([12]):(start|progress|ok|error)\s*(.*)$/.exec(body);
+      if (perEsc) {
+        const index = Number(perEsc[1]) - 1, bit = 1 << index; request.mask |= bit;
+        if (perEsc[2] === 'start') { escFlashProof[index] = null; escFlashErrors[index] = null; }
+        if (perEsc[2] === 'progress') escFwElement('esc_fw_progress').style.width = `${Math.min(100, Math.max(0, Number(perEsc[3]) || 0))}%`;
+        if (perEsc[2] === 'error') { request.failMask |= bit; escFlashProof[index] = null; escFlashErrors[index] = perEsc[3]; }
+        if (perEsc[2] === 'ok') {
+          const size = /^(\d+) bytes verified$/.exec(perEsc[3]);
+          if (request.firmware && (!size || Number(size[1]) !== request.firmware.image.length)) { request.failMask |= bit; escFlashErrors[index] = 'verified byte count differs'; }
+          else { request.okMask |= bit; escFlashProof[index] = request.firmware?.release ? `byte_am32 v${request.firmware.release.version}` : 'stored image'; }
+        }
+      }
+      status.textContent = body.replace(/^([12]):/, 'ESC $1: ');
+      if (body === 'done' || body.startsWith('error')) {
+        const success = body === 'done' && request.mask && !request.failMask && (request.okMask & request.mask) === request.mask;
+        for (let i = 0; i < 2; i++) if ((request.mask & (1 << i)) && !(request.okMask & (1 << i)) && !escFlashErrors[i]) escFlashErrors[i] = body.startsWith('error') ? body.slice(6) : 'no verified completion report';
+        escFwElement('esc_fw_step3')?.classList.toggle('done', !!success);
+        status.textContent = success ? 'Flash verified on the selected ESCs. Power-cycle, read settings and re-run tuning.' : 'Flash incomplete or failed. Check each ESC result before retrying.';
+        clearTimeout(request.timer); escFlashRequest = null; escFirmwareBusy = '';
+      }
+      updateEscFirmwareUI();
+    }
+    function resetEscFirmwareConnection() {
+      escImgWaiter?.reject(new Error('Serial connection changed'));
+      clearTimeout(escFlashRequest?.timer); escFlashRequest = null;
+      escStoredImage = null; escFlashProof = [null, null]; escReadVersions = [null, null]; escFlashErrors = [null, null]; escFirmwareBusy = ''; escFwStoredChecked = false;
+      escFwElement('esc_fw_step3')?.classList.remove('done'); updateEscFirmwareUI();
+    }
+    // END ESC_FIRMWARE_RELEASES
+
     function handleEscFirmwareLine(line) {
       const text = line.trim();
-      if (text.startsWith('ESC_IMG:')) {
-        const body = text.slice(8), status = document.getElementById('esc_fw_status');
-        const ready = /^ready (\d+)/.exec(body);
-        if (escImgWaiter) {
-          if (ready && escImgWaiter.expect === 'ready') { const w = escImgWaiter; escImgWaiter = null; w.resolve(Number(ready[1])); return true; }
-          if (body.startsWith('stored') && escImgWaiter.expect === 'stored') { const w = escImgWaiter; escImgWaiter = null; w.resolve(body); }
-          else if (body.startsWith('error')) { const w = escImgWaiter; escImgWaiter = null; w.reject(new Error(body.slice(6))); return true; }
-        }
-        const stored = document.getElementById('esc_fw_stored'), step2 = document.getElementById('esc_fw_step2');
-        if (body.startsWith('stored')) {
-          const fields = Object.fromEntries(body.slice(7).split(' ').map(kv => kv.split('=')));
-          if (stored) stored.textContent = `On the blaster: ${fields.label || 'image'} · target ${fields.target || 'unknown'} · ${Math.round(Number(fields.size || 0) / 1024)} KB`;
-          step2?.classList.add('done');
-        } else if (body === 'none') {
-          if (stored) stored.textContent = 'Nothing stored on the blaster yet.';
-          step2?.classList.remove('done');
-        }
-        if (status && !ready && !body.startsWith('stored') && body !== 'none') status.textContent = body;
-        return true;
-      }
-      if (text.startsWith('ESC_FLASH:')) {
-        const body = text.slice(10), status = document.getElementById('esc_fw_status');
-        const progress = /^(\d):progress (\d+)/.exec(body);
-        if (progress) document.getElementById('esc_fw_progress').style.width = `${progress[2]}%`;
-        if (/^\d:ok/.test(body)) document.getElementById('esc_fw_step3')?.classList.add('done');
-        if (body === 'done') status.textContent += ' · Done. Read the ESCs to confirm.';
-        else if (status) status.textContent = body.replace(/^(\d):/, 'ESC $1: ');
-        return true;
-      }
+      if (text.startsWith('ESC_IMG:')) { handleEscImageReply(text.slice(8)); return true; }
+      if (text.startsWith('ESC_FLASH:')) { handleEscFlashReply(text.slice(10)); return true; }
       if (text.startsWith('ESC_SETTINGS_WRITE:')) {
         const pending = escWritePending;
         const status = document.getElementById(pending ? pending.statusId : 'am32_full_status');
@@ -10177,7 +10443,7 @@ function updateWriteButtonText() {
       if (line.startsWith('ESC_SETTINGS:')) {
         const status = document.getElementById('esc_cfg_status');
         const m = /^ESC_SETTINGS:([12]):([0-9A-F]+):([0-9A-F]+)$/i.exec(line.trim());
-        if (m) { const i = Number(m[1]) - 1; escSettingsRead[i] = parseEscSettingsHex(m[3]); escSettingsAddress[i] = m[2]; am32Edits[i] = {}; showEscSettings(); }
+        if (m) { const i = Number(m[1]) - 1; escSettingsRead[i] = parseEscSettingsHex(m[3]); escReadVersions[i] = escSettingsRead[i].version; escSettingsAddress[i] = m[2]; am32Edits[i] = {}; showEscSettings(); updateEscFirmwareUI(); }
         else if (/^ESC_SETTINGS:done/.test(line)) {
           if (escSettingsPending === 'read') {
             const text = escSettingsRead.some(Boolean) ? 'Settings read from the ESCs.' : 'No AM32 settings could be read.';
@@ -10446,6 +10712,7 @@ function updateWriteButtonText() {
         }
         logToConsole("Opening port at 115200 baud...");
         ++serialConnectionGeneration;
+        resetEscFirmwareConnection();
         await port.open({ baudRate: 115200 });
         
         logToConsole("Serial port connected!");
@@ -10478,6 +10745,7 @@ function updateWriteButtonText() {
           await sendSerialCommand("fps show");
           await new Promise(r => setTimeout(r, 80));
           await sendSerialCommand("errors get");
+          await sendSerialCommand("escimg info");
           await sendSerialCommand("launch_config");
           await refreshGuidedTuning();
           logToConsole("Board settings and diagnostic fault history loaded into the UI.");
@@ -10521,6 +10789,7 @@ function updateWriteButtonText() {
       escChartOriginMs = null;
       updateEscTelemetryPanel();
       ++serialConnectionGeneration;
+      resetEscFirmwareConnection();
       for (const waiter of serialResponseWaiters) waiter.reject(new Error('Serial disconnected'));
       if (launchCurveResponseWaiter) launchCurveResponseWaiter.reject(new Error('Serial disconnected'));
       if (launchReadPending) launchReadPending.reject(new Error('Serial disconnected'));
